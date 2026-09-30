@@ -6,6 +6,7 @@ import session from 'express-session';
 import dotenv from 'dotenv';
 import passport from './config/passport';
 import authRoutes from './routes/auth';
+import taskRoutes from './routes/tasks';
 
 dotenv.config();
 
@@ -53,5 +54,6 @@ app.get('/health', (req, res) => {
 
 // Routes
 app.use('/auth', authRoutes);
+app.use('/api/tasks', taskRoutes);
 
 export default app;
