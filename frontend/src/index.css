@@ -1,0 +1,36 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: #fafafa;
+    --foreground: #1a1a1a;
+  }
+
+  .dark {
+    --background: #1a1a1a;
+    --foreground: #fafafa;
+  }
+
+  body {
+    @apply bg-brand-light dark:bg-brand-dark text-gray-800 dark:text-gray-200;
+  }
+}
+
+@layer utilities {
+  .brush-stroke {
+    position: relative;
+  }
+
+  .brush-stroke::before {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #22c55e, #16a34a);
+    border-radius: 2px;
+  }
+}
