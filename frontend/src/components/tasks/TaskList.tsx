@@ -1,14 +1,17 @@
 import React, { useState } from 'react';
 import { useTasks, useCreateTask, useUpdateTask, useDeleteTask, useOverdueTasks } from '../../hooks/useTasks';
-import { Task, CreateTaskInput, UpdateTaskInput } from '../../types/task';
+import { Task, CreateTaskInput, UpdateTaskInput, TaskFilters, Category, Priority, Status } from '../../types/task';
 import TaskCard from './TaskCard';
 import TaskForm from './TaskForm';
+import SearchBar from '../common/SearchBar';
+import FilterDropdown from '../common/FilterDropdown';
 
 const TaskList: React.FC = () => {
   const [showForm, setShowForm] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [filters, setFilters] = useState<TaskFilters>({});
 
-  const { data: tasks, isLoading, error } = useTasks();
+  const { data: tasks, isLoading, error } = useTasks(filters);
   const { data: overdueTasks } = useOverdueTasks();
   const createTask = useCreateTask();
   const updateTask = useUpdateTask();
@@ -37,6 +40,37 @@ const TaskList: React.FC = () => {
     setEditingTask(task);
     setShowForm(true);
   };
+
+  const handleSearchChange = (search: string) => {
+    setFilters((prev) => ({ ...prev, search }));
+  };
+
+  const handleStatusFilterChange = (status: string) => {
+    setFilters((prev) => ({
+      ...prev,
+      status: status as Status | undefined,
+    }));
+  };
+
+  const handleCategoryFilterChange = (category: string) => {
+    setFilters((prev) => ({
+      ...prev,
+      category: category as Category | undefined,
+    }));
+  };
+
+  const handlePriorityFilterChange = (priority: string) => {
+    setFilters((prev) => ({
+      ...prev,
+      priority: priority as Priority | undefined,
+    }));
+  };
+
+  const clearFilters = () => {
+    setFilters({});
+  };
+
+  const hasActiveFilters = Object.values(filters).some((value) => value !== undefined && value !== '');
 
   if (isLoading) {
     return (
@@ -69,6 +103,59 @@ const TaskList: React.FC = () => {
         >
           {showForm ? 'Cancel' : '+ New Task'}
         </button>
+      </div>
+
+      {/* Search and Filters */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm">
+        <div className="space-y-4">
+          <SearchBar
+            value={filters.search || ''}
+            onChange={handleSearchChange}
+            placeholder="Search tasks by title or description..."
+          />
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <FilterDropdown
+              label="Status"
+              value={filters.status || ''}
+              onChange={handleStatusFilterChange}
+              options={[
+                { value: 'todo', label: 'To-do' },
+                { value: 'doing', label: 'Doing' },
+                { value: 'done', label: 'Done' },
+              ]}
+            />
+            <FilterDropdown
+              label="Category"
+              value={filters.category || ''}
+              onChange={handleCategoryFilterChange}
+              options={[
+                { value: 'work', label: 'Work' },
+                { value: 'personal', label: 'Personal' },
+                { value: 'study', label: 'Study' },
+              ]}
+            />
+            <FilterDropdown
+              label="Priority"
+              value={filters.priority || ''}
+              onChange={handlePriorityFilterChange}
+              options={[
+                { value: 'low', label: 'Low' },
+                { value: 'medium', label: 'Medium' },
+                { value: 'high', label: 'High' },
+              ]}
+            />
+          </div>
+
+          {hasActiveFilters && (
+            <button
+              onClick={clearFilters}
+              className="text-sm text-brand-green hover:text-green-600 transition-colors"
+            >
+              Clear all filters
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Overdue Tasks Section */}
