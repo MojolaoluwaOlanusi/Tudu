@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Login from './components/auth/Login';
 import ProtectedRoute from './components/common/ProtectedRoute';
 import Header from './components/layout/Header';
+import TaskList from './components/tasks/TaskList';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -27,12 +28,7 @@ function App() {
                 <div className="min-h-screen bg-brand-light dark:bg-brand-dark">
                   <Header />
                   <div className="container mx-auto px-4 py-8">
-                    <h2 className="text-2xl font-handwritten text-gray-800 dark:text-white mb-4">
-                      Dashboard
-                    </h2>
-                    <p className="text-gray-600 dark:text-gray-300">
-                      Welcome to Tudu! Your tasks will appear here.
-                    </p>
+                    <TaskList />
                   </div>
                 </div>
               </ProtectedRoute>
