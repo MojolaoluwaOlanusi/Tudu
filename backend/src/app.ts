@@ -2,7 +2,10 @@ import express, { Application } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
+import session from 'express-session';
 import dotenv from 'dotenv';
+import passport from './config/passport';
+import authRoutes from './routes/auth';
 
 dotenv.config();
 
@@ -16,6 +19,21 @@ app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:5173',
   credentials: true,
 }));
+
+// Session configuration for passport
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'your-session-secret',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    maxAge: 24 * 60 * 60 * 1000, // 24 hours
+  },
+}));
+
+// Passport initialization
+app.use(passport.initialize());
+app.use(passport.session());
 
 // Rate limiting
 const limiter = rateLimit({
@@ -33,8 +51,7 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// Routes will be imported here
-// app.use('/api/tasks', taskRoutes);
-// app.use('/auth', authRoutes);
+// Routes
+app.use('/auth', authRoutes);
 
 export default app;
