@@ -10,6 +10,9 @@ router.use(authenticate);
 // Get all tasks with optional filters
 router.get('/', taskController.getAllTasks);
 
+// Get overdue tasks (must come before /:id)
+router.get('/overdue', taskController.getOverdueTasks);
+
 // Get single task by ID
 router.get('/:id', taskController.getTaskById);
 

@@ -60,3 +60,13 @@ export const useDeleteTask = () => {
     },
   });
 };
+
+export const useOverdueTasks = () => {
+  const { token } = useAuthStore();
+
+  return useQuery({
+    queryKey: ['overdue-tasks'],
+    queryFn: () => taskService.getOverdueTasks(token!),
+    enabled: !!token,
+  });
+};

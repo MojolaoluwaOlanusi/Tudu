@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useTasks, useCreateTask, useUpdateTask, useDeleteTask } from '../../hooks/useTasks';
+import { useTasks, useCreateTask, useUpdateTask, useDeleteTask, useOverdueTasks } from '../../hooks/useTasks';
 import { Task, CreateTaskInput, UpdateTaskInput } from '../../types/task';
 import TaskCard from './TaskCard';
 import TaskForm from './TaskForm';
@@ -9,6 +9,7 @@ const TaskList: React.FC = () => {
   const [editingTask, setEditingTask] = useState<Task | null>(null);
 
   const { data: tasks, isLoading, error } = useTasks();
+  const { data: overdueTasks } = useOverdueTasks();
   const createTask = useCreateTask();
   const updateTask = useUpdateTask();
   const deleteTask = useDeleteTask();
@@ -69,6 +70,26 @@ const TaskList: React.FC = () => {
           {showForm ? 'Cancel' : '+ New Task'}
         </button>
       </div>
+
+      {/* Overdue Tasks Section */}
+      {overdueTasks && overdueTasks.length > 0 && (
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+          <h3 className="text-lg font-semibold text-red-800 dark:text-red-200 mb-3">
+            Overdue Tasks ({overdueTasks.length})
+          </h3>
+          <div className="grid gap-3">
+            {overdueTasks.map((task) => (
+              <TaskCard
+                key={task.id}
+                task={task}
+                onEdit={handleEdit}
+                onDelete={handleDeleteTask}
+                onStatusChange={handleStatusChange}
+              />
+            ))}
+          </div>
+        </div>
+      )}
 
       {showForm && (
         <TaskForm

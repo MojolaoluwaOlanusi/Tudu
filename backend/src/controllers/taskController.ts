@@ -200,3 +200,26 @@ export const deleteTask = async (req: Request, res: Response) => {
     res.status(500).json({ error: 'Failed to delete task' });
   }
 };
+
+export const getOverdueTasks = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const result = await pool.query(
+      `SELECT * FROM tasks 
+       WHERE user_id = $1 
+       AND due_date < NOW() 
+       AND status != 'done'
+       ORDER BY due_date ASC`,
+      [userId]
+    );
+
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error fetching overdue tasks:', error);
+    res.status(500).json({ error: 'Failed to fetch overdue tasks' });
+  }
+};

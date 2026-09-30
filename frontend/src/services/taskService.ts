@@ -58,4 +58,14 @@ export const taskService = {
       },
     });
   },
+
+  // Get overdue tasks
+  getOverdueTasks: async (token: string): Promise<Task[]> => {
+    const response = await axios.get(`${API_URL}/api/tasks/overdue`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  },
 };
