@@ -16,6 +16,25 @@ const taskBelongsToUser = async (taskId: string, userId: string): Promise<boolea
   return result.rows.length > 0;
 };
 
+/**
+ * Read access to a task's sub-tasks: the owner, or a collaborator on an
+ * accepted share that contains the task. Collaborators may *view* sub-tasks,
+ * but every mutation below still requires `taskBelongsToUser`, so they can
+ * never change sub-tasks that belong to the owner.
+ */
+const canViewTask = async (taskId: string, userId: string): Promise<boolean> => {
+  if (await taskBelongsToUser(taskId, userId)) return true;
+
+  const shared = await pool.query(
+    `SELECT 1 FROM shared_lists
+     WHERE shared_with_user_id = $1
+       AND status = 'accepted'
+       AND $2::uuid = ANY(task_ids)`,
+    [userId, taskId]
+  );
+  return shared.rows.length > 0;
+};
+
 const SUBTASK_COLUMNS = 'id, task_id, title, completed, created_at';
 
 /** GET /api/tasks/:taskId/subtasks */
@@ -30,7 +49,7 @@ export const getSubtasks = async (req: Request, res: Response) => {
     if (!isValidUuid(taskId)) {
       return res.status(400).json({ error: 'Invalid task id' });
     }
-    if (!(await taskBelongsToUser(taskId, userId))) {
+    if (!(await canViewTask(taskId, userId))) {
       return res.status(404).json({ error: 'Task not found' });
     }
 
