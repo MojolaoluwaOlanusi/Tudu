@@ -15,6 +15,7 @@ export const queryKeys = {
     list: (filters?: TaskFilters) => ['tasks', 'list', filters ?? {}] as const,
     detail: (id: string) => ['tasks', 'detail', id] as const,
     overdue: ['tasks', 'overdue'] as const,
+    kanban: ['tasks', 'kanban'] as const,
   },
 };
 

@@ -1,6 +1,12 @@
 import React from 'react';
+import { NavLink } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import ThemeToggle from '../common/ThemeToggle';
+
+const navClass = ({ isActive }: { isActive: boolean }) =>
+  `rounded-full px-3 py-1.5 text-xs font-semibold transition-colors sm:text-sm ${
+    isActive ? 'bg-accent text-white' : 'text-ink-muted hover:text-ink'
+  }`;
 
 const Header: React.FC = () => {
   const { user, logout } = useAuthStore();
@@ -27,6 +33,15 @@ const Header: React.FC = () => {
         <img src="/wordmark.png" alt="Tudu" className="h-9 w-auto dark:invert sm:h-10" />
 
         <div className="flex items-center gap-2 sm:gap-3">
+          <nav className="flex items-center gap-1 rounded-full bg-surface-2 p-1">
+            <NavLink to="/" end className={navClass}>
+              List
+            </NavLink>
+            <NavLink to="/board" className={navClass}>
+              Board
+            </NavLink>
+          </nav>
+
           <ThemeToggle />
 
           {user && (

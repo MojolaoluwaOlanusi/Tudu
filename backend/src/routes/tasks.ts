@@ -10,6 +10,9 @@ router.use(authenticate);
 // Get all tasks with optional filters
 router.get('/', taskController.getAllTasks);
 
+// Bulk status updates for drag & drop (must be registered before /:id)
+router.patch('/batch', taskController.batchUpdateTaskStatus);
+
 // Get overdue tasks (must come before /:id)
 router.get('/overdue', taskController.getOverdueTasks);
 
@@ -21,6 +24,9 @@ router.post('/', taskController.createTask);
 
 // Update task
 router.put('/:id', taskController.updateTask);
+
+// Move a single task to another column (drag & drop)
+router.patch('/:id/status', taskController.updateTaskStatus);
 
 // Delete task
 router.delete('/:id', taskController.deleteTask);
