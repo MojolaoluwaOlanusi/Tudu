@@ -3,6 +3,9 @@ import { Task, Category, Priority } from '../../types/task';
 import { format } from 'date-fns';
 import SubtaskList from './SubtaskList';
 import TaskActivity from '../activity/TaskActivity';
+import StartPomodoroButton from '../pomodoro/StartPomodoroButton';
+import PomodoroTimer from '../pomodoro/PomodoroTimer';
+import { usePomodoroStore } from '../../store/pomodoroStore';
 
 interface TaskCardProps {
   task: Task;
@@ -32,6 +35,8 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onEdit, onDelete, onStatusCha
   const isOverdue = task.due_date && new Date(task.due_date) < new Date() && task.status !== 'done';
   const [showSubtasks, setShowSubtasks] = useState(false);
   const [showActivity, setShowActivity] = useState(false);
+  const activeTaskId = usePomodoroStore((state) => state.taskId);
+  const sessionActive = usePomodoroStore((state) => state.sessionId !== null);
 
   const subtaskTotal = task.subtask_count ?? 0;
   const subtaskDone = task.subtasks_completed ?? 0;
@@ -142,6 +147,14 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onEdit, onDelete, onStatusCha
           <SubtaskList taskId={task.id} readOnly={readOnlySubtasks} taskTitle={task.title} />
         )}
       </div>
+
+      {/* Focus session controls for this task */}
+      {!readOnlySubtasks && (
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <StartPomodoroButton taskId={task.id} />
+          {sessionActive && activeTaskId === task.id && <PomodoroTimer />}
+        </div>
+      )}
 
       {/* Activity history for this task */}
       <div className="mb-3">

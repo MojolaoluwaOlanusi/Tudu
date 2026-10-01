@@ -1,0 +1,6 @@
+# Local dev server logs (written when running `npm run dev` from the repo root)
+*.log
+*.err
+
+# Build output
+dist/

@@ -334,18 +334,22 @@ Copy the key into your `.env` file.
 - `GET /api/activity/:taskId` - Get activity for specific task
 
 ### Pomodoro
-- `POST /api/pomodoro/start` - Start Pomodoro session
-- `POST /api/pomodoro/complete` - Complete session
-- `GET /api/pomodoro/stats` - Get Pomodoro statistics
+- `POST /api/pomodoro/start` - Start a focus session (optionally against a task)
+- `POST /api/pomodoro/complete` - Complete a session
+- `GET /api/pomodoro/active` - The in-flight session, so a refresh does not lose the timer
+- `GET /api/pomodoro/stats` - Time, session and daily/weekly breakdowns (`?days=&timezoneOffset=`)
 
 ### AI
 - `GET /api/ai/status` - Which AI provider is configured, and whether it is usable
 - `POST /api/ai/breakdown` - Suggest sub-tasks for a task title
 
 ### Analytics
-- `GET /api/analytics/overview` - Get overview statistics
-- `GET /api/analytics/completed-tasks` - Get completion data
-- `GET /api/analytics/time-spent` - Get time spent data
+- `GET /api/pomodoro/stats` - Focus analytics: totals, today/this week, a daily
+  series and time per task
+
+> Task-completion analytics (`/api/analytics/*`) are not implemented yet - the
+> README previously listed them, but no such routes exist. The Stats page is
+> currently backed by the Pomodoro endpoint above.
 
 ## Socket.io Events
 
@@ -408,6 +412,39 @@ the caller left blank, so an explicit `category` or `priority` always wins. Pass
 
 In the UI the new-task form previews the result live as you type and leaves the
 fields alone until you press **Use these details**.
+
+## Pomodoro Timer
+
+Press **Start 25m** on any task to begin a focus session. The timer appears in
+the header on every screen, survives a page refresh, and is logged to your stats
+automatically when it reaches zero.
+
+### How it works
+
+- **One session at a time.** Starting a second timer would silently replace the
+  first, so the buttons explain that a session is already running.
+- **Pause, resume and discard** are all available. Discarding leaves the backend
+  row uncompleted, which the stats count separately as *abandoned* rather than
+  quietly inflating your totals.
+- **Completion is logged exactly once.** A single `PomodoroRunner` drives the
+  countdown for the whole app, so the header timer and the card timer cannot
+  race and log the same session twice.
+- The **Stats** page (nav bar) shows today / this week / all time, a seven-day
+  bar chart, time per task, and your recent sessions.
+
+### Timezones
+
+`pomodoro_sessions` stores naive UTC timestamps, so two places have to convert
+them to *your* wall clock, and the browser sends its `getTimezoneOffset()`
+along with the request:
+
+- "Today" and "This week" are grouped by **your** calendar day, not the
+  server's.
+- The daily chart's date labels use the same wall clock as the SQL buckets, so
+  the bars line up with the right days.
+
+Without this, a session finished at 23:30 UTC counts as yesterday for a UTC
+viewer but as today for someone at UTC+5.
 
 ## AI Task Breakdown
 

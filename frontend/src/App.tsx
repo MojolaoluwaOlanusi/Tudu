@@ -14,6 +14,8 @@ import ShareInvites from './components/sharing/ShareInvites';
 import SharedWithMeSection from './components/sharing/SharedWithMeSection';
 import RecentActivity from './components/activity/RecentActivity';
 import SharedListView from './components/sharing/SharedListView';
+import PomodoroStats from './components/pomodoro/PomodoroStats';
+import PomodoroRunner from './components/pomodoro/PomodoroRunner';
 import ToastContainer from './components/common/ToastContainer';
 
 /** Opens the real-time socket once we know who is signed in. */
@@ -57,6 +59,13 @@ const Board = () => (
   </Shell>
 );
 
+const Stats = () => (
+  <Shell>
+    <h1 className="mb-4 font-handwritten text-3xl text-ink">Focus stats</h1>
+    <PomodoroStats />
+  </Shell>
+);
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -81,6 +90,14 @@ function App() {
             }
           />
           <Route
+            path="/stats"
+            element={
+              <ProtectedRoute>
+                <Stats />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/shared/:id"
             element={
               <ProtectedRoute>
@@ -91,6 +108,7 @@ function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
         <CollaborationBridge />
+        <PomodoroRunner />
         <ToastContainer />
       </Router>
     </QueryClientProvider>

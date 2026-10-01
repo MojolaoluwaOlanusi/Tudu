@@ -58,6 +58,11 @@ export const formatActivity = (activity: Activity): string => {
       return `accepted a shared list from ${details.email ?? 'someone'}`;
     case 'share_declined':
       return `declined a shared list from ${details.email ?? 'someone'}`;
+    case 'pomodoro_completed': {
+      const minutes = details.duration ?? 0;
+      const where = activity.task_id ? ` on “${title}”` : '';
+      return `finished a ${minutes} minute focus session${where}`;
+    }
     default:
       return (activity.action as string).replace(/_/g, ' ');
   }
@@ -97,6 +102,8 @@ export const activityTone = (action: Activity['action']): string => {
       return 'bg-accent';
     case 'share_declined':
       return 'bg-red-400';
+    case 'pomodoro_completed':
+      return 'bg-accent';
     default:
       return 'bg-ink-muted';
   }
