@@ -56,6 +56,8 @@ export const useCreateSubtask = () => {
         queryKey: queryKeys.subtasks.list(variables.taskId),
       });
       queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all });
+      // Shared lists render the same sub-task counts.
+      queryClient.invalidateQueries({ queryKey: queryKeys.shares.all });
     },
   });
 };
@@ -123,6 +125,8 @@ export const useUpdateSubtask = () => {
         queryKey: queryKeys.subtasks.list(variables.taskId),
       });
       queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all });
+      // Shared lists render the same sub-task counts.
+      queryClient.invalidateQueries({ queryKey: queryKeys.shares.all });
     },
   });
 };
@@ -168,6 +172,8 @@ export const useDeleteSubtask = () => {
         queryKey: queryKeys.subtasks.list(variables.taskId),
       });
       queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all });
+      // Shared lists render the same sub-task counts.
+      queryClient.invalidateQueries({ queryKey: queryKeys.shares.all });
     },
   });
 };

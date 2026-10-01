@@ -2,6 +2,7 @@ import dotenv from 'dotenv';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import app from './app';
+import { setIO } from './utils/socket';
 
 dotenv.config();
 
@@ -16,6 +17,9 @@ const io = new Server(httpServer, {
     credentials: true,
   },
 });
+
+// Let controllers emit real-time events without importing `io` directly.
+setIO(io);
 
 // Socket.io connection handling
 io.on('connection', (socket) => {

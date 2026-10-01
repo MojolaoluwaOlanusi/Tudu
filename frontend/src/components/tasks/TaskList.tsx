@@ -16,6 +16,8 @@ import {
 import { Task, CreateTaskInput, UpdateTaskInput, Category, Priority, Status } from '../../types/task';
 import TaskCard from './TaskCard';
 import TaskForm from './TaskForm';
+import ShareModal from '../sharing/ShareModal';
+import { useMyShares, flattenShares } from '../../hooks/useSharing';
 import SearchBar from '../common/SearchBar';
 import FilterDropdown from '../common/FilterDropdown';
 
@@ -45,6 +47,8 @@ const TaskList: React.FC = () => {
   const isSidebarOpen = useUiStore((s) => s.isSidebarOpen);
   const toggleSidebar = useUiStore((s) => s.toggleSidebar);
   const pushToast = useUiStore((s) => s.pushToast);
+  const isShareModalOpen = useUiStore((s) => s.isShareModalOpen);
+  const openShareModal = useUiStore((s) => s.openShareModal);
 
   /* ----------- Server state (React Query) ----------- */
   const { data: tasks, isLoading, isFetching, isError, error, refetch } =
@@ -53,6 +57,17 @@ const TaskList: React.FC = () => {
   const createTask = useCreateTask();
   const updateTask = useUpdateTask();
   const deleteTask = useDeleteTask();
+  const { data: myShares } = useMyShares();
+
+  // Ids of tasks I have shared, used for the "Shared" tag on the card.
+  const sharedTaskIds = useMemo(() => {
+    const ids = new Set<string>();
+    (myShares ? flattenShares(myShares) : []).forEach((share) => {
+      if (share.status === 'declined') return;
+      (share.task_ids ?? []).forEach((id) => ids.add(id));
+    });
+    return ids;
+  }, [myShares]);
 
   // The task being edited may live in the main list or in the overdue list.
   const editingTask = useMemo(
@@ -140,6 +155,9 @@ const TaskList: React.FC = () => {
           <button onClick={toggleSidebar} className="btn-ghost sm:hidden">
             {isSidebarOpen ? 'Hide filters' : 'Filters'}
           </button>
+          <button onClick={openShareModal} className="btn-ghost shrink-0">
+            Share
+          </button>
           <button
             onClick={() =>
               isTaskFormOpen && !editingTask ? closeTaskForm() : openTaskForm(null)
@@ -220,6 +238,7 @@ const TaskList: React.FC = () => {
               <TaskCard
                 key={task.id}
                 task={task}
+                isShared={sharedTaskIds.has(task.id)}
                 onEdit={handleEdit}
                 onDelete={handleDeleteTask}
                 onStatusChange={handleStatusChange}
@@ -238,6 +257,8 @@ const TaskList: React.FC = () => {
         />
       )}
 
+      {isShareModalOpen && <ShareModal tasks={tasks ?? []} />}
+
       {!tasks || tasks.length === 0 ? (
         <div className="card p-10 text-center">
           <p className="font-handwritten text-2xl text-ink-muted">
@@ -250,6 +271,7 @@ const TaskList: React.FC = () => {
             <TaskCard
               key={task.id}
               task={task}
+              isShared={sharedTaskIds.has(task.id)}
               onEdit={handleEdit}
               onDelete={handleDeleteTask}
               onStatusChange={handleStatusChange}
