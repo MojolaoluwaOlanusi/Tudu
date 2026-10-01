@@ -1,98 +1,131 @@
-import React, { useState } from 'react';
-import { useTasks, useCreateTask, useUpdateTask, useDeleteTask, useOverdueTasks } from '../../hooks/useTasks';
-import { Task, CreateTaskInput, UpdateTaskInput, TaskFilters, Category, Priority, Status } from '../../types/task';
+import React, { useMemo } from 'react';
+import {
+  useTasks,
+  useCreateTask,
+  useUpdateTask,
+  useDeleteTask,
+  useOverdueTasks,
+} from '../../hooks/useTasks';
+import { useDebouncedValue } from '../../hooks/useDebouncedValue';
+import { useUiStore } from '../../store/uiStore';
+import {
+  useFilterStore,
+  useTaskFilters,
+  useHasActiveFilters,
+} from '../../store/filterStore';
+import { Task, CreateTaskInput, UpdateTaskInput, Category, Priority, Status } from '../../types/task';
 import TaskCard from './TaskCard';
 import TaskForm from './TaskForm';
 import SearchBar from '../common/SearchBar';
 import FilterDropdown from '../common/FilterDropdown';
 
 const TaskList: React.FC = () => {
-  const [showForm, setShowForm] = useState(false);
-  const [editingTask, setEditingTask] = useState<Task | null>(null);
-  const [filters, setFilters] = useState<TaskFilters>({});
+  /* ------------- Filters (Zustand) ------------- */
+  const search = useFilterStore((s) => s.search);
+  const setSearch = useFilterStore((s) => s.setSearch);
+  const setStatus = useFilterStore((s) => s.setStatus);
+  const setCategory = useFilterStore((s) => s.setCategory);
+  const setPriority = useFilterStore((s) => s.setPriority);
+  const clearFilters = useFilterStore((s) => s.clearFilters);
+  const filters = useTaskFilters();
+  const hasActiveFilters = useHasActiveFilters();
 
-  const { data: tasks, isLoading, error } = useTasks(filters);
+  // Debounce the search box so typing does not fire a request per keystroke.
+  const debouncedSearch = useDebouncedValue(search, 300);
+  const activeFilters = useMemo(
+    () => ({ ...filters, search: debouncedSearch || undefined }),
+    [filters, debouncedSearch]
+  );
+
+  /* -------------- UI state (Zustand) -------------- */
+  const isTaskFormOpen = useUiStore((s) => s.isTaskFormOpen);
+  const editingTaskId = useUiStore((s) => s.editingTaskId);
+  const openTaskForm = useUiStore((s) => s.openTaskForm);
+  const closeTaskForm = useUiStore((s) => s.closeTaskForm);
+  const isSidebarOpen = useUiStore((s) => s.isSidebarOpen);
+  const toggleSidebar = useUiStore((s) => s.toggleSidebar);
+  const pushToast = useUiStore((s) => s.pushToast);
+
+  /* ----------- Server state (React Query) ----------- */
+  const { data: tasks, isLoading, isFetching, isError, error, refetch } =
+    useTasks(activeFilters);
   const { data: overdueTasks } = useOverdueTasks();
   const createTask = useCreateTask();
   const updateTask = useUpdateTask();
   const deleteTask = useDeleteTask();
 
+  // The task being edited may live in the main list or in the overdue list.
+  const editingTask = useMemo(
+    () =>
+      [...(tasks ?? []), ...(overdueTasks ?? [])].find(
+        (task) => task.id === editingTaskId
+      ) ?? null,
+    [tasks, overdueTasks, editingTaskId]
+  );
+
+  const notify = (err: unknown, fallback: string) => {
+    const detail =
+      (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
+    pushToast(detail || fallback, 'error');
+  };
+
+  /* ----------------- Mutations ----------------- */
   const handleSubmitTask = async (values: CreateTaskInput) => {
     try {
       if (editingTask) {
         await updateTask.mutateAsync({ id: editingTask.id, task: values });
+        pushToast('Task updated', 'success');
       } else {
         await createTask.mutateAsync(values);
+        pushToast('Task created', 'success');
       }
-      setShowForm(false);
-      setEditingTask(null);
-    } catch {
-      // React Query surfaces the error; keep the form open so the user can retry.
+      closeTaskForm();
+    } catch (err) {
+      notify(err, 'Could not save the task');
     }
   };
 
   const handleUpdateTask = async (id: string, updates: UpdateTaskInput) => {
-    await updateTask.mutateAsync({ id, task: updates });
-  };
-
-  const handleDeleteTask = async (id: string) => {
-    if (window.confirm('Are you sure you want to delete this task?')) {
-      await deleteTask.mutateAsync(id);
+    try {
+      await updateTask.mutateAsync({ id, task: updates });
+    } catch (err) {
+      notify(err, 'Could not update the task');
     }
   };
 
-  const handleStatusChange = async (id: string, status: Task['status']) => {
-    await handleUpdateTask(id, { status });
+  const handleDeleteTask = async (id: string) => {
+    if (!window.confirm('Are you sure you want to delete this task?')) return;
+    try {
+      await deleteTask.mutateAsync(id);
+      pushToast('Task deleted', 'success');
+    } catch (err) {
+      notify(err, 'Could not delete the task');
+    }
   };
 
-  const handleEdit = (task: Task) => {
-    setEditingTask(task);
-    setShowForm(true);
-  };
+  const handleStatusChange = (id: string, status: Task['status']) =>
+    handleUpdateTask(id, { status });
 
-  const handleSearchChange = (search: string) => {
-    setFilters((prev) => ({ ...prev, search }));
-  };
+  const handleEdit = (task: Task) => openTaskForm(task.id);
 
-  const handleStatusFilterChange = (status: string) => {
-    setFilters((prev) => ({
-      ...prev,
-      status: status as Status | undefined,
-    }));
-  };
-
-  const handleCategoryFilterChange = (category: string) => {
-    setFilters((prev) => ({
-      ...prev,
-      category: category as Category | undefined,
-    }));
-  };
-
-  const handlePriorityFilterChange = (priority: string) => {
-    setFilters((prev) => ({
-      ...prev,
-      priority: priority as Priority | undefined,
-    }));
-  };
-
-  const clearFilters = () => {
-    setFilters({});
-  };
-
-  const hasActiveFilters = Object.values(filters).some((value) => value !== undefined && value !== '');
-
+  /* -------------- Loading / error -------------- */
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-green"></div>
+        <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-accent" />
       </div>
     );
   }
 
-  if (error) {
+  if (isError) {
     return (
       <div className="card p-10 text-center">
-        <p className="text-red-500">Error loading tasks. Please try again.</p>
+        <p className="text-red-500">
+          {(error as Error)?.message || 'Error loading tasks.'}
+        </p>
+        <button onClick={() => refetch()} className="btn-ghost mt-4">
+          Try again
+        </button>
       </div>
     );
   }
@@ -103,31 +136,40 @@ const TaskList: React.FC = () => {
         <h2 className="font-handwritten text-3xl text-ink sm:text-4xl">
           My tasks
         </h2>
-        <button
-          onClick={() => {
-            setEditingTask(null);
-            setShowForm(!showForm);
-          }}
-          className="btn-accent brush-stroke shrink-0"
-        >
-          {showForm ? 'Cancel' : '+ New task'}
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={toggleSidebar} className="btn-ghost sm:hidden">
+            {isSidebarOpen ? 'Hide filters' : 'Filters'}
+          </button>
+          <button
+            onClick={() =>
+              isTaskFormOpen && !editingTask ? closeTaskForm() : openTaskForm(null)
+            }
+            className="btn-accent brush-stroke shrink-0"
+          >
+            {isTaskFormOpen && !editingTask ? 'Cancel' : '+ New task'}
+          </button>
+        </div>
       </div>
 
-      {/* Search and Filters */}
-      <div className="card p-4">
-        <div className="space-y-4">
-          <SearchBar
-            value={filters.search || ''}
-            onChange={handleSearchChange}
-            placeholder="Search tasks by title or description..."
-          />
+      {isFetching && !isLoading && (
+        <p className="text-xs text-ink-muted">Syncing…</p>
+      )}
 
+      {/* Search is always visible */}
+      <SearchBar
+        value={search}
+        onChange={setSearch}
+        placeholder="Search tasks by title or description..."
+      />
+
+      {/* Filter panel: collapsible on mobile, always open from sm upwards */}
+      <div className={`card p-4 ${isSidebarOpen ? 'block' : 'hidden'} sm:block`}>
+        <div className="space-y-4">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <FilterDropdown
               label="Status"
               value={filters.status || ''}
-              onChange={handleStatusFilterChange}
+              onChange={(value) => setStatus(value ? (value as Status) : undefined)}
               options={[
                 { value: 'todo', label: 'To-do' },
                 { value: 'doing', label: 'Doing' },
@@ -137,7 +179,7 @@ const TaskList: React.FC = () => {
             <FilterDropdown
               label="Category"
               value={filters.category || ''}
-              onChange={handleCategoryFilterChange}
+              onChange={(value) => setCategory(value ? (value as Category) : undefined)}
               options={[
                 { value: 'work', label: 'Work' },
                 { value: 'personal', label: 'Personal' },
@@ -147,7 +189,7 @@ const TaskList: React.FC = () => {
             <FilterDropdown
               label="Priority"
               value={filters.priority || ''}
-              onChange={handlePriorityFilterChange}
+              onChange={(value) => setPriority(value ? (value as Priority) : undefined)}
               options={[
                 { value: 'low', label: 'Low' },
                 { value: 'medium', label: 'Medium' },
@@ -167,7 +209,7 @@ const TaskList: React.FC = () => {
         </div>
       </div>
 
-      {/* Overdue Tasks Section */}
+      {/* Overdue tasks */}
       {overdueTasks && overdueTasks.length > 0 && (
         <div className="rounded-2xl border border-red-200 bg-red-50 p-4 dark:border-red-900/40 dark:bg-red-900/20">
           <h3 className="mb-3 text-lg font-semibold text-red-800 dark:text-red-200">
@@ -187,14 +229,11 @@ const TaskList: React.FC = () => {
         </div>
       )}
 
-      {showForm && (
+      {isTaskFormOpen && (
         <TaskForm
           initialTask={editingTask}
           onSubmit={handleSubmitTask}
-          onCancel={() => {
-            setShowForm(false);
-            setEditingTask(null);
-          }}
+          onCancel={closeTaskForm}
           isLoading={createTask.isPending || updateTask.isPending}
         />
       )}

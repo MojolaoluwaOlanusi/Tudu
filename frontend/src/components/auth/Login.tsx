@@ -9,18 +9,16 @@ type EmailMode = 'signin' | 'signup';
 const Login: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { setUser, setLoading, isAuthenticated, initializeAuth, isLoading } = useAuthStore();
+  const { setUser, isAuthenticated } = useAuthStore();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [showEmailForm, setShowEmailForm] = useState(false);
   const [emailMode, setEmailMode] = useState<EmailMode>('signin');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    // Initialize auth from localStorage on mount
-    initializeAuth();
-
     // Surface OAuth errors redirected back from the backend
     if (searchParams.get('error')) {
       setError('Authentication failed. Please try again.');
@@ -38,7 +36,7 @@ const Login: React.FC = () => {
     if (token) {
       navigate(`/auth/callback?token=${token}`, { replace: true });
     }
-  }, [searchParams, navigate, setUser, setLoading, isAuthenticated, initializeAuth]);
+  }, [searchParams, navigate, isAuthenticated]);
 
   const handleGoogleLogin = () => {
     authService.googleLogin();
@@ -51,7 +49,7 @@ const Login: React.FC = () => {
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    setLoading(true);
+    setIsSubmitting(true);
 
     try {
       const { user, token } =
@@ -69,7 +67,7 @@ const Login: React.FC = () => {
             ? 'Registration failed. Please try again.'
             : 'Login failed. Please check your credentials.')
       );
-      setLoading(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -168,10 +166,10 @@ const Login: React.FC = () => {
 
               <button
                 type="submit"
-                disabled={isLoading}
+                disabled={isSubmitting}
                 className="btn-accent brush-stroke w-full py-3"
               >
-                {isLoading
+                {isSubmitting
                   ? emailMode === 'signup'
                     ? 'Creating account...'
                     : 'Signing in...'
