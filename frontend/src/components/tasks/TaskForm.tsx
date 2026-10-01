@@ -1,18 +1,42 @@
-import React, { useState } from 'react';
-import { CreateTaskInput, Category, Priority } from '../../types/task';
+import React, { useEffect, useState } from 'react';
+import { Task, CreateTaskInput, Category, Priority } from '../../types/task';
 
 interface TaskFormProps {
   onSubmit: (task: CreateTaskInput) => void;
   onCancel: () => void;
   isLoading?: boolean;
+  initialTask?: Task | null;
 }
 
-const TaskForm: React.FC<TaskFormProps> = ({ onSubmit, onCancel, isLoading }) => {
+// Convert a stored ISO date string into the local "YYYY-MM-DDTHH:mm" value
+// that a <input type="datetime-local"> expects.
+const toDateTimeLocalValue = (value?: string): string => {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(
+    date.getHours()
+  )}:${pad(date.getMinutes())}`;
+};
+
+const TaskForm: React.FC<TaskFormProps> = ({ onSubmit, onCancel, isLoading, initialTask }) => {
+  const isEditing = Boolean(initialTask);
+
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState<Category | ''>('');
   const [priority, setPriority] = useState<Priority | ''>('');
   const [dueDate, setDueDate] = useState('');
+
+  // Prepopulate the form whenever the task being edited changes.
+  useEffect(() => {
+    setTitle(initialTask?.title ?? '');
+    setDescription(initialTask?.description ?? '');
+    setCategory(initialTask?.category ?? '');
+    setPriority(initialTask?.priority ?? '');
+    setDueDate(toDateTimeLocalValue(initialTask?.due_date));
+  }, [initialTask]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,7 +54,7 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSubmit, onCancel, isLoading }) =>
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-lg">
       <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-4">
-        {isLoading ? 'Creating Task...' : 'Create New Task'}
+        {isEditing ? 'Edit Task' : 'Create New Task'}
       </h2>
 
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -125,7 +149,13 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSubmit, onCancel, isLoading }) =>
             disabled={isLoading || !title.trim()}
             className="px-6 py-2 bg-brand-green text-white rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed brush-stroke"
           >
-            {isLoading ? 'Creating...' : 'Create Task'}
+            {isLoading
+              ? isEditing
+                ? 'Saving...'
+                : 'Creating...'
+              : isEditing
+                ? 'Save Changes'
+                : 'Create Task'}
           </button>
         </div>
       </form>

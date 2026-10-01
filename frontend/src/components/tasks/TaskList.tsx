@@ -17,9 +17,18 @@ const TaskList: React.FC = () => {
   const updateTask = useUpdateTask();
   const deleteTask = useDeleteTask();
 
-  const handleCreateTask = async (task: CreateTaskInput) => {
-    await createTask.mutateAsync(task);
-    setShowForm(false);
+  const handleSubmitTask = async (values: CreateTaskInput) => {
+    try {
+      if (editingTask) {
+        await updateTask.mutateAsync({ id: editingTask.id, task: values });
+      } else {
+        await createTask.mutateAsync(values);
+      }
+      setShowForm(false);
+      setEditingTask(null);
+    } catch {
+      // React Query surfaces the error; keep the form open so the user can retry.
+    }
   };
 
   const handleUpdateTask = async (id: string, updates: UpdateTaskInput) => {
@@ -180,12 +189,13 @@ const TaskList: React.FC = () => {
 
       {showForm && (
         <TaskForm
-          onSubmit={handleCreateTask}
+          initialTask={editingTask}
+          onSubmit={handleSubmitTask}
           onCancel={() => {
             setShowForm(false);
             setEditingTask(null);
           }}
-          isLoading={createTask.isPending}
+          isLoading={createTask.isPending || updateTask.isPending}
         />
       )}
 
