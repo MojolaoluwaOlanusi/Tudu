@@ -10,6 +10,7 @@ import authRoutes from './routes/auth';
 import taskRoutes from './routes/tasks';
 import shareRoutes, { sharedListsRouter } from './routes/share';
 import userRoutes from './routes/users';
+import activityRoutes from './routes/activity';
 
 dotenv.config();
 
@@ -116,5 +117,6 @@ app.use('/api/tasks', taskRoutes);
 app.use('/api/share', shareRoutes);
 app.use('/api/shared-lists', sharedListsRouter);
 app.use('/api/users', userRoutes);
+app.use('/api/activity', activityRoutes);
 
 export default app;

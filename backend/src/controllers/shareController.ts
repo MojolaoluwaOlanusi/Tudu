@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import pool from '../config/database';
 import { emitToUser } from '../utils/socket';
+import { logActivity } from '../services/activityService';
 import {
   SharePermission,
   ShareStatus,
@@ -162,6 +163,12 @@ export const createShare = async (req: Request, res: Response) => {
       saved = created.rows[0];
     }
 
+    await logActivity(userId, 'list_shared', null, {
+      taskCount: uniqueTaskIds.length,
+      email: recipient.email,
+      permissions: permission,
+    });
+
     emitToUser(recipient.id, 'share-invited', {
       shareId: saved.id,
       from: { id: userId },
@@ -202,6 +209,20 @@ const respondToShare = async (req: Request, res: Response, status: ShareStatus) 
     }
 
     const row = result.rows[0];
+
+    const owner = await pool.query('SELECT email FROM users WHERE id = $1', [
+      row.owner_id,
+    ]);
+    await logActivity(
+      userId,
+      status === 'accepted' ? 'share_accepted' : 'share_declined',
+      null,
+      {
+        email: owner.rows[0]?.email,
+        taskCount: (row.task_ids || []).length,
+      }
+    );
+
     emitToUser(row.owner_id, `share-${status}`, { shareId: row.id, by: { id: userId } });
     emitToUser(userId, 'shared-lists-changed', { shareId: row.id });
 

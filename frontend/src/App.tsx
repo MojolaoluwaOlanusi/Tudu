@@ -12,6 +12,7 @@ import KanbanBoard from './components/kanban/KanbanBoard';
 import SharedListsSidebar from './components/sharing/SharedListsSidebar';
 import ShareInvites from './components/sharing/ShareInvites';
 import SharedWithMeSection from './components/sharing/SharedWithMeSection';
+import RecentActivity from './components/activity/RecentActivity';
 import SharedListView from './components/sharing/SharedListView';
 import ToastContainer from './components/common/ToastContainer';
 
@@ -36,6 +37,9 @@ const Shell = ({ children }: { children: ReactNode }) => (
         </div>
         <SharedWithMeSection />
         {children}
+        <div className="mt-6">
+          <RecentActivity />
+        </div>
       </main>
     </div>
   </div>

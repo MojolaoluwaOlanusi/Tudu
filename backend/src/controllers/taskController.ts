@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import pool from '../config/database';
 import { emitToUser } from '../utils/socket';
+import { logActivity } from '../services/activityService';
 import { CreateTaskInput, UpdateTaskInput, TaskFilters, Status } from '../types/task';
 
 /**
@@ -144,7 +145,10 @@ export const createTask = async (req: Request, res: Response) => {
       [userId, title, description, category, priority, due_date]
     );
 
-    res.status(201).json(result.rows[0]);
+    const created = result.rows[0];
+    await logActivity(userId, 'task_created', created.id, { title: created.title });
+
+    res.status(201).json(created);
   } catch (error) {
     console.error('Error creating task:', error);
     res.status(500).json({ error: 'Failed to create task' });
@@ -160,6 +164,13 @@ export const updateTask = async (req: Request, res: Response) => {
     if (!userId) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
+
+    // Read the current values so we can describe what actually changed.
+    const previous = await pool.query(
+      'SELECT title, status FROM tasks WHERE id = $1 AND user_id = $2',
+      [id, userId]
+    );
+    const before = previous.rows[0];
 
     // Build dynamic update query
     const updates: string[] = [];
@@ -228,12 +239,30 @@ export const updateTask = async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Task not found' });
     }
 
-    // Owners editing their own task must still reach their collaborators.
-    await notifyCollaborators(id, userId, 'shared-task-updated', {
-      task: result.rows[0],
-    });
+    const updated = result.rows[0];
 
-    res.json(result.rows[0]);
+    // Owners editing their own task must still reach their collaborators.
+    await notifyCollaborators(id, userId, 'shared-task-updated', { task: updated });
+
+    const changedFields = [
+      'title',
+      'description',
+      'category',
+      'priority',
+      'due_date',
+      'status',
+    ].filter((field) => req.body[field] !== undefined);
+
+    if (status !== undefined && before) {
+      await logStatusChange(userId, id, updated.title, before.status, status);
+    } else {
+      await logActivity(userId, 'task_updated', id, {
+        title: updated.title,
+        fields: changedFields,
+      });
+    }
+
+    res.json(updated);
   } catch (error) {
     console.error('Error updating task:', error);
     res.status(500).json({ error: 'Failed to update task' });
@@ -248,6 +277,26 @@ const isValidStatus = (value: unknown): value is Status =>
 
 const isValidUuid = (value: unknown): value is string =>
   typeof value === 'string' && UUID_RE.test(value);
+
+/**
+ * Record a status change, distinguishing "finished this task" from
+ * "moved it along the board".
+ */
+async function logStatusChange(
+  userId: string,
+  taskId: string,
+  title: string,
+  from: string,
+  to: string
+): Promise<void> {
+  if (from === to) return;
+  await logActivity(
+    userId,
+    to === 'done' ? 'task_completed' : 'task_moved',
+    taskId,
+    { title, from, to }
+  );
+}
 
 /**
  * PATCH /api/tasks/:id/status
@@ -268,6 +317,15 @@ export const updateTaskStatus = async (req: Request, res: Response) => {
         .json({ error: 'Status must be one of: todo, doing, done' });
     }
 
+    const before = await pool.query(
+      'SELECT id, title, status FROM tasks WHERE id = $1 AND user_id = $2',
+      [id, userId]
+    );
+
+    if (before.rows.length === 0) {
+      return res.status(404).json({ error: 'Task not found' });
+    }
+
     const result = await pool.query(
       `UPDATE tasks
        SET status = $1, updated_at = NOW()
@@ -276,11 +334,14 @@ export const updateTaskStatus = async (req: Request, res: Response) => {
       [status, id, userId]
     );
 
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Task not found' });
-    }
+    const task = result.rows[0];
 
-    res.json(result.rows[0]);
+    await logStatusChange(userId, task.id, task.title, before.rows[0].status, status as string);
+
+    // A drag on a shared board must reach collaborators, same as an edit.
+    await notifyCollaborators(id, userId, 'shared-task-updated', { task });
+
+    res.json(task);
   } catch (error) {
     console.error('Error updating task status:', error);
     res.status(500).json({ error: 'Failed to update task status' });
@@ -328,6 +389,11 @@ export const batchUpdateTaskStatus = async (req: Request, res: Response) => {
       statuses.push(update.status);
     }
 
+    const before = await pool.query(
+      'SELECT id, status FROM tasks WHERE id = ANY($1::uuid[]) AND user_id = $2',
+      [ids, userId]
+    );
+
     const result = await pool.query(
       `UPDATE tasks t
        SET status = v.status, updated_at = NOW()
@@ -340,6 +406,19 @@ export const batchUpdateTaskStatus = async (req: Request, res: Response) => {
     // A short result means one of the tasks does not belong to this user.
     if (result.rows.length !== ids.length) {
       return res.status(404).json({ error: 'One or more tasks were not found' });
+    }
+
+    const previous = new Map(before.rows.map((r: { id: string; status: string }) => [r.id, r.status]));
+
+    for (const task of result.rows) {
+      await logStatusChange(
+        userId,
+        task.id,
+        task.title,
+        previous.get(task.id) as string,
+        task.status
+      );
+      await notifyCollaborators(task.id, userId, 'shared-task-updated', { task });
     }
 
     res.json({ updated: result.rows.length, tasks: result.rows });
@@ -368,6 +447,10 @@ export const deleteTask = async (req: Request, res: Response) => {
     }
 
     await notifyCollaborators(id, userId, 'shared-task-deleted', { taskId: id });
+
+    // task_id is deliberately null: activity_log cascades with the task, so
+    // the entry keeps the title in its details instead of disappearing.
+    await logActivity(userId, 'task_deleted', null, { title: result.rows[0].title });
 
     res.json({ message: 'Task deleted successfully' });
   } catch (error) {

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Task, Category, Priority } from '../../types/task';
 import { format } from 'date-fns';
 import SubtaskList from './SubtaskList';
+import TaskActivity from '../activity/TaskActivity';
 
 interface TaskCardProps {
   task: Task;
@@ -30,6 +31,7 @@ const priorityColors: Record<Priority, string> = {
 const TaskCard: React.FC<TaskCardProps> = ({ task, onEdit, onDelete, onStatusChange, isShared, readOnlySubtasks }) => {
   const isOverdue = task.due_date && new Date(task.due_date) < new Date() && task.status !== 'done';
   const [showSubtasks, setShowSubtasks] = useState(false);
+  const [showActivity, setShowActivity] = useState(false);
 
   const subtaskTotal = task.subtask_count ?? 0;
   const subtaskDone = task.subtasks_completed ?? 0;
@@ -138,6 +140,35 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onEdit, onDelete, onStatusCha
 
         {showSubtasks && (
           <SubtaskList taskId={task.id} readOnly={readOnlySubtasks} />
+        )}
+      </div>
+
+      {/* Activity history for this task */}
+      <div className="mb-3">
+        <button
+          type="button"
+          onClick={() => setShowActivity((open) => !open)}
+          aria-expanded={showActivity}
+          className="flex w-full items-center gap-1.5 text-xs font-medium text-ink-muted transition-colors hover:text-accent-strong"
+        >
+          <svg
+            className={`h-3 w-3 transition-transform ${showActivity ? 'rotate-90' : ''}`}
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2.5}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            viewBox="0 0 24 24"
+          >
+            <path d="M9 5l7 7-7 7" />
+          </svg>
+          Activity
+        </button>
+
+        {showActivity && (
+          <div className="mt-2 rounded-xl bg-surface-2 p-2.5">
+            <TaskActivity taskId={task.id} />
+          </div>
         )}
       </div>
 
