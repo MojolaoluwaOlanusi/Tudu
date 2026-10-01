@@ -10,6 +10,7 @@ import Header from './components/layout/Header';
 import TaskList from './components/tasks/TaskList';
 import KanbanBoard from './components/kanban/KanbanBoard';
 import SharedListsSidebar from './components/sharing/SharedListsSidebar';
+import ShareInvites from './components/sharing/ShareInvites';
 import SharedListView from './components/sharing/SharedListView';
 import ToastContainer from './components/common/ToastContainer';
 
@@ -27,7 +28,13 @@ const Shell = ({ children }: { children: ReactNode }) => (
       <aside className="hidden w-64 shrink-0 lg:block">
         <SharedListsSidebar />
       </aside>
-      <main className="min-w-0 flex-1">{children}</main>
+      <main className="min-w-0 flex-1">
+        {/* Invitations must be reachable without the sidebar (mobile). */}
+        <div className="mb-4 lg:hidden">
+          <ShareInvites />
+        </div>
+        {children}
+      </main>
     </div>
   </div>
 );

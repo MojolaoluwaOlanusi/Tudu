@@ -49,9 +49,12 @@ export const shareService = {
     return response.data;
   },
 
-  /** Accepted lists other people shared with me. */
-  getSharedWithMe: async (token: string): Promise<SharedList[]> => {
-    const response = await axios.get(`${API_URL}/api/shared-lists`, headers(token));
+  /** Lists other people shared with me (pending invitations included). */
+  getSharedWithMe: async (token: string, status?: 'pending' | 'accepted'): Promise<SharedList[]> => {
+    const response = await axios.get(`${API_URL}/api/shared-lists`, {
+      ...headers(token),
+      params: status ? { status } : undefined,
+    });
     return response.data;
   },
 

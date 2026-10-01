@@ -228,13 +228,21 @@ export const getMyShares = async (req: Request, res: Response) => {
   }
 };
 
-/** GET /api/shared-lists - accepted lists other people shared with me. */
+/** GET /api/shared-lists - lists other people shared with me (pending + accepted). */
 export const getSharedWithMe = async (req: Request, res: Response) => {
   try {
     const userId = req.user?.userId;
     if (!userId) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
+
+    // Pending invitations must be returned too, otherwise the recipient has
+    // no way to accept or decline them. `?status=` narrows the result.
+    const requested = typeof req.query.status === 'string' ? req.query.status : '';
+    const statuses: ShareStatus[] =
+      requested === 'pending' || requested === 'accepted'
+        ? [requested]
+        : ['pending', 'accepted'];
 
     const result = await pool.query(
       `SELECT sl.*,
@@ -248,9 +256,9 @@ export const getSharedWithMe = async (req: Request, res: Response) => {
        FROM shared_lists sl
        JOIN users o ON o.id = sl.owner_id
        JOIN users s ON s.id = sl.shared_with_user_id
-       WHERE sl.shared_with_user_id = $1 AND sl.status = 'accepted'
-       ORDER BY sl.created_at DESC`,
-      [userId]
+       WHERE sl.shared_with_user_id = $1 AND sl.status = ANY($2::varchar[])
+       ORDER BY (sl.status = 'pending') DESC, sl.created_at DESC`,
+      [userId, statuses]
     );
 
     res.json(result.rows.map(toSharedList));

@@ -31,7 +31,7 @@ export const useMyShares = () => {
   });
 };
 
-/** "Shared with me" - lists other people have accepted. */
+/** "Shared with me" - pending invitations plus the lists I accepted. */
 export const useSharedWithMe = () => {
   const { token } = useAuthStore();
 

@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { useMyShares, useSharedWithMe, useRemoveShare } from '../../hooks/useSharing';
 import { SharedUser } from '../../types/share';
+import ShareInvites from './ShareInvites';
 
 const Avatar: React.FC<{ user?: SharedUser; size?: string }> = ({ user, size = 'h-8 w-8' }) =>
   user?.avatar_url ? (
@@ -42,22 +43,24 @@ const SharedListsSidebar: React.FC = () => {
   const removeShare = useRemoveShare();
 
   const pending = (mine ?? []).filter((share) => share.status === 'pending');
+  const accepted = (withMe ?? []).filter((share) => share.status === 'accepted');
 
   return (
     <div className="space-y-5">
+      {/* ---------------- Invitations to me ---------------- */}
+      <ShareInvites />
+
       {/* ---------------- Shared with me ---------------- */}
       <section className="card p-4">
         <h3 className="mb-3 font-handwritten text-xl text-ink">Shared with me</h3>
 
         {isLoading ? (
           <p className="text-xs text-ink-muted">Loading…</p>
-        ) : (withMe ?? []).length === 0 ? (
-          <p className="text-xs text-ink-muted">
-            Nothing shared with you yet.
-          </p>
+        ) : accepted.length === 0 ? (
+          <p className="text-xs text-ink-muted">Nothing shared with you yet.</p>
         ) : (
           <ul className="space-y-2">
-            {(withMe ?? []).map((share) => (
+            {accepted.map((share) => (
               <li key={share.id} className="rounded-xl bg-surface-2 p-2.5">
                 <div className="flex items-center gap-2">
                   <Avatar user={share.owner} />
