@@ -12,6 +12,7 @@ import shareRoutes, { sharedListsRouter } from './routes/share';
 import userRoutes from './routes/users';
 import activityRoutes from './routes/activity';
 import aiRoutes from './routes/ai';
+import pomodoroRoutes from './routes/pomodoro';
 
 dotenv.config();
 
@@ -120,5 +121,6 @@ app.use('/api/shared-lists', sharedListsRouter);
 app.use('/api/users', userRoutes);
 app.use('/api/activity', activityRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/pomodoro', pomodoroRoutes);
 
 export default app;

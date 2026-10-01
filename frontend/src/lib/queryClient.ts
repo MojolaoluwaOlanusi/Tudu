@@ -20,6 +20,14 @@ export const queryKeys = {
   ai: {
     status: ['ai', 'status'] as const,
   },
+  activity: {
+    all: ['activity'] as const,
+  },
+  pomodoro: {
+    all: ['pomodoro'] as const,
+    stats: (days: number) => ['pomodoro', 'stats', days] as const,
+    active: ['pomodoro', 'active'] as const,
+  },
   subtasks: {
     all: ['subtasks'] as const,
     list: (taskId: string) => ['subtasks', 'list', taskId] as const,
