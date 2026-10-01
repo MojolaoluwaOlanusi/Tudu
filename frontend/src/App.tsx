@@ -11,6 +11,7 @@ import TaskList from './components/tasks/TaskList';
 import KanbanBoard from './components/kanban/KanbanBoard';
 import SharedListsSidebar from './components/sharing/SharedListsSidebar';
 import ShareInvites from './components/sharing/ShareInvites';
+import SharedWithMeSection from './components/sharing/SharedWithMeSection';
 import SharedListView from './components/sharing/SharedListView';
 import ToastContainer from './components/common/ToastContainer';
 
@@ -33,6 +34,7 @@ const Shell = ({ children }: { children: ReactNode }) => (
         <div className="mb-4 lg:hidden">
           <ShareInvites />
         </div>
+        <SharedWithMeSection />
         {children}
       </main>
     </div>

@@ -8,6 +8,8 @@ interface TaskCardProps {
   onEdit: (task: Task) => void;
   onDelete: (id: string) => void;
   onStatusChange: (id: string, status: Task['status']) => void;
+  /** True when this task has been shared with a collaborator. */
+  isShared?: boolean;
 }
 
 const categoryColors: Record<Category, string> = {
@@ -22,7 +24,7 @@ const priorityColors: Record<Priority, string> = {
   high: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
 };
 
-const TaskCard: React.FC<TaskCardProps> = ({ task, onEdit, onDelete, onStatusChange }) => {
+const TaskCard: React.FC<TaskCardProps> = ({ task, onEdit, onDelete, onStatusChange, isShared }) => {
   const isOverdue = task.due_date && new Date(task.due_date) < new Date() && task.status !== 'done';
   const [showSubtasks, setShowSubtasks] = useState(false);
 
@@ -64,6 +66,11 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onEdit, onDelete, onStatusCha
       )}
 
       <div className="flex flex-wrap gap-2 mb-3">
+        {isShared && (
+          <span className="rounded-full bg-accent-soft px-2 py-1 text-[10px] font-semibold uppercase text-accent-strong">
+            Shared
+          </span>
+        )}
         {task.category && (
           <span className={`px-2 py-1 rounded-full text-xs font-medium ${categoryColors[task.category]}`}>
             {task.category}

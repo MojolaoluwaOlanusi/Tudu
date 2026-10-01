@@ -1,20 +1,8 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useSharedWithMe, useRespondToShare } from '../../hooks/useSharing';
 import { useUiStore } from '../../store/uiStore';
-import { SharedUser } from '../../types/share';
-
-const Avatar: React.FC<{ user?: SharedUser }> = ({ user }) =>
-  user?.avatar_url ? (
-    <img
-      src={user.avatar_url}
-      alt={user.name || user.email}
-      className="h-9 w-9 shrink-0 rounded-full object-cover ring-2 ring-accent"
-    />
-  ) : (
-    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent text-sm font-semibold text-white">
-      {(user?.name || user?.email || '?').charAt(0).toUpperCase()}
-    </span>
-  );
+import Avatar from './Avatar';
 
 /**
  * Pending invitations addressed to me, with Accept / Decline actions.
@@ -25,6 +13,7 @@ const ShareInvites: React.FC = () => {
   const { data, isLoading } = useSharedWithMe();
   const respond = useRespondToShare();
   const pushToast = useUiStore((s) => s.pushToast);
+  const navigate = useNavigate();
 
   const pending = (data ?? []).filter((share) => share.status === 'pending');
 
@@ -33,11 +22,17 @@ const ShareInvites: React.FC = () => {
     respond.mutate(
       { sharedListId: id, status },
       {
-        onSuccess: () =>
+        onSuccess: () => {
           pushToast(
             status === 'accepted' ? 'Invitation accepted' : 'Invitation declined',
             'success'
-          ),
+          );
+          // Take them straight to the list so the tasks are immediately
+          // visible (and editable when they were given read_write).
+          if (status === 'accepted') {
+            navigate(`/shared/${id}`);
+          }
+        },
         onError: (err: any) =>
           pushToast(
             err?.response?.data?.error || 'Could not update the invitation',

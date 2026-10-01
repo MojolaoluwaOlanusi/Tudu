@@ -2,6 +2,7 @@ import React from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useSharedList, useUpdateSharedTask, useRemoveShare } from '../../hooks/useSharing';
 import Header from '../layout/Header';
+import Avatar from './Avatar';
 import { format } from 'date-fns';
 
 /** Read (and optionally edit) a list somebody shared with me. */
@@ -42,16 +43,21 @@ const SharedListView: React.FC = () => {
       <Header />
       <div className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h2 className="font-handwritten text-3xl text-ink sm:text-4xl">
-              {share.owner?.name || share.owner?.email || 'Shared list'}
-            </h2>
-            <p className="text-xs text-ink-muted">
-              Shared by {share.owner?.email} ·{' '}
-              <span className="uppercase">
-                {canEdit ? 'you can edit' : 'view only'}
-              </span>
-            </p>
+          <div className="flex items-center gap-3">
+            <Avatar user={share.owner} size="h-12 w-12" />
+            <div>
+              <div className="mb-1 flex flex-wrap items-center gap-2">
+                <h2 className="font-handwritten text-3xl text-ink sm:text-4xl">
+                  {share.owner?.name || share.owner?.email || 'Shared list'}
+                </h2>
+                <span className="rounded-full bg-accent-soft px-2 py-0.5 text-[10px] font-semibold uppercase text-accent-strong">
+                  Shared
+                </span>
+              </div>
+              <p className="text-xs text-ink-muted">
+                Shared with you by {share.owner?.email}
+              </p>
+            </div>
           </div>
           <button
             type="button"
@@ -60,6 +66,19 @@ const SharedListView: React.FC = () => {
           >
             Remove from my lists
           </button>
+        </div>
+
+        {/* Spell out exactly what this permission allows. */}
+        <div
+          className={`mb-6 rounded-xl border px-4 py-3 text-xs ${
+            canEdit
+              ? 'border-accent bg-accent-soft text-ink'
+              : 'border-hairline bg-surface-2 text-ink-muted'
+          }`}
+        >
+          {canEdit
+            ? 'You have edit access — change a task status and it saves instantly.'
+            : 'You have view-only access, so task statuses are read-only.'}
         </div>
 
         {share.tasks.length === 0 ? (
@@ -107,6 +126,9 @@ const SharedListView: React.FC = () => {
                 </div>
 
                 <div className="mt-2 flex flex-wrap gap-2">
+                  <span className="rounded-full bg-accent-soft px-2 py-0.5 text-[10px] font-semibold uppercase text-accent-strong">
+                    Shared
+                  </span>
                   {task.category && (
                     <span className="rounded-full bg-surface-2 px-2 py-0.5 text-[10px] font-medium capitalize text-ink-muted">
                       {task.category}

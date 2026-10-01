@@ -17,6 +17,7 @@ import { Task, CreateTaskInput, UpdateTaskInput, Category, Priority, Status } fr
 import TaskCard from './TaskCard';
 import TaskForm from './TaskForm';
 import ShareModal from '../sharing/ShareModal';
+import { useMyShares } from '../../hooks/useSharing';
 import SearchBar from '../common/SearchBar';
 import FilterDropdown from '../common/FilterDropdown';
 
@@ -56,6 +57,17 @@ const TaskList: React.FC = () => {
   const createTask = useCreateTask();
   const updateTask = useUpdateTask();
   const deleteTask = useDeleteTask();
+  const { data: myShares } = useMyShares();
+
+  // Ids of tasks I have shared, used for the "Shared" tag on the card.
+  const sharedTaskIds = useMemo(() => {
+    const ids = new Set<string>();
+    (myShares ?? []).forEach((share) => {
+      if (share.status === 'declined') return;
+      (share.task_ids ?? []).forEach((id) => ids.add(id));
+    });
+    return ids;
+  }, [myShares]);
 
   // The task being edited may live in the main list or in the overdue list.
   const editingTask = useMemo(
@@ -226,6 +238,7 @@ const TaskList: React.FC = () => {
               <TaskCard
                 key={task.id}
                 task={task}
+                isShared={sharedTaskIds.has(task.id)}
                 onEdit={handleEdit}
                 onDelete={handleDeleteTask}
                 onStatusChange={handleStatusChange}
@@ -258,6 +271,7 @@ const TaskList: React.FC = () => {
             <TaskCard
               key={task.id}
               task={task}
+              isShared={sharedTaskIds.has(task.id)}
               onEdit={handleEdit}
               onDelete={handleDeleteTask}
               onStatusChange={handleStatusChange}

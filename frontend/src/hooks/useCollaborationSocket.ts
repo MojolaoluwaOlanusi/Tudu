@@ -4,7 +4,10 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../store/authStore';
 import { queryKeys } from '../lib/queryClient';
 
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
+// Prefer an explicit socket URL, then fall back to the API URL so the socket
+// still works in production where VITE_SOCKET_URL may not be set.
+const SOCKET_URL =
+  import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_URL || window.location.origin;
 
 /** Events the backend emits for collaboration. */
 const COLLAB_EVENTS = [
