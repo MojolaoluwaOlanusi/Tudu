@@ -7,6 +7,8 @@ import dotenv from 'dotenv';
 import passport from './config/passport';
 import authRoutes from './routes/auth';
 import taskRoutes from './routes/tasks';
+import shareRoutes, { sharedListsRouter } from './routes/share';
+import userRoutes from './routes/users';
 
 dotenv.config();
 
@@ -55,5 +57,8 @@ app.get('/health', (req, res) => {
 // Routes
 app.use('/auth', authRoutes);
 app.use('/api/tasks', taskRoutes);
+app.use('/api/share', shareRoutes);
+app.use('/api/shared-lists', sharedListsRouter);
+app.use('/api/users', userRoutes);
 
 export default app;

@@ -20,6 +20,11 @@ interface UIState {
   toggleSidebar: () => void;
   closeSidebar: () => void;
 
+  /* ----------- Share modal ----------- */
+  isShareModalOpen: boolean;
+  openShareModal: () => void;
+  closeShareModal: () => void;
+
   /* -------------- Toasts -------------- */
   toasts: Toast[];
   pushToast: (message: string, variant?: ToastVariant) => void;
@@ -39,6 +44,10 @@ export const useUiStore = create<UIState>()((set, get) => ({
   isSidebarOpen: false,
   toggleSidebar: () => set((state) => ({ isSidebarOpen: !state.isSidebarOpen })),
   closeSidebar: () => set({ isSidebarOpen: false }),
+
+  isShareModalOpen: false,
+  openShareModal: () => set({ isShareModalOpen: true }),
+  closeShareModal: () => set({ isShareModalOpen: false }),
 
   toasts: [],
   pushToast: (message, variant = 'info') => {

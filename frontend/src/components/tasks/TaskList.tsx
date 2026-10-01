@@ -16,6 +16,7 @@ import {
 import { Task, CreateTaskInput, UpdateTaskInput, Category, Priority, Status } from '../../types/task';
 import TaskCard from './TaskCard';
 import TaskForm from './TaskForm';
+import ShareModal from '../sharing/ShareModal';
 import SearchBar from '../common/SearchBar';
 import FilterDropdown from '../common/FilterDropdown';
 
@@ -45,6 +46,8 @@ const TaskList: React.FC = () => {
   const isSidebarOpen = useUiStore((s) => s.isSidebarOpen);
   const toggleSidebar = useUiStore((s) => s.toggleSidebar);
   const pushToast = useUiStore((s) => s.pushToast);
+  const isShareModalOpen = useUiStore((s) => s.isShareModalOpen);
+  const openShareModal = useUiStore((s) => s.openShareModal);
 
   /* ----------- Server state (React Query) ----------- */
   const { data: tasks, isLoading, isFetching, isError, error, refetch } =
@@ -139,6 +142,9 @@ const TaskList: React.FC = () => {
         <div className="flex items-center gap-2">
           <button onClick={toggleSidebar} className="btn-ghost sm:hidden">
             {isSidebarOpen ? 'Hide filters' : 'Filters'}
+          </button>
+          <button onClick={openShareModal} className="btn-ghost shrink-0">
+            Share
           </button>
           <button
             onClick={() =>
@@ -237,6 +243,8 @@ const TaskList: React.FC = () => {
           isLoading={createTask.isPending || updateTask.isPending}
         />
       )}
+
+      {isShareModalOpen && <ShareModal tasks={tasks ?? []} />}
 
       {!tasks || tasks.length === 0 ? (
         <div className="card p-10 text-center">

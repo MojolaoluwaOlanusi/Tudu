@@ -21,6 +21,12 @@ export const queryKeys = {
     all: ['subtasks'] as const,
     list: (taskId: string) => ['subtasks', 'list', taskId] as const,
   },
+  shares: {
+    all: ['shares'] as const,
+    mine: ['shares', 'mine'] as const,
+    withMe: ['shares', 'with-me'] as const,
+    detail: (id: string) => ['shares', 'detail', id] as const,
+  },
 };
 
 type HttpishError = { response?: { status?: number } };

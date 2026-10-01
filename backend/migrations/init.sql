@@ -63,6 +63,10 @@ CREATE TABLE IF NOT EXISTS shared_lists (
   created_at TIMESTAMP DEFAULT NOW()
 );
 
+-- Invitation lifecycle for shared lists (pending -> accepted / declined).
+-- (CREATE TABLE IF NOT EXISTS never alters an already-existing table.)
+ALTER TABLE shared_lists ADD COLUMN IF NOT EXISTS status VARCHAR(20) NOT NULL DEFAULT 'pending';
+
 -- Pomodoro sessions table
 CREATE TABLE IF NOT EXISTS pomodoro_sessions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
