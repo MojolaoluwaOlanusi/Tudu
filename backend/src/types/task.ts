@@ -2,6 +2,24 @@ export type Category = 'work' | 'personal' | 'study';
 export type Priority = 'low' | 'medium' | 'high';
 export type Status = 'todo' | 'doing' | 'done';
 
+export interface Subtask {
+  id: string;
+  task_id: string;
+  title: string;
+  completed: boolean;
+  created_at: string;
+}
+
+export interface CreateSubtaskInput {
+  title: string;
+  completed?: boolean;
+}
+
+export interface UpdateSubtaskInput {
+  title?: string;
+  completed?: boolean;
+}
+
 export interface Task {
   id: string;
   user_id: string;

@@ -17,6 +17,10 @@ export const queryKeys = {
     overdue: ['tasks', 'overdue'] as const,
     kanban: ['tasks', 'kanban'] as const,
   },
+  subtasks: {
+    all: ['subtasks'] as const,
+    list: (taskId: string) => ['subtasks', 'list', taskId] as const,
+  },
 };
 
 type HttpishError = { response?: { status?: number } };

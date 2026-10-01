@@ -2,6 +2,28 @@ import { Request, Response } from 'express';
 import pool from '../config/database';
 import { CreateTaskInput, UpdateTaskInput, TaskFilters, Status } from '../types/task';
 
+/** LEFT JOIN that adds subtask totals to every task row. */
+const TASK_SUBTASK_COUNTS_JOIN = `
+  LEFT JOIN (
+    SELECT task_id,
+           COUNT(*) AS total,
+           COUNT(*) FILTER (WHERE completed) AS done
+    FROM subtasks
+    GROUP BY task_id
+  ) sub ON sub.task_id = t.id
+`;
+
+const TASK_SUBTASK_COUNTS_SELECT = `
+  COALESCE(sub.total, 0)::int AS subtask_count,
+  COALESCE(sub.done, 0)::int AS subtasks_completed
+`;
+
+/** The same counts for INSERT/UPDATE, whose RETURNING cannot use the join. */
+const TASK_SUBTASK_COUNTS_RETURNING = `
+  (SELECT COUNT(*)::int FROM subtasks WHERE task_id = tasks.id) AS subtask_count,
+  (SELECT COUNT(*)::int FROM subtasks WHERE task_id = tasks.id AND completed) AS subtasks_completed
+`;
+
 export const getAllTasks = async (req: Request, res: Response) => {
   try {
     const userId = req.user?.userId;
@@ -12,37 +34,39 @@ export const getAllTasks = async (req: Request, res: Response) => {
     const { status, category, priority, search } = req.query as TaskFilters;
 
     let query = `
-      SELECT * FROM tasks 
-      WHERE user_id = $1
+      SELECT t.*, ${TASK_SUBTASK_COUNTS_SELECT}
+      FROM tasks t
+      ${TASK_SUBTASK_COUNTS_JOIN}
+      WHERE t.user_id = $1
     `;
     const params: any[] = [userId];
     let paramCount = 1;
 
     if (status) {
       paramCount++;
-      query += ` AND status = $${paramCount}`;
+      query += ` AND t.status = $${paramCount}`;
       params.push(status);
     }
 
     if (category) {
       paramCount++;
-      query += ` AND category = $${paramCount}`;
+      query += ` AND t.category = $${paramCount}`;
       params.push(category);
     }
 
     if (priority) {
       paramCount++;
-      query += ` AND priority = $${paramCount}`;
+      query += ` AND t.priority = $${paramCount}`;
       params.push(priority);
     }
 
     if (search) {
       paramCount++;
-      query += ` AND (title ILIKE $${paramCount} OR description ILIKE $${paramCount})`;
+      query += ` AND (t.title ILIKE $${paramCount} OR t.description ILIKE $${paramCount})`;
       params.push(`%${search}%`);
     }
 
-    query += ` ORDER BY created_at DESC`;
+    query += ` ORDER BY t.created_at DESC`;
 
     const result = await pool.query(query, params);
     res.json(result.rows);
@@ -58,7 +82,10 @@ export const getTaskById = async (req: Request, res: Response) => {
     const { id } = req.params;
 
     const result = await pool.query(
-      'SELECT * FROM tasks WHERE id = $1 AND user_id = $2',
+      `SELECT t.*, ${TASK_SUBTASK_COUNTS_SELECT}
+       FROM tasks t
+       ${TASK_SUBTASK_COUNTS_JOIN}
+       WHERE t.id = $1 AND t.user_id = $2`,
       [id, userId]
     );
 
@@ -89,7 +116,7 @@ export const createTask = async (req: Request, res: Response) => {
     const result = await pool.query(
       `INSERT INTO tasks (user_id, title, description, category, priority, due_date)
        VALUES ($1, $2, $3, $4, $5, $6)
-       RETURNING *`,
+       RETURNING *, ${TASK_SUBTASK_COUNTS_RETURNING}`,
       [userId, title, description, category, priority, due_date]
     );
 
@@ -164,7 +191,7 @@ export const updateTask = async (req: Request, res: Response) => {
       UPDATE tasks 
       SET ${updates.join(', ')}
       WHERE id = $${paramCount - 1} AND user_id = $${paramCount}
-      RETURNING *
+      RETURNING *, ${TASK_SUBTASK_COUNTS_RETURNING}
     `;
 
     const result = await pool.query(query, values);
@@ -318,11 +345,13 @@ export const getOverdueTasks = async (req: Request, res: Response) => {
     }
 
     const result = await pool.query(
-      `SELECT * FROM tasks 
-       WHERE user_id = $1 
-       AND due_date < NOW() 
-       AND status != 'done'
-       ORDER BY due_date ASC`,
+      `SELECT t.*, ${TASK_SUBTASK_COUNTS_SELECT}
+       FROM tasks t
+       ${TASK_SUBTASK_COUNTS_JOIN}
+       WHERE t.user_id = $1 
+       AND t.due_date < NOW() 
+       AND t.status != 'done'
+       ORDER BY t.due_date ASC`,
       [userId]
     );
 

@@ -34,6 +34,10 @@ export const KanbanCardBody: React.FC<KanbanCardBodyProps> = ({
   dragHandle,
 }) => {
   const overdue = isOverdueTask(task);
+  const subtaskTotal = task.subtask_count ?? 0;
+  const subtaskDone = task.subtasks_completed ?? 0;
+  const subtaskPercent =
+    subtaskTotal === 0 ? 0 : Math.round((subtaskDone / subtaskTotal) * 100);
 
   return (
     <div
@@ -95,6 +99,20 @@ export const KanbanCardBody: React.FC<KanbanCardBodyProps> = ({
           </span>
         )}
       </div>
+
+      {subtaskTotal > 0 && (
+        <div className="mt-2 flex items-center gap-1.5">
+          <span className="h-1 flex-1 overflow-hidden rounded-full bg-surface-2">
+            <span
+              className="block h-full rounded-full bg-accent transition-all duration-300"
+              style={{ width: `${subtaskPercent}%` }}
+            />
+          </span>
+          <span className="shrink-0 text-[10px] font-medium text-ink-muted">
+            {subtaskDone}/{subtaskTotal}
+          </span>
+        </div>
+      )}
     </div>
   );
 };
