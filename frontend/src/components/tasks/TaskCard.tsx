@@ -139,7 +139,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onEdit, onDelete, onStatusCha
         </button>
 
         {showSubtasks && (
-          <SubtaskList taskId={task.id} readOnly={readOnlySubtasks} />
+          <SubtaskList taskId={task.id} readOnly={readOnlySubtasks} taskTitle={task.title} />
         )}
       </div>
 
