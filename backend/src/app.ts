@@ -13,6 +13,7 @@ import userRoutes from './routes/users';
 import activityRoutes from './routes/activity';
 import aiRoutes from './routes/ai';
 import pomodoroRoutes from './routes/pomodoro';
+import analyticsRoutes from './routes/analytics';
 
 dotenv.config();
 
@@ -122,5 +123,6 @@ app.use('/api/users', userRoutes);
 app.use('/api/activity', activityRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/pomodoro', pomodoroRoutes);
+app.use('/api/analytics', analyticsRoutes);
 
 export default app;

@@ -52,6 +52,9 @@ const Header: React.FC = () => {
           <NavLink to="/stats" className={navClass}>
             Stats
           </NavLink>
+          <NavLink to="/analytics" className={navClass}>
+            Analytics
+          </NavLink>
         </nav>
 
         <div className="flex shrink-0 items-center gap-2 sm:gap-3">

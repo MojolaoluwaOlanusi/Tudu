@@ -28,6 +28,12 @@ export const queryKeys = {
     stats: (days: number) => ['pomodoro', 'stats', days] as const,
     active: ['pomodoro', 'active'] as const,
   },
+  analytics: {
+    all: ['analytics'] as const,
+    overview: ['analytics', 'overview'] as const,
+    completed: (range: string) => ['analytics', 'completed', range] as const,
+    timeSpent: (range: string) => ['analytics', 'time-spent', range] as const,
+  },
   subtasks: {
     all: ['subtasks'] as const,
     list: (taskId: string) => ['subtasks', 'list', taskId] as const,

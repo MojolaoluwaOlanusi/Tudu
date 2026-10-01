@@ -20,7 +20,8 @@ A senior-level, feature-rich todo application with a friendly, brush-stroke aest
 - **Natural Language Input**: Type "Buy milk tomorrow at 9am #personal" to auto-parse
 - **AI Task Breakdown**: Break complex tasks into sub-tasks using a free AI provider (Gemini, Groq or local Ollama)
 - **Pomodoro Timer**: Full Pomodoro sessions with time tracking
-- **Analytics Dashboard**: Charts showing completion rates and time spent
+- **Analytics Dashboard**: Chart.js dashboard of completion rates, time spent and
+  priority distribution, with a date-range filter and CSV/JSON export
 
 ### User Experience
 - **Dark/Light Mode**: Toggle between themes with smooth transitions
@@ -344,12 +345,35 @@ Copy the key into your `.env` file.
 - `POST /api/ai/breakdown` - Suggest sub-tasks for a task title
 
 ### Analytics
-- `GET /api/pomodoro/stats` - Focus analytics: totals, today/this week, a daily
-  series and time per task
+All three take `?timezoneOffset=` and all are scoped to the signed-in user.
 
-> Task-completion analytics (`/api/analytics/*`) are not implemented yet - the
-> README previously listed them, but no such routes exist. The Stats page is
-> currently backed by the Pomodoro endpoint above.
+- `GET /api/analytics/overview` - Task counts (total/todo/doing/done/overdue),
+  completion rate, priority and category splits, and lifetime focus totals
+- `GET /api/analytics/completed-tasks` - Completions bucketed over time
+  (`?range=week|month|quarter`), with the previous period for comparison
+- `GET /api/analytics/time-spent` - Focus minutes per category and per task
+  (`?range=week|month|quarter`)
+
+`range` controls both the window and the granularity: `week` and `month` bucket
+by day, `quarter` buckets by week. An unrecognised value falls back to `week`.
+
+Completions are derived from `activity_log` (`action = 'task_completed'`)
+rather than `tasks.updated_at`, because the tasks table has no `completed_at`
+column and `updated_at` also changes on ordinary edits.
+
+### Analytics Dashboard
+The Analytics page (`/analytics`) renders the three endpoints with Chart.js:
+a bar chart of tasks completed, a pie chart of time spent by category, and a
+line chart of the productivity trend, plus a priority-distribution pie and a
+per-task table. The range filter (7 days / 30 days / 12 weeks) drives the
+bucketed endpoints.
+
+Both the page and Chart.js are code-split via `React.lazy`, so the chart
+library is only downloaded by users who open the page.
+
+Export produces a CSV or JSON snapshot of everything on screen. Cells beginning
+with `=`, `+`, `-` or `@` are prefixed with a quote, because task titles are
+user-supplied and would otherwise execute as formulas in Excel or Sheets.
 
 ## Socket.io Events
 
