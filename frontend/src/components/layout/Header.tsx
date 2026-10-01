@@ -2,6 +2,7 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import ThemeToggle from '../common/ThemeToggle';
+import SyncIndicator from '../common/SyncIndicator';
 
 const navClass = ({ isActive }: { isActive: boolean }) =>
   `rounded-full px-3 py-1.5 text-xs font-semibold transition-colors sm:px-4 sm:text-sm ${
@@ -50,6 +51,7 @@ const Header: React.FC = () => {
         </nav>
 
         <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+          {user && <SyncIndicator />}
           <ThemeToggle />
 
           {user && (

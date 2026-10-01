@@ -99,6 +99,56 @@ export const applyStatusChanges = (
   }
 };
 
+/** Insert or replace a task everywhere it can appear, in place of a refetch. */
+export const applyTaskUpsert = (queryClient: QueryClient, incoming: Task): void => {
+  const merge = (list: Task[]): Task[] => {
+    const exists = list.some((task) => task.id === incoming.id);
+    return exists
+      ? list.map((task) => (task.id === incoming.id ? { ...task, ...incoming } : task))
+      : [incoming, ...list];
+  };
+
+  queryClient.setQueryData<Task[]>(queryKeys.tasks.kanban, (old) =>
+    old ? sortByCreatedAtDesc(merge(old)) : old
+  );
+
+  queryClient
+    .getQueriesData<Task[]>({ queryKey: queryKeys.tasks.all })
+    .forEach(([key, data]) => {
+      if (!data || !Array.isArray(key) || key[1] !== 'list') return;
+      const filters = key[2] as TaskFilters | undefined;
+      queryClient.setQueryData<Task[]>(key, (old) =>
+        old ? sortByCreatedAtDesc(merge(old).filter((task) => matchesFilters(task, filters))) : old
+      );
+    });
+
+  queryClient.setQueryData<Task>(queryKeys.tasks.detail(incoming.id), (old) =>
+    old ? { ...old, ...incoming } : incoming
+  );
+
+  queryClient.setQueryData<Task[]>(queryKeys.tasks.overdue, (old) => {
+    if (!old) return old;
+    return merge(old).filter(isOverdueTask).sort((a, b) => dueTime(a) - dueTime(b));
+  });
+};
+
+/** Drop a deleted task from every task cache. */
+export const applyTaskRemoval = (queryClient: QueryClient, taskId: string): void => {
+  const drop = (list: Task[]): Task[] => list.filter((task) => task.id !== taskId);
+
+  queryClient.setQueryData<Task[]>(queryKeys.tasks.kanban, (old) => (old ? drop(old) : old));
+
+  queryClient
+    .getQueriesData<Task[]>({ queryKey: queryKeys.tasks.all })
+    .forEach(([key, data]) => {
+      if (!data || !Array.isArray(key) || key[1] !== 'list') return;
+      queryClient.setQueryData<Task[]>(key, (old) => (old ? drop(old) : old));
+    });
+
+  queryClient.setQueryData<Task[]>(queryKeys.tasks.overdue, (old) => (old ? drop(old) : old));
+  queryClient.removeQueries({ queryKey: queryKeys.tasks.detail(taskId) });
+};
+
 /**
  * Nudge the sub-task counters on a task inside every task cache, so the
  * "2/5 completed" badge updates without a refetch.

@@ -1,31 +1,13 @@
 import { Request, Response } from 'express';
 import pool from '../config/database';
-import { emitToUser } from '../utils/socket';
 import { logActivity } from '../services/activityService';
+import {
+  broadcastTask,
+  broadcastTaskDeleted,
+  notifyCollaborators,
+} from '../services/realtimeService';
 import { CreateTaskInput, UpdateTaskInput, TaskFilters, Status } from '../types/task';
-
-/**
- * Push a change to everyone this task is shared with, so a collaborator sees
- * edits made by the owner in real time (and vice versa).
- */
-const notifyCollaborators = async (
-  taskId: string,
-  ownerId: string,
-  event: string,
-  payload: unknown
-): Promise<void> => {
-  try {
-    const result = await pool.query(
-      `SELECT DISTINCT shared_with_user_id
-       FROM shared_lists
-       WHERE owner_id = $1 AND status = 'accepted' AND $2::uuid = ANY(task_ids)`,
-      [ownerId, taskId]
-    );
-    result.rows.forEach((row) => emitToUser(row.shared_with_user_id, event, payload));
-  } catch (error) {
-    console.error('Error notifying collaborators:', error);
-  }
-};
+import { SOCKET_EVENTS } from '../types/socket';
 
 /** LEFT JOIN that adds subtask totals to every task row. */
 const TASK_SUBTASK_COUNTS_JOIN = `
@@ -147,6 +129,7 @@ export const createTask = async (req: Request, res: Response) => {
 
     const created = result.rows[0];
     await logActivity(userId, 'task_created', created.id, { title: created.title });
+    await broadcastTask(SOCKET_EVENTS.taskCreate, userId, created);
 
     res.status(201).json(created);
   } catch (error) {
@@ -262,6 +245,8 @@ export const updateTask = async (req: Request, res: Response) => {
       });
     }
 
+    await broadcastTask(SOCKET_EVENTS.taskUpdate, userId, updated);
+
     res.json(updated);
   } catch (error) {
     console.error('Error updating task:', error);
@@ -341,6 +326,8 @@ export const updateTaskStatus = async (req: Request, res: Response) => {
     // A drag on a shared board must reach collaborators, same as an edit.
     await notifyCollaborators(id, userId, 'shared-task-updated', { task });
 
+    await broadcastTask(SOCKET_EVENTS.taskMove, userId, task);
+
     res.json(task);
   } catch (error) {
     console.error('Error updating task status:', error);
@@ -419,6 +406,7 @@ export const batchUpdateTaskStatus = async (req: Request, res: Response) => {
         task.status
       );
       await notifyCollaborators(task.id, userId, 'shared-task-updated', { task });
+      await broadcastTask(SOCKET_EVENTS.taskMove, userId, task);
     }
 
     res.json({ updated: result.rows.length, tasks: result.rows });
@@ -447,6 +435,7 @@ export const deleteTask = async (req: Request, res: Response) => {
     }
 
     await notifyCollaborators(id, userId, 'shared-task-deleted', { taskId: id });
+    await broadcastTaskDeleted(id, result.rows[0].user_id, userId);
 
     // task_id is deliberately null: activity_log cascades with the task, so
     // the entry keeps the title in its details instead of disappearing.

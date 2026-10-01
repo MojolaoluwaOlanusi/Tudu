@@ -339,15 +339,27 @@ tudu/
 
 ## Socket.io Events
 
+The connection is authenticated during the handshake: the client sends its JWT
+via `auth.token` and the server joins it to the `user-<id>` room automatically.
+There is no client-supplied room request, so a socket cannot join a room that
+isn't its own.
+
 ### Client → Server
-- `join-user-room` - Join user-specific room for real-time updates
+- _(none)_ - rooms are assigned by the server from the verified token
 
 ### Server → Client
-- `task:update` - Task updated
-- `task:move` - Task moved between columns
 - `task:create` - Task created
+- `task:update` - Task edited
+- `task:move` - Task moved between columns
 - `task:delete` - Task deleted
-- `subtask:update` - Subtask updated
+- `socket:ready` - Sent on connect with the bound `userId`
+
+Each task event carries the full task plus an `actorId`, letting a client tell
+its own echo apart from a change made in another tab or by a collaborator.
+
+The following sharing events are also emitted:
+`share-invited`, `share-accepted`, `share-declined`, `share-removed`,
+`shared-lists-changed`, `shared-task-updated`, `shared-task-deleted`.
 
 ## Natural Language Input Syntax
 
