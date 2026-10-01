@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Task, CreateTaskInput, Category, Priority } from '../../types/task';
+import { ParsedTaskText } from '../../types/nlp';
+import SmartTaskInput from './SmartTaskInput';
 
 interface TaskFormProps {
   onSubmit: (task: CreateTaskInput) => void;
@@ -51,6 +53,15 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSubmit, onCancel, isLoading, init
     });
   };
 
+  // Fill the fields in from the live preview. Only ever applied on request,
+  // so the checkboxes below are never changed behind the user's back.
+  const handleApplyParsed = (parsed: ParsedTaskText) => {
+    if (parsed.title) setTitle(parsed.title);
+    if (parsed.category) setCategory(parsed.category);
+    if (parsed.priority) setPriority(parsed.priority);
+    if (parsed.dueDate) setDueDate(toDateTimeLocalValue(parsed.dueDate));
+  };
+
   return (
     <section className="card animate-fade-in p-5 sm:p-6">
       <h2 className="mb-4 font-handwritten text-2xl text-ink sm:text-3xl">
@@ -58,18 +69,31 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSubmit, onCancel, isLoading, init
       </h2>
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="label" htmlFor="task-title">Title *</label>
-          <input
-            id="task-title"
-            type="text"
+        {/* Natural language is offered when creating; editing an existing task keeps
+            the plain input so hashtags in an old title are never rewritten. */}
+        {isEditing ? (
+          <div>
+            <label className="label" htmlFor="task-title">
+              Title *
+            </label>
+            <input
+              id="task-title"
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="input"
+              placeholder="What needs doing?"
+              disabled={isLoading}
+            />
+          </div>
+        ) : (
+          <SmartTaskInput
             value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="input"
-            placeholder="What needs doing?"
+            onChange={setTitle}
+            onApply={handleApplyParsed}
             disabled={isLoading}
           />
-        </div>
+        )}
 
         <div>
           <label className="label" htmlFor="task-desc">Description</label>
