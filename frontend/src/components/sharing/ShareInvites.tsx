@@ -1,5 +1,6 @@
 import React from 'react';
 import { useSharedWithMe, useRespondToShare } from '../../hooks/useSharing';
+import { useUiStore } from '../../store/uiStore';
 import { SharedUser } from '../../types/share';
 
 const Avatar: React.FC<{ user?: SharedUser }> = ({ user }) =>
@@ -23,8 +24,28 @@ const Avatar: React.FC<{ user?: SharedUser }> = ({ user }) =>
 const ShareInvites: React.FC = () => {
   const { data, isLoading } = useSharedWithMe();
   const respond = useRespondToShare();
+  const pushToast = useUiStore((s) => s.pushToast);
 
   const pending = (data ?? []).filter((share) => share.status === 'pending');
+
+  // Report the outcome so a failed request is never silent.
+  const handleRespond = (id: string, status: 'accepted' | 'declined') => {
+    respond.mutate(
+      { sharedListId: id, status },
+      {
+        onSuccess: () =>
+          pushToast(
+            status === 'accepted' ? 'Invitation accepted' : 'Invitation declined',
+            'success'
+          ),
+        onError: (err: any) =>
+          pushToast(
+            err?.response?.data?.error || 'Could not update the invitation',
+            'error'
+          ),
+      }
+    );
+  };
 
   if (isLoading || pending.length === 0) return null;
 
@@ -56,21 +77,28 @@ const ShareInvites: React.FC = () => {
             <div className="mt-2 flex gap-2">
               <button
                 type="button"
-                onClick={() =>
-                  respond.mutate({ sharedListId: share.id, status: 'accepted' })
-                }
+                onClick={() => handleRespond(share.id, 'accepted')}
                 disabled={respond.isPending}
-                className="flex-1 rounded-lg bg-accent px-2.5 py-1.5 text-xs font-semibold text-white transition-opacity disabled:opacity-50"
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-[#22c55e] px-2.5 py-1.5 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-[#16a34a] disabled:opacity-50"
               >
+                <svg
+                  className="h-3.5 w-3.5"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={3}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M5 13l4 4L19 7" />
+                </svg>
                 Accept
               </button>
               <button
                 type="button"
-                onClick={() =>
-                  respond.mutate({ sharedListId: share.id, status: 'declined' })
-                }
+                onClick={() => handleRespond(share.id, 'declined')}
                 disabled={respond.isPending}
-                className="flex-1 rounded-lg border border-hairline bg-surface px-2.5 py-1.5 text-xs font-semibold text-ink transition-colors hover:border-red-200 hover:text-red-600 disabled:opacity-50"
+                className="flex-1 rounded-lg border border-hairline bg-surface px-2.5 py-1.5 text-xs font-semibold text-ink transition-colors hover:border-red-300 hover:text-red-600 disabled:opacity-50"
               >
                 Decline
               </button>

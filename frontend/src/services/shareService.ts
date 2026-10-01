@@ -41,8 +41,11 @@ export const shareService = {
     sharedListId: string,
     status: Extract<ShareStatus, 'accepted' | 'declined'>
   ): Promise<SharedList> => {
+    // The API exposes the *action* (/accept, /decline), not the resulting
+    // state - posting "accepted" would 404.
+    const action = status === 'accepted' ? 'accept' : 'decline';
     const response = await axios.post(
-      `${API_URL}/api/share/${status}`,
+      `${API_URL}/api/share/${action}`,
       { sharedListId },
       headers(token)
     );
