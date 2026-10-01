@@ -99,10 +99,10 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSubmit, onCancel, isLoading }) =>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Due Date
+              Due Date &amp; Time
             </label>
             <input
-              type="date"
+              type="datetime-local"
               value={dueDate}
               onChange={(e) => setDueDate(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-brand-green focus:border-transparent"

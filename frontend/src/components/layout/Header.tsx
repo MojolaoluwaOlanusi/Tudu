@@ -12,9 +12,7 @@ const Header: React.FC = () => {
     <header className="bg-white dark:bg-gray-800 shadow-sm">
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-handwritten text-gray-800 dark:text-white">
-            Tudu
-          </h1>
+          <img src="/wordmark.png" alt="Tudu" className="h-10 w-auto" />
 
           <div className="flex items-center gap-4">
             {user && (
