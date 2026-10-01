@@ -1,6 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
-import type { ReactNode } from 'react';
+import { lazy, Suspense, type ReactNode } from 'react';
 import { queryClient } from './lib/queryClient';
 import { useRealtimeSync } from './hooks/useRealtimeSync';
 import Login from './components/auth/Login';
@@ -23,6 +23,12 @@ const CollaborationBridge = () => {
   useRealtimeSync();
   return null;
 };
+
+/**
+ * Chart.js is ~200kB of the bundle and only the analytics page needs it, so
+ * the route is code-split; everyone else never downloads it.
+ */
+const AnalyticsDashboard = lazy(() => import('./components/analytics/AnalyticsDashboard'));
 
 /** App shell: header plus the shared-lists sidebar on large screens. */
 const Shell = ({ children }: { children: ReactNode }) => (
@@ -66,6 +72,21 @@ const Stats = () => (
   </Shell>
 );
 
+const Analytics = () => (
+  <Shell>
+    <h1 className="mb-4 font-handwritten text-3xl text-ink">Analytics</h1>
+    <Suspense
+      fallback={
+        <div className="card p-6">
+          <p className="text-sm text-ink-muted">Loading your dashboard…</p>
+        </div>
+      }
+    >
+      <AnalyticsDashboard />
+    </Suspense>
+  </Shell>
+);
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -94,6 +115,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <Stats />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/analytics"
+            element={
+              <ProtectedRoute>
+                <Analytics />
               </ProtectedRoute>
             }
           />
