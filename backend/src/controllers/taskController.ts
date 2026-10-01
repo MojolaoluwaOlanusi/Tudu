@@ -1,6 +1,30 @@
 import { Request, Response } from 'express';
 import pool from '../config/database';
+import { emitToUser } from '../utils/socket';
 import { CreateTaskInput, UpdateTaskInput, TaskFilters, Status } from '../types/task';
+
+/**
+ * Push a change to everyone this task is shared with, so a collaborator sees
+ * edits made by the owner in real time (and vice versa).
+ */
+const notifyCollaborators = async (
+  taskId: string,
+  ownerId: string,
+  event: string,
+  payload: unknown
+): Promise<void> => {
+  try {
+    const result = await pool.query(
+      `SELECT DISTINCT shared_with_user_id
+       FROM shared_lists
+       WHERE owner_id = $1 AND status = 'accepted' AND $2::uuid = ANY(task_ids)`,
+      [ownerId, taskId]
+    );
+    result.rows.forEach((row) => emitToUser(row.shared_with_user_id, event, payload));
+  } catch (error) {
+    console.error('Error notifying collaborators:', error);
+  }
+};
 
 /** LEFT JOIN that adds subtask totals to every task row. */
 const TASK_SUBTASK_COUNTS_JOIN = `
@@ -133,6 +157,10 @@ export const updateTask = async (req: Request, res: Response) => {
     const { id } = req.params;
     const { title, description, category, priority, due_date, status }: UpdateTaskInput = req.body;
 
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
     // Build dynamic update query
     const updates: string[] = [];
     const values: any[] = [];
@@ -199,6 +227,11 @@ export const updateTask = async (req: Request, res: Response) => {
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Task not found' });
     }
+
+    // Owners editing their own task must still reach their collaborators.
+    await notifyCollaborators(id, userId, 'shared-task-updated', {
+      task: result.rows[0],
+    });
 
     res.json(result.rows[0]);
   } catch (error) {
@@ -321,6 +354,10 @@ export const deleteTask = async (req: Request, res: Response) => {
     const userId = req.user?.userId;
     const { id } = req.params;
 
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
     const result = await pool.query(
       'DELETE FROM tasks WHERE id = $1 AND user_id = $2 RETURNING *',
       [id, userId]
@@ -329,6 +366,8 @@ export const deleteTask = async (req: Request, res: Response) => {
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Task not found' });
     }
+
+    await notifyCollaborators(id, userId, 'shared-task-deleted', { taskId: id });
 
     res.json({ message: 'Task deleted successfully' });
   } catch (error) {

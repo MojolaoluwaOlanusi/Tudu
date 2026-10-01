@@ -17,6 +17,7 @@ const COLLAB_EVENTS = [
   'share-removed',
   'shared-lists-changed',
   'shared-task-updated',
+  'shared-task-deleted',
 ];
 
 /**

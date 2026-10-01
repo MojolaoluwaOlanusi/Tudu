@@ -1,9 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useSharedList, useUpdateSharedTask, useRemoveShare } from '../../hooks/useSharing';
+import { useUiStore } from '../../store/uiStore';
+import { CreateTaskInput, Task } from '../../types/task';
 import Header from '../layout/Header';
+import TaskCard from '../tasks/TaskCard';
+import TaskForm from '../tasks/TaskForm';
 import Avatar from './Avatar';
-import { format } from 'date-fns';
 
 /** Read (and optionally edit) a list somebody shared with me. */
 const SharedListView: React.FC = () => {
@@ -11,8 +14,44 @@ const SharedListView: React.FC = () => {
   const { data: share, isLoading, isError } = useSharedList(id ?? null);
   const updateSharedTask = useUpdateSharedTask();
   const removeShare = useRemoveShare();
+  const pushToast = useUiStore((s) => s.pushToast);
+
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const canEdit = share?.permissions === 'read_write';
+
+  const handleStatusChange = (taskId: string, status: Task['status']) => {
+    if (!share) return;
+    updateSharedTask.mutate(
+      { shareId: share.id, taskId, updates: { status } },
+      { onError: () => pushToast('Could not update the task', 'error') }
+    );
+  };
+
+  const handleEditSubmit = async (values: CreateTaskInput) => {
+    if (!share || !editingTask) return;
+    setIsSubmitting(true);
+    try {
+      await updateSharedTask.mutateAsync({
+        shareId: share.id,
+        taskId: editingTask.id,
+        updates: {
+          title: values.title,
+          description: values.description,
+          category: values.category,
+          priority: values.priority,
+          due_date: values.due_date,
+        },
+      });
+      pushToast('Task updated', 'success');
+      setEditingTask(null);
+    } catch {
+      pushToast('Could not update the task', 'error');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -90,69 +129,29 @@ const SharedListView: React.FC = () => {
         ) : (
           <div className="grid gap-4">
             {share.tasks.map((task) => (
-              <div
+              <TaskCard
                 key={task.id}
-                className="rounded-2xl border border-hairline border-l-4 border-l-accent bg-surface p-4 shadow-surface"
-              >
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div className="min-w-0 flex-1">
-                    <h3 className="font-semibold text-ink">{task.title}</h3>
-                    {task.description && (
-                      <p className="mt-1 text-sm text-ink-muted">{task.description}</p>
-                    )}
-                  </div>
-
-                  {canEdit ? (
-                    <select
-                      value={task.status}
-                      onChange={(e) =>
-                        updateSharedTask.mutate({
-                          shareId: share.id,
-                          taskId: task.id,
-                          status: e.target.value,
-                        })
-                      }
-                      className="rounded-lg border border-hairline bg-surface px-2.5 py-1 text-sm text-ink"
-                    >
-                      <option value="todo">To-do</option>
-                      <option value="doing">Doing</option>
-                      <option value="done">Done</option>
-                    </select>
-                  ) : (
-                    <span className="rounded-full bg-surface-2 px-2.5 py-1 text-xs font-medium uppercase text-ink-muted">
-                      {task.status}
-                    </span>
-                  )}
-                </div>
-
-                <div className="mt-2 flex flex-wrap gap-2">
-                  <span className="rounded-full bg-accent-soft px-2 py-0.5 text-[10px] font-semibold uppercase text-accent-strong">
-                    Shared
-                  </span>
-                  {task.category && (
-                    <span className="rounded-full bg-surface-2 px-2 py-0.5 text-[10px] font-medium capitalize text-ink-muted">
-                      {task.category}
-                    </span>
-                  )}
-                  {task.priority && (
-                    <span className="rounded-full bg-surface-2 px-2 py-0.5 text-[10px] font-medium capitalize text-ink-muted">
-                      {task.priority}
-                    </span>
-                  )}
-                  {task.due_date && (
-                    <span className="rounded-full bg-surface-2 px-2 py-0.5 text-[10px] font-medium text-ink-muted">
-                      {format(new Date(task.due_date), 'MMM d, yyyy')}
-                    </span>
-                  )}
-                  {(task.subtask_count ?? 0) > 0 && (
-                    <span className="rounded-full bg-surface-2 px-2 py-0.5 text-[10px] font-medium text-ink-muted">
-                      {task.subtasks_completed}/{task.subtask_count} sub-tasks
-                    </span>
-                  )}
-                </div>
-              </div>
+                task={task}
+                isShared
+                // Viewers get the same friendly card, just without the
+                // controls they are not allowed to use.
+                onEdit={canEdit ? (t) => setEditingTask(t) : undefined}
+                onStatusChange={
+                  canEdit ? (id, status) => handleStatusChange(id, status) : undefined
+                }
+                readOnlySubtasks
+              />
             ))}
           </div>
+        )}
+
+        {editingTask && (
+          <TaskForm
+            initialTask={editingTask}
+            onSubmit={handleEditSubmit}
+            onCancel={() => setEditingTask(null)}
+            isLoading={isSubmitting}
+          />
         )}
 
         <Link to="/" className="mt-6 inline-block text-sm font-medium text-accent-strong hover:text-accent">

@@ -292,12 +292,20 @@ export const getSharedList = async (req: Request, res: Response) => {
 
     const row = share.rows[0];
     const taskIds = row.task_ids || [];
-    // Tasks always belong to the owner of the shared list.
+    // Tasks always belong to the owner of the shared list. The join adds the
+    // sub-task totals so shared cards look exactly like the owner's own.
     const tasks = taskIds.length
       ? await pool.query(
-          `SELECT * FROM tasks
-           WHERE id = ANY($1::uuid[]) AND user_id = $2
-           ORDER BY created_at DESC`,
+          `SELECT t.*,
+                  COALESCE(sub.total, 0)::int AS subtask_count,
+                  COALESCE(sub.done, 0)::int AS subtasks_completed
+           FROM tasks t
+           LEFT JOIN (
+             SELECT task_id, COUNT(*) AS total, COUNT(*) FILTER (WHERE completed) AS done
+             FROM subtasks GROUP BY task_id
+           ) sub ON sub.task_id = t.id
+           WHERE t.id = ANY($1::uuid[]) AND t.user_id = $2
+           ORDER BY t.created_at DESC`,
           [taskIds, row.owner_id]
         )
       : { rows: [] as any[] };
@@ -351,16 +359,13 @@ export const updateSharedTask = async (req: Request, res: Response) => {
   try {
     const userId = req.user?.userId;
     const { id, taskId } = req.params;
-    const { status } = req.body as { status?: unknown };
+    const body = (req.body ?? {}) as Record<string, unknown>;
 
     if (!userId) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
     if (!isValidUuid(id) || !isValidUuid(taskId)) {
       return res.status(400).json({ error: 'Invalid share or task id' });
-    }
-    if (!isValidTaskStatus(status)) {
-      return res.status(400).json({ error: 'Status must be todo, doing or done' });
     }
 
     const share = await pool.query(
@@ -384,11 +389,57 @@ export const updateSharedTask = async (req: Request, res: Response) => {
         .json({ error: 'That task is not part of this shared list' });
     }
 
+    // Collaborators may edit the same fields the owner can.
+    const updates: string[] = [];
+    const values: any[] = [];
+    let paramCount = 0;
+
+    const push = (column: string, value: unknown) => {
+      paramCount++;
+      updates.push(`${column} = $${paramCount}`);
+      values.push(value);
+    };
+
+    if (body.title !== undefined) {
+      if (typeof body.title !== 'string' || !body.title.trim()) {
+        return res.status(400).json({ error: 'Title cannot be empty' });
+      }
+      push('title', body.title.trim());
+    }
+    if (body.description !== undefined) {
+      push('description', body.description || null);
+    }
+    if (body.category !== undefined) {
+      push('category', body.category || null);
+    }
+    if (body.priority !== undefined) {
+      push('priority', body.priority || null);
+    }
+    if (body.due_date !== undefined) {
+      push('due_date', body.due_date || null);
+    }
+    if (body.status !== undefined) {
+      if (!isValidTaskStatus(body.status)) {
+        return res.status(400).json({ error: 'Status must be todo, doing or done' });
+      }
+      push('status', body.status);
+    }
+
+    if (updates.length === 0) {
+      return res.status(400).json({ error: 'No fields to update' });
+    }
+
+    updates.push('updated_at = NOW()');
+    paramCount++;
+    values.push(taskId);
+    paramCount++;
+    values.push(row.owner_id);
+
     const updated = await pool.query(
-      `UPDATE tasks SET status = $1, updated_at = NOW()
-       WHERE id = $2 AND user_id = $3
+      `UPDATE tasks SET ${updates.join(', ')}
+       WHERE id = $${paramCount - 1} AND user_id = $${paramCount}
        RETURNING *`,
-      [status, taskId, row.owner_id]
+      values
     );
     if (updated.rows.length === 0) {
       return res.status(404).json({ error: 'Task not found' });

@@ -3,6 +3,7 @@ import { shareService } from '../services/shareService';
 import { useAuthStore } from '../store/authStore';
 import { queryKeys } from '../lib/queryClient';
 import { CreateShareInput, ShareStatus } from '../types/share';
+import { UpdateTaskInput } from '../types/task';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -104,21 +105,26 @@ export const useUpdateSharedTask = () => {
     mutationFn: ({
       shareId,
       taskId,
-      status,
+      updates,
     }: {
       shareId: string;
       taskId: string;
-      status: string;
-    }) => shareService.updateSharedTask(token!, shareId, taskId, status),
+      updates: UpdateTaskInput;
+    }) => shareService.updateSharedTask(token!, shareId, taskId, updates),
 
-    onMutate: async ({ shareId, taskId, status }) => {
+    onMutate: async ({ shareId, taskId, updates }) => {
       const key = queryKeys.shares.detail(shareId);
       await queryClient.cancelQueries({ queryKey: key });
-      const previous = queryClient.getQueryData<{ tasks?: { id: string; status: string }[] }>(key);
+      const previous = queryClient.getQueryData<{ tasks?: unknown[] }>(key);
 
       queryClient.setQueryData(key, (old: any) =>
         old
-          ? { ...old, tasks: (old.tasks ?? []).map((t: any) => (t.id === taskId ? { ...t, status } : t)) }
+          ? {
+              ...old,
+              tasks: (old.tasks ?? []).map((task: any) =>
+                task.id === taskId ? { ...task, ...updates } : task
+              ),
+            }
           : old
       );
 

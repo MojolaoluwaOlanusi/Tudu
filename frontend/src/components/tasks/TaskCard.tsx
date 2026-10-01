@@ -5,11 +5,14 @@ import SubtaskList from './SubtaskList';
 
 interface TaskCardProps {
   task: Task;
-  onEdit: (task: Task) => void;
-  onDelete: (id: string) => void;
-  onStatusChange: (id: string, status: Task['status']) => void;
+  /** Omit a handler to hide that control (e.g. on a shared list). */
+  onEdit?: (task: Task) => void;
+  onDelete?: (id: string) => void;
+  onStatusChange?: (id: string, status: Task['status']) => void;
   /** True when this task has been shared with a collaborator. */
   isShared?: boolean;
+  /** Show sub-tasks but do not allow changing them. */
+  readOnlySubtasks?: boolean;
 }
 
 const categoryColors: Record<Category, string> = {
@@ -24,7 +27,7 @@ const priorityColors: Record<Priority, string> = {
   high: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
 };
 
-const TaskCard: React.FC<TaskCardProps> = ({ task, onEdit, onDelete, onStatusChange, isShared }) => {
+const TaskCard: React.FC<TaskCardProps> = ({ task, onEdit, onDelete, onStatusChange, isShared, readOnlySubtasks }) => {
   const isOverdue = task.due_date && new Date(task.due_date) < new Date() && task.status !== 'done';
   const [showSubtasks, setShowSubtasks] = useState(false);
 
@@ -38,26 +41,30 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onEdit, onDelete, onStatusCha
       <div className="mb-2 flex items-start justify-between gap-3">
         <h3 className="flex-1 font-semibold text-ink">{task.title}</h3>
         <div className="flex shrink-0 gap-1">
-          <button
-            onClick={() => onEdit(task)}
-            className="rounded-lg p-1.5 text-ink-muted transition-colors hover:bg-accent-soft hover:text-accent-strong"
-            title="Edit"
-            aria-label="Edit task"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-            </svg>
-          </button>
-          <button
-            onClick={() => onDelete(task.id)}
-            className="rounded-lg p-1.5 text-ink-muted transition-colors hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/30 dark:hover:text-red-300"
-            title="Delete"
-            aria-label="Delete task"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-            </svg>
-          </button>
+          {onEdit && (
+            <button
+              onClick={() => onEdit(task)}
+              className="rounded-lg p-1.5 text-ink-muted transition-colors hover:bg-accent-soft hover:text-accent-strong"
+              title="Edit"
+              aria-label="Edit task"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+            </button>
+          )}
+          {onDelete && (
+            <button
+              onClick={() => onDelete(task.id)}
+              className="rounded-lg p-1.5 text-ink-muted transition-colors hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/30 dark:hover:text-red-300"
+              title="Delete"
+              aria-label="Delete task"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </button>
+          )}
         </div>
       </div>
 
@@ -129,19 +136,27 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onEdit, onDelete, onStatusCha
           )}
         </button>
 
-        {showSubtasks && <SubtaskList taskId={task.id} />}
+        {showSubtasks && (
+          <SubtaskList taskId={task.id} readOnly={readOnlySubtasks} />
+        )}
       </div>
 
       <div className="flex items-center gap-2">
-        <select
-          value={task.status}
-          onChange={(e) => onStatusChange(task.id, e.target.value as Task['status'])}
-          className="rounded-lg border border-hairline bg-surface px-2.5 py-1 text-sm text-ink"
-        >
-          <option value="todo">To-do</option>
-          <option value="doing">Doing</option>
-          <option value="done">Done</option>
-        </select>
+        {onStatusChange ? (
+          <select
+            value={task.status}
+            onChange={(e) => onStatusChange(task.id, e.target.value as Task['status'])}
+            className="rounded-lg border border-hairline bg-surface px-2.5 py-1 text-sm text-ink"
+          >
+            <option value="todo">To-do</option>
+            <option value="doing">Doing</option>
+            <option value="done">Done</option>
+          </select>
+        ) : (
+          <span className="rounded-full bg-surface-2 px-2.5 py-1 text-xs font-medium uppercase text-ink-muted">
+            {task.status}
+          </span>
+        )}
       </div>
     </div>
   );

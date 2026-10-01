@@ -9,6 +9,8 @@ import { Subtask } from '../../types/task';
 
 interface SubtaskListProps {
   taskId: string;
+  /** View-only, e.g. a shared list the user cannot edit. */
+  readOnly?: boolean;
 }
 
 const DeleteIcon: React.FC = () => (
@@ -24,7 +26,7 @@ const DeleteIcon: React.FC = () => (
   </svg>
 );
 
-const SubtaskList: React.FC<SubtaskListProps> = ({ taskId }) => {
+const SubtaskList: React.FC<SubtaskListProps> = ({ taskId, readOnly }) => {
   const { data: subtasks, isLoading, isError } = useSubtasks(taskId);
   const createSubtask = useCreateSubtask();
   const updateSubtask = useUpdateSubtask();
@@ -112,12 +114,23 @@ const SubtaskList: React.FC<SubtaskListProps> = ({ taskId }) => {
               <input
                 type="checkbox"
                 checked={subtask.completed}
-                onChange={() => toggle(subtask)}
+                onChange={readOnly ? undefined : () => toggle(subtask)}
+                disabled={readOnly}
                 aria-label={subtask.title}
-                className="h-3.5 w-3.5 shrink-0 cursor-pointer accent-[#22c55e]"
+                className={`h-3.5 w-3.5 shrink-0 accent-[#22c55e] ${
+                  readOnly ? 'cursor-default' : 'cursor-pointer'
+                }`}
               />
 
-              {editingId === subtask.id ? (
+              {readOnly ? (
+                <span
+                  className={`flex-1 text-xs ${
+                    subtask.completed ? 'text-ink-muted line-through' : 'text-ink'
+                  }`}
+                >
+                  {subtask.title}
+                </span>
+              ) : editingId === subtask.id ? (
                 <input
                   value={editingTitle}
                   onChange={(e) => setEditingTitle(e.target.value)}
@@ -147,36 +160,40 @@ const SubtaskList: React.FC<SubtaskListProps> = ({ taskId }) => {
                 </button>
               )}
 
-              <button
-                type="button"
-                onClick={() => deleteSubtask.mutate({ taskId, subtaskId: subtask.id })}
-                aria-label={`Delete ${subtask.title}`}
-                className="shrink-0 rounded p-0.5 text-ink-muted transition-colors hover:text-red-500"
-              >
-                <DeleteIcon />
-              </button>
+              {!readOnly && (
+                <button
+                  type="button"
+                  onClick={() => deleteSubtask.mutate({ taskId, subtaskId: subtask.id })}
+                  aria-label={`Delete ${subtask.title}`}
+                  className="shrink-0 rounded p-0.5 text-ink-muted transition-colors hover:text-red-500"
+                >
+                  <DeleteIcon />
+                </button>
+              )}
             </li>
           ))}
         </ul>
       )}
 
       {/* Add a sub-task straight from the task view */}
-      <form onSubmit={handleAdd} className="flex items-center gap-2">
-        <input
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="Add a sub-task…"
-          aria-label="New sub-task"
-          className="flex-1 rounded-lg border border-hairline bg-surface px-2.5 py-1.5 text-xs text-ink placeholder:text-ink-muted focus:outline-none focus:ring-2 focus:ring-accent"
-        />
-        <button
-          type="submit"
-          disabled={!title.trim() || createSubtask.isPending}
-          className="shrink-0 rounded-lg bg-accent px-2.5 py-1.5 text-xs font-semibold text-white transition-opacity disabled:opacity-50"
-        >
-          Add
-        </button>
-      </form>
+      {!readOnly && (
+        <form onSubmit={handleAdd} className="flex items-center gap-2">
+          <input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Add a sub-task…"
+            aria-label="New sub-task"
+            className="flex-1 rounded-lg border border-hairline bg-surface px-2.5 py-1.5 text-xs text-ink placeholder:text-ink-muted focus:outline-none focus:ring-2 focus:ring-accent"
+          />
+          <button
+            type="submit"
+            disabled={!title.trim() || createSubtask.isPending}
+            className="shrink-0 rounded-lg bg-accent px-2.5 py-1.5 text-xs font-semibold text-white transition-opacity disabled:opacity-50"
+          >
+            Add
+          </button>
+        </form>
+      )}
     </div>
   );
 };

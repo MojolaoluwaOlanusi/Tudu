@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { Task, UpdateTaskInput } from '../types/task';
 import {
   SharedList,
   SharedListWithTasks,
@@ -72,16 +73,16 @@ export const shareService = {
     await axios.delete(`${API_URL}/api/shared-lists/${id}`, headers(token));
   },
 
-  /** Change a task's status inside a shared list (needs read_write). */
+  /** Change a task inside a shared list (needs read_write). */
   updateSharedTask: async (
     token: string,
     shareId: string,
     taskId: string,
-    status: string
-  ): Promise<unknown> => {
+    updates: UpdateTaskInput
+  ): Promise<Task> => {
     const response = await axios.patch(
       `${API_URL}/api/shared-lists/${shareId}/tasks/${taskId}`,
-      { status },
+      updates,
       headers(token)
     );
     return response.data;
