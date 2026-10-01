@@ -11,10 +11,10 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-brand-light dark:bg-brand-dark">
+      <div className="flex min-h-screen items-center justify-center bg-page">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-green mx-auto"></div>
-          <p className="mt-4 text-gray-600 dark:text-gray-300">Loading...</p>
+          <div className="mx-auto h-12 w-12 animate-spin rounded-full border-b-2 border-accent"></div>
+          <p className="mt-4 font-handwritten text-xl text-ink-muted">Loading…</p>
         </div>
       </div>
     );

@@ -2,23 +2,96 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ------------------------------------------------------------------ */
+/* Design tokens: light + dark themes (driven by the `.dark` class)    */
+/* ------------------------------------------------------------------ */
 @layer base {
   :root {
-    --background: #fafafa;
-    --foreground: #1a1a1a;
+    color-scheme: light;
+
+    --color-bg: #f7f5ef;             /* off-white paper */
+    --color-surface: #ffffff;        /* cards / panels */
+    --color-surface-2: #f1eee5;      /* subtle panels */
+    --color-border: #e6e1d5;         /* hairline borders */
+    --color-text: #1f2a24;           /* primary ink */
+    --color-text-muted: #6b7280;     /* secondary ink */
+    --color-accent: #22c55e;         /* brand green (from the wordmark) */
+    --color-accent-strong: #16a34a;
+    --color-accent-soft: rgba(34, 197, 94, 0.12);
+    --shadow-surface: 0 12px 30px -18px rgba(31, 42, 36, 0.35);
   }
 
   .dark {
-    --background: #1a1a1a;
-    --foreground: #fafafa;
+    color-scheme: dark;
+
+    --color-bg: #121417;             /* dark grey / near-black */
+    --color-surface: #1b1e24;
+    --color-surface-2: #23262e;
+    --color-border: #2e323b;
+    --color-text: #e8eaed;
+    --color-text-muted: #9aa4b2;
+    --color-accent: #22c55e;
+    --color-accent-strong: #4ade80;
+    --color-accent-soft: rgba(34, 197, 94, 0.16);
+    --shadow-surface: 0 14px 34px -18px rgba(0, 0, 0, 0.75);
+  }
+
+  * {
+    @apply border-hairline;
+  }
+
+  html {
+    @apply scroll-smooth;
   }
 
   body {
-    @apply bg-brand-light dark:bg-brand-dark text-gray-800 dark:text-gray-200;
+    @apply min-h-screen bg-page font-sans text-ink antialiased;
+    /* Subtle paper texture + soft green glow */
+    background-image:
+      radial-gradient(circle at 22% 10%, rgba(34, 197, 94, 0.07), transparent 42%),
+      radial-gradient(circle at 1px 1px, rgba(31, 42, 36, 0.045) 1px, transparent 0);
+    background-size: 100% 100%, 24px 24px;
+    background-attachment: fixed;
+  }
+
+  .dark body {
+    background-image:
+      radial-gradient(circle at 22% 10%, rgba(34, 197, 94, 0.09), transparent 42%),
+      radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.05) 1px, transparent 0);
+  }
+
+  ::selection {
+    background: var(--color-accent-soft);
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Reusable friendly components                                        */
+/* ------------------------------------------------------------------ */
+@layer components {
+  .card {
+    @apply rounded-2xl border border-hairline bg-surface shadow-surface;
+  }
+
+  .input {
+    @apply w-full rounded-xl border border-hairline bg-surface px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-muted transition-colors focus:border-transparent focus:outline-none focus:ring-2 focus:ring-accent;
+  }
+
+  .label {
+    @apply mb-1 block text-sm font-medium text-ink-muted;
+  }
+
+  .btn-accent {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:bg-accent-strong hover:shadow disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl border border-hairline bg-surface px-4 py-2.5 text-sm font-semibold text-ink transition-all duration-200 hover:bg-surface-2 disabled:cursor-not-allowed disabled:opacity-50;
   }
 }
 
 @layer utilities {
+  /* Hand-drawn brush underline for buttons / headings */
   .brush-stroke {
     position: relative;
   }
@@ -26,11 +99,29 @@
   .brush-stroke::before {
     content: '';
     position: absolute;
-    bottom: -2px;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: linear-gradient(90deg, #22c55e, #16a34a);
-    border-radius: 2px;
+    left: 6%;
+    right: 6%;
+    bottom: -3px;
+    height: 5px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      var(--color-accent),
+      var(--color-accent-strong),
+      transparent
+    );
+    border-radius: 999px;
+    opacity: 0.7;
+    transform: rotate(-0.5deg);
   }
+}
+
+/* Smooth color transitions when switching themes */
+body,
+header,
+.card,
+.input,
+button,
+a {
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
 }

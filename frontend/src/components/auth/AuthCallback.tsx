@@ -52,28 +52,26 @@ const AuthCallback: React.FC = () => {
   }, [searchParams, navigate, setUser, setLoading, user, token]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-brand-light dark:bg-brand-dark px-4">
-      <div className="max-w-md w-full text-center">
+    <div className="flex min-h-screen items-center justify-center bg-page px-4">
+      <div className="w-full max-w-md text-center">
         {error ? (
-          <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-lg">
-            <h1 className="text-3xl font-handwritten text-gray-800 dark:text-white mb-4">
-              Tudu
-            </h1>
-            <div className="mb-4 p-3 bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-300 rounded-lg text-sm">
+          <div className="card p-8">
+            <h1 className="mb-4 font-handwritten text-4xl text-ink">Tudu</h1>
+            <div className="mb-4 rounded-lg bg-red-100 p-3 text-sm text-red-700 dark:bg-red-900/30 dark:text-red-300">
               {error}
             </div>
             <button
               onClick={() => navigate('/login', { replace: true })}
-              className="w-full px-4 py-3 bg-brand-green text-white rounded-lg hover:bg-green-600 transition-colors font-medium brush-stroke"
+              className="btn-accent brush-stroke w-full py-3"
             >
-              Back to Login
+              Back to login
             </button>
           </div>
         ) : (
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-green mx-auto"></div>
-            <p className="mt-4 text-gray-600 dark:text-gray-300">
-              Signing you in...
+            <div className="mx-auto h-12 w-12 animate-spin rounded-full border-b-2 border-accent"></div>
+            <p className="mt-4 font-handwritten text-xl text-ink-muted">
+              Signing you in…
             </p>
           </div>
         )}
