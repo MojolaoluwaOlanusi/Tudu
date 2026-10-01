@@ -6,7 +6,26 @@ import AuthCallback from './components/auth/AuthCallback';
 import ProtectedRoute from './components/common/ProtectedRoute';
 import Header from './components/layout/Header';
 import TaskList from './components/tasks/TaskList';
+import KanbanBoard from './components/kanban/KanbanBoard';
 import ToastContainer from './components/common/ToastContainer';
+
+const Dashboard = () => (
+  <div className="min-h-screen">
+    <Header />
+    <main className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
+      <TaskList />
+    </main>
+  </div>
+);
+
+const Board = () => (
+  <div className="min-h-screen">
+    <Header />
+    <main className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
+      <KanbanBoard />
+    </main>
+  </div>
+);
 
 function App() {
   return (
@@ -19,12 +38,15 @@ function App() {
             path="/"
             element={
               <ProtectedRoute>
-                <div className="min-h-screen">
-                  <Header />
-                  <main className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
-                    <TaskList />
-                  </main>
-                </div>
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/board"
+            element={
+              <ProtectedRoute>
+                <Board />
               </ProtectedRoute>
             }
           />

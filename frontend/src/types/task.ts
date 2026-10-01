@@ -38,3 +38,9 @@ export interface TaskFilters {
   priority?: Priority;
   search?: string;
 }
+
+/** A single "move this card to that column" instruction. */
+export interface StatusChange {
+  id: string;
+  status: Status;
+}

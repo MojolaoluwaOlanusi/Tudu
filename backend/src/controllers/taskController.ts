@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import pool from '../config/database';
-import { CreateTaskInput, UpdateTaskInput, TaskFilters } from '../types/task';
+import { CreateTaskInput, UpdateTaskInput, TaskFilters, Status } from '../types/task';
 
 export const getAllTasks = async (req: Request, res: Response) => {
   try {
@@ -177,6 +177,115 @@ export const updateTask = async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Error updating task:', error);
     res.status(500).json({ error: 'Failed to update task' });
+  }
+};
+
+const VALID_STATUSES: readonly string[] = ['todo', 'doing', 'done'];
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+const isValidStatus = (value: unknown): value is Status =>
+  typeof value === 'string' && VALID_STATUSES.includes(value);
+
+const isValidUuid = (value: unknown): value is string =>
+  typeof value === 'string' && UUID_RE.test(value);
+
+/**
+ * PATCH /api/tasks/:id/status
+ * Move a single task to another column (drag & drop on the Kanban board).
+ */
+export const updateTaskStatus = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    const { id } = req.params;
+    const { status } = req.body as { status?: unknown };
+
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    if (!isValidStatus(status)) {
+      return res
+        .status(400)
+        .json({ error: 'Status must be one of: todo, doing, done' });
+    }
+
+    const result = await pool.query(
+      `UPDATE tasks
+       SET status = $1, updated_at = NOW()
+       WHERE id = $2 AND user_id = $3
+       RETURNING *`,
+      [status, id, userId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Task not found' });
+    }
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Error updating task status:', error);
+    res.status(500).json({ error: 'Failed to update task status' });
+  }
+};
+
+const MAX_BATCH_SIZE = 200;
+
+/**
+ * PATCH /api/tasks/batch
+ * Move many tasks at once - used when several cards are dragged into a column.
+ * Runs as a single statement so the move is atomic.
+ */
+export const batchUpdateTaskStatus = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    const { updates } = req.body as { updates?: unknown };
+
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    if (!Array.isArray(updates) || updates.length === 0) {
+      return res.status(400).json({ error: 'updates must be a non-empty array' });
+    }
+    if (updates.length > MAX_BATCH_SIZE) {
+      return res
+        .status(400)
+        .json({ error: `Too many updates (max ${MAX_BATCH_SIZE})` });
+    }
+
+    const ids: string[] = [];
+    const statuses: string[] = [];
+
+    for (const update of updates as { id?: unknown; status?: unknown }[]) {
+      if (!update || typeof update !== 'object') {
+        return res.status(400).json({ error: 'Each update must be an object' });
+      }
+      if (!isValidUuid(update.id)) {
+        return res.status(400).json({ error: 'Each update requires a valid task id' });
+      }
+      if (!isValidStatus(update.status)) {
+        return res.status(400).json({ error: 'Each update requires a valid status' });
+      }
+      ids.push(update.id);
+      statuses.push(update.status);
+    }
+
+    const result = await pool.query(
+      `UPDATE tasks t
+       SET status = v.status, updated_at = NOW()
+       FROM unnest($1::uuid[], $2::text[]) AS v(id, status)
+       WHERE t.id = v.id AND t.user_id = $3
+       RETURNING t.*`,
+      [ids, statuses, userId]
+    );
+
+    // A short result means one of the tasks does not belong to this user.
+    if (result.rows.length !== ids.length) {
+      return res.status(404).json({ error: 'One or more tasks were not found' });
+    }
+
+    res.json({ updated: result.rows.length, tasks: result.rows });
+  } catch (error) {
+    console.error('Error batch updating task statuses:', error);
+    res.status(500).json({ error: 'Failed to update tasks' });
   }
 };
 

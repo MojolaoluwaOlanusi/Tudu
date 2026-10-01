@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { Task, CreateTaskInput, UpdateTaskInput, TaskFilters } from '../types/task';
+import { Task, CreateTaskInput, UpdateTaskInput, TaskFilters, StatusChange } from '../types/task';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -62,6 +62,33 @@ export const taskService = {
   // Get overdue tasks
   getOverdueTasks: async (token: string): Promise<Task[]> => {
     const response = await axios.get(`${API_URL}/api/tasks/overdue`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  },
+
+  // Move a single task to another column (Kanban drag & drop)
+  updateTaskStatus: async (
+    token: string,
+    id: string,
+    status: StatusChange['status']
+  ): Promise<Task> => {
+    const response = await axios.patch(`${API_URL}/api/tasks/${id}/status`, { status }, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  },
+
+  // Move many tasks at once (bulk drag & drop)
+  batchUpdateTaskStatus: async (
+    token: string,
+    updates: StatusChange[]
+  ): Promise<{ updated: number; tasks: Task[] }> => {
+    const response = await axios.patch(`${API_URL}/api/tasks/batch`, { updates }, {
       headers: {
         Authorization: `Bearer ${token}`,
       },

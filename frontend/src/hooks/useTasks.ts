@@ -7,32 +7,11 @@ import {
 import { taskService } from '../services/taskService';
 import { useAuthStore } from '../store/authStore';
 import { queryKeys } from '../lib/queryClient';
+import { isOverdueTask, matchesFilters, sortByCreatedAtDesc } from '../lib/taskCache';
 import { Task, CreateTaskInput, UpdateTaskInput, TaskFilters } from '../types/task';
 
 const TASKS_KEY = queryKeys.tasks.all;
 const OVERDUE_KEY = queryKeys.tasks.overdue;
-
-const isTaskOverdue = (task: Task): boolean =>
-  !!task.due_date && new Date(task.due_date) < new Date() && task.status !== 'done';
-
-const matchesFilters = (task: Task, filters?: TaskFilters): boolean => {
-  if (!filters) return true;
-  if (filters.status && task.status !== filters.status) return false;
-  if (filters.category && task.category !== filters.category) return false;
-  if (filters.priority && task.priority !== filters.priority) return false;
-  if (filters.search) {
-    const query = filters.search.toLowerCase();
-    const matchesTitle = task.title?.toLowerCase().includes(query) ?? false;
-    const matchesDescription = task.description?.toLowerCase().includes(query) ?? false;
-    if (!matchesTitle && !matchesDescription) return false;
-  }
-  return true;
-};
-
-const sortByCreatedAtDesc = (tasks: Task[]): Task[] =>
-  [...tasks].sort(
-    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-  );
 
 /**
  * Apply a change to every cached `['tasks', filters]` list so the UI updates
@@ -106,7 +85,7 @@ export const useCreateTask = () => {
           : tasks
       );
 
-      if (isTaskOverdue(optimisticTask)) {
+      if (isOverdueTask(optimisticTask)) {
         queryClient.setQueryData<Task[]>(OVERDUE_KEY, (old) =>
           old ? [optimisticTask, ...old] : [optimisticTask]
         );
@@ -159,7 +138,7 @@ export const useUpdateTask = () => {
         const existing = old.find((task) => task.id === id);
         if (!existing) return old;
         const updated = applyUpdate(existing);
-        return isTaskOverdue(updated)
+        return isOverdueTask(updated)
           ? old.map((task) => (task.id === id ? updated : task))
           : old.filter((task) => task.id !== id);
       });
