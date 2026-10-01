@@ -32,7 +32,7 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
       {activities.map((activity) => (
         <li key={activity.id} className="flex items-start gap-2">
           <span
-            className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${activityTone(activity.action)}`}
+            className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ring-2 ring-surface ${activityTone(activity.action)}`}
           />
           <p className={`min-w-0 flex-1 text-ink ${compact ? 'text-[11px]' : 'text-xs'}`}>
             You {formatActivity(activity)}{' '}

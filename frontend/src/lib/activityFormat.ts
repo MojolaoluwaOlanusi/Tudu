@@ -73,18 +73,31 @@ export const relativeTime = (iso: string): string => {
 /** Small coloured dot per action, so the feed is scannable. */
 export const activityTone = (action: Activity['action']): string => {
   switch (action) {
+    case 'task_created':
+      return 'bg-blue-400';
+    case 'task_updated':
+      return 'bg-indigo-400';
+    case 'task_moved':
+      return 'bg-amber-400';
     case 'task_completed':
-    case 'subtask_completed':
-    case 'share_accepted':
       return 'bg-accent';
     case 'task_deleted':
+      return 'bg-red-400';
+    case 'subtask_created':
+      return 'bg-blue-300';
+    case 'subtask_updated':
+      return 'bg-indigo-300';
+    case 'subtask_completed':
+      return 'bg-accent';
+    case 'subtask_deleted':
+      return 'bg-red-300';
+    case 'list_shared':
+      return 'bg-violet-400';
+    case 'share_accepted':
+      return 'bg-accent';
     case 'share_declined':
       return 'bg-red-400';
-    case 'task_created':
-    case 'subtask_created':
-    case 'list_shared':
-      return 'bg-blue-400';
     default:
-      return 'bg-gray-400';
+      return 'bg-ink-muted';
   }
 };

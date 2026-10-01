@@ -59,7 +59,11 @@ const fetchActivity = async (
 
   const [rows, count] = await Promise.all([
     pool.query(
-      `SELECT a.id, a.user_id, a.task_id, a.action, a.details, a.created_at,
+      `SELECT a.id, a.user_id, a.task_id, a.action, a.details,
+              -- created_at is a naive UTC timestamp. Cast it to timestamptz so
+              -- the driver reads it as an absolute instant instead of
+              -- applying the server's local timezone offset.
+              a.created_at AT TIME ZONE 'UTC' AS created_at,
               t.title AS task_title
        FROM activity_log a
        LEFT JOIN tasks t ON t.id = a.task_id

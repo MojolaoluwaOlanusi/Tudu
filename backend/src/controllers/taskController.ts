@@ -253,13 +253,8 @@ export const updateTask = async (req: Request, res: Response) => {
       'status',
     ].filter((field) => req.body[field] !== undefined);
 
-    if (status !== undefined && before && status !== before.status) {
-      await logActivity(
-        userId,
-        status === 'done' ? 'task_completed' : 'task_moved',
-        id,
-        { title: updated.title, from: before.status, to: status }
-      );
+    if (status !== undefined && before) {
+      await logStatusChange(userId, id, updated.title, before.status, status);
     } else {
       await logActivity(userId, 'task_updated', id, {
         title: updated.title,
@@ -284,6 +279,26 @@ const isValidUuid = (value: unknown): value is string =>
   typeof value === 'string' && UUID_RE.test(value);
 
 /**
+ * Record a status change, distinguishing "finished this task" from
+ * "moved it along the board".
+ */
+async function logStatusChange(
+  userId: string,
+  taskId: string,
+  title: string,
+  from: string,
+  to: string
+): Promise<void> {
+  if (from === to) return;
+  await logActivity(
+    userId,
+    to === 'done' ? 'task_completed' : 'task_moved',
+    taskId,
+    { title, from, to }
+  );
+}
+
+/**
  * PATCH /api/tasks/:id/status
  * Move a single task to another column (drag & drop on the Kanban board).
  */
@@ -302,6 +317,15 @@ export const updateTaskStatus = async (req: Request, res: Response) => {
         .json({ error: 'Status must be one of: todo, doing, done' });
     }
 
+    const before = await pool.query(
+      'SELECT id, title, status FROM tasks WHERE id = $1 AND user_id = $2',
+      [id, userId]
+    );
+
+    if (before.rows.length === 0) {
+      return res.status(404).json({ error: 'Task not found' });
+    }
+
     const result = await pool.query(
       `UPDATE tasks
        SET status = $1, updated_at = NOW()
@@ -310,11 +334,14 @@ export const updateTaskStatus = async (req: Request, res: Response) => {
       [status, id, userId]
     );
 
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Task not found' });
-    }
+    const task = result.rows[0];
 
-    res.json(result.rows[0]);
+    await logStatusChange(userId, task.id, task.title, before.rows[0].status, status as string);
+
+    // A drag on a shared board must reach collaborators, same as an edit.
+    await notifyCollaborators(id, userId, 'shared-task-updated', { task });
+
+    res.json(task);
   } catch (error) {
     console.error('Error updating task status:', error);
     res.status(500).json({ error: 'Failed to update task status' });
@@ -362,6 +389,11 @@ export const batchUpdateTaskStatus = async (req: Request, res: Response) => {
       statuses.push(update.status);
     }
 
+    const before = await pool.query(
+      'SELECT id, status FROM tasks WHERE id = ANY($1::uuid[]) AND user_id = $2',
+      [ids, userId]
+    );
+
     const result = await pool.query(
       `UPDATE tasks t
        SET status = v.status, updated_at = NOW()
@@ -374,6 +406,19 @@ export const batchUpdateTaskStatus = async (req: Request, res: Response) => {
     // A short result means one of the tasks does not belong to this user.
     if (result.rows.length !== ids.length) {
       return res.status(404).json({ error: 'One or more tasks were not found' });
+    }
+
+    const previous = new Map(before.rows.map((r: { id: string; status: string }) => [r.id, r.status]));
+
+    for (const task of result.rows) {
+      await logStatusChange(
+        userId,
+        task.id,
+        task.title,
+        previous.get(task.id) as string,
+        task.status
+      );
+      await notifyCollaborators(task.id, userId, 'shared-task-updated', { task });
     }
 
     res.json({ updated: result.rows.length, tasks: result.rows });
