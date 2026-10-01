@@ -1,14 +1,23 @@
--- Users table for OAuth authentication
+-- Users table for OAuth and email authentication
 CREATE TABLE IF NOT EXISTS users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   email VARCHAR(255) UNIQUE NOT NULL,
   name VARCHAR(255),
+  password VARCHAR(255),
   provider VARCHAR(50),
   provider_id VARCHAR(255),
   avatar_url TEXT,
   created_at TIMESTAMP DEFAULT NOW(),
   updated_at TIMESTAMP DEFAULT NOW()
 );
+
+-- Backfill columns for databases created before email/password auth existed.
+-- (CREATE TABLE IF NOT EXISTS never alters an already-existing table.)
+ALTER TABLE users ADD COLUMN IF NOT EXISTS password VARCHAR(255);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS provider VARCHAR(50);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS provider_id VARCHAR(255);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW();
 
 -- Tasks table
 CREATE TABLE IF NOT EXISTS tasks (

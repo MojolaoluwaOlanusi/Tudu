@@ -26,9 +26,10 @@ passport.use(
     },
     async (accessToken, refreshToken, profile, done) => {
       try {
-        const email = profile.emails?.[0]?.value;
+        const email =
+          profile.emails?.[0]?.value || (profile as any)._json?.email;
         if (!email) {
-          return done(new Error('No email in Google profile'), null);
+          return done(new Error('No email in Google profile'));
         }
 
         // Check if user exists
@@ -57,7 +58,7 @@ passport.use(
 
         return done(null, newUser.rows[0]);
       } catch (error) {
-        return done(error, null);
+        return done(error);
       }
     }
   )
@@ -71,11 +72,19 @@ passport.use(
       clientSecret: process.env.GITHUB_CLIENT_SECRET || '',
       callbackURL: process.env.GITHUB_CALLBACK_URL || 'http://localhost:5000/auth/github/callback',
     },
-    async (accessToken, refreshToken, profile, done) => {
+    async (
+      _accessToken: string,
+      _refreshToken: string,
+      profile: any,
+      done: (error: any, user?: any) => void
+    ) => {
       try {
-        const email = profile.emails?.[0]?.value;
+        // GitHub may not expose a primary email; fall back to the profile
+        // payload (public email) when the emails array is empty.
+        const email =
+          profile.emails?.[0]?.value || (profile as any)._json?.email;
         if (!email) {
-          return done(new Error('No email in GitHub profile'), null);
+          return done(new Error('No email in GitHub profile'));
         }
 
         // Check if user exists
@@ -104,7 +113,7 @@ passport.use(
 
         return done(null, newUser.rows[0]);
       } catch (error) {
-        return done(error, null);
+        return done(error);
       }
     }
   )

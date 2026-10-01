@@ -1,7 +1,9 @@
-import jwt from 'jsonwebtoken';
+import jwt, { SignOptions } from 'jsonwebtoken';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
+// jsonwebtoken's `expiresIn` is typed as `StringValue | number`, so a plain
+// `string` from the env is narrowed here to keep `jwt.sign` happy.
+const JWT_EXPIRES_IN = (process.env.JWT_EXPIRES_IN || '7d') as SignOptions['expiresIn'];
 
 export interface JWTPayload {
   userId: string;

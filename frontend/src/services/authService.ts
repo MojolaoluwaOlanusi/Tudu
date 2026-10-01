@@ -14,6 +14,18 @@ export const authService = {
     return response.data;
   },
 
+  // Email login
+  emailLogin: async (email: string, password: string): Promise<LoginResponse> => {
+    const response = await axios.post(`${API_URL}/auth/login`, { email, password });
+    return response.data;
+  },
+
+  // Email register
+  emailRegister: async (email: string, password: string, name?: string): Promise<LoginResponse> => {
+    const response = await axios.post(`${API_URL}/auth/register`, { email, password, name });
+    return response.data;
+  },
+
   // Initiate Google OAuth
   googleLogin: () => {
     window.location.href = `${API_URL}/auth/google`;

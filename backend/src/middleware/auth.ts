@@ -1,10 +1,15 @@
 import { Request, Response, NextFunction } from 'express';
-import { verifyToken, JWTPayload } from '../utils/jwt';
+import { verifyToken } from '../utils/jwt';
 
+// @types/passport declares `Express.User` as an empty interface and types
+// `Request.user` as `User | undefined`. We augment `Express.User` (instead of
+// re-declaring `Request.user`) so `req.user` carries our JWT payload fields
+// without clashing with the passport type declarations.
 declare global {
   namespace Express {
-    interface Request {
-      user?: JWTPayload;
+    interface User {
+      userId: string;
+      email: string;
     }
   }
 }

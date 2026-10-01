@@ -6,6 +6,7 @@ interface AuthStore extends AuthState {
   setUser: (user: User, token: string) => void;
   logout: () => void;
   setLoading: (loading: boolean) => void;
+  initializeAuth: () => void;
 }
 
 export const useAuthStore = create<AuthStore>()(
@@ -30,6 +31,20 @@ export const useAuthStore = create<AuthStore>()(
           isLoading: false,
         }),
       setLoading: (isLoading) => set({ isLoading }),
+      initializeAuth: () => {
+        const storedUser = localStorage.getItem('auth-storage');
+        if (storedUser) {
+          const parsed = JSON.parse(storedUser);
+          if (parsed.state?.user && parsed.state?.token) {
+            set({
+              user: parsed.state.user,
+              token: parsed.state.token,
+              isAuthenticated: parsed.state.isAuthenticated,
+              isLoading: false,
+            });
+          }
+        }
+      },
     }),
     {
       name: 'auth-storage',

@@ -5,7 +5,7 @@ A senior-level, feature-rich todo application with a friendly, brush-stroke aest
 ## Features
 
 ### Core Functionality
-- **Authentication**: OAuth (Google & GitHub) with JWT tokens
+- **Authentication**: OAuth (Google & GitHub) and Email/Password with JWT tokens
 - **User Isolation**: Each user sees only their tasks
 - **Categories**: Work, Personal, Study with color coding
 - **Priorities**: Low, Medium, High with visual indicators
@@ -117,6 +117,42 @@ tudu/
 - GitHub OAuth credentials (GitHub Developer Settings)
 - OpenAI API key (OpenAI Platform)
 
+### Getting OAuth Credentials
+
+#### Google OAuth Setup
+1. Go to [Google Cloud Console](https://console.cloud.google.com)
+2. Create a new project or select existing one
+3. Go to "APIs & Services" → "Credentials"
+4. Click "Create Credentials" → "OAuth client ID"
+5. Select "Web application"
+6. Add authorized redirect URIs:
+   - Development: `http://localhost:5000/auth/google/callback`
+   - Production: `https://your-backend-url.com/auth/google/callback`
+7. Copy the Client ID and Client Secret to your `.env` file
+
+#### GitHub OAuth Setup
+1. Go to [GitHub Developer Settings](https://github.com/settings/developers)
+2. Click "New OAuth App"
+3. Fill in the application details:
+   - Application name: "Tudu"
+   - Homepage URL: `http://localhost:5173` (dev) or your production URL
+   - Authorization callback URL: `http://localhost:5000/auth/github/callback` (dev) or your production callback URL
+4. Copy the Client ID and generate a Client Secret
+5. Add both to your `.env` file
+
+#### OpenAI API Key
+1. Go to [OpenAI Platform](https://platform.openai.com)
+2. Sign up or log in
+3. Go to API Keys section
+4. Create a new API key
+5. Copy the key to your `.env` file
+
+#### Neon Database Setup
+1. Go to [Neon](https://neon.tech)
+2. Sign up and create a new project
+3. Copy the connection string from the dashboard
+4. Add it to your `.env` file as `DATABASE_URL`
+
 ### Backend Setup
 
 1. **Navigate to backend directory**
@@ -136,7 +172,7 @@ tudu/
    Edit `.env` and fill in the following:
    ```
    DATABASE_URL=postgresql://user:password@host:5432/tudu
-   JWT_SECRET=your-secret-key-here
+   JWT_SECRET=your-secret-key-here (generate a random string)
    JWT_EXPIRES_IN=7d
    GOOGLE_CLIENT_ID=your-google-client-id
    GOOGLE_CLIENT_SECRET=your-google-client-secret
@@ -145,11 +181,15 @@ tudu/
    GITHUB_CLIENT_SECRET=your-github-client-secret
    GITHUB_CALLBACK_URL=http://localhost:5000/auth/github/callback
    OPENAI_API_KEY=your-openai-api-key
-   SESSION_SECRET=your-session-secret
+   SESSION_SECRET=your-session-secret (generate a random string)
    FRONTEND_URL=http://localhost:5173
    PORT=5000
    NODE_ENV=development
    ```
+
+   **Important**: For JWT_SECRET and SESSION_SECRET, use a strong random string. You can generate one using:
+   - Node.js: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
+   - Online: [Random String Generator](https://www.random.org/strings/)
 
 4. **Run database migrations**
    ```bash
@@ -198,7 +238,8 @@ tudu/
 - id (UUID, primary key)
 - email (VARCHAR, unique)
 - name (VARCHAR)
-- provider (VARCHAR) - 'google' or 'github'
+- password (VARCHAR) - hashed password for email auth
+- provider (VARCHAR) - 'google', 'github', or 'email'
 - provider_id (VARCHAR)
 - avatar_url (TEXT)
 - created_at (TIMESTAMP)
@@ -251,10 +292,14 @@ tudu/
 ## API Endpoints
 
 ### Authentication
+- `POST /auth/register` - Register with email/password
+- `POST /auth/login` - Login with email/password
 - `POST /auth/google` - Initiate Google OAuth
 - `POST /auth/github` - Initiate GitHub OAuth
-- `GET /auth/callback` - OAuth callback handler
+- `GET /auth/google/callback` - Google OAuth callback
+- `GET /auth/github/callback` - GitHub OAuth callback
 - `GET /auth/me` - Get current user info
+- `POST /auth/logout` - Logout user
 
 ### Tasks
 - `GET /api/tasks` - List tasks (supports query params for filtering)

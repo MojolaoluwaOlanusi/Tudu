@@ -1,7 +1,7 @@
+import dotenv from 'dotenv';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import app from './app';
-import dotenv from 'dotenv';
 
 dotenv.config();
 
