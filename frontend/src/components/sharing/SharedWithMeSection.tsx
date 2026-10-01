@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { useSharedWithMe } from '../../hooks/useSharing';
+import { useSharedWithMe, flattenShares } from '../../hooks/useSharing';
+import { useInfiniteScroll } from '../../hooks/useInfiniteScroll';
 import Avatar from './Avatar';
 
 /**
@@ -9,10 +10,17 @@ import Avatar from './Avatar';
  * unreachable on a phone.
  */
 const SharedWithMeSection: React.FC = () => {
-  const { data, isLoading } = useSharedWithMe();
+  const { data, isLoading, hasNextPage, isFetchingNextPage, fetchNextPage } =
+    useSharedWithMe();
 
-  const accepted = (data ?? []).filter((share) => share.status === 'accepted');
-  const pending = (data ?? []).filter((share) => share.status === 'pending');
+  const all = flattenShares(data);
+  const accepted = all.filter((share) => share.status === 'accepted');
+  const pending = all.filter((share) => share.status === 'pending');
+
+  const sentinelRef = useInfiniteScroll(
+    fetchNextPage,
+    Boolean(hasNextPage) && !isFetchingNextPage
+  );
 
   if (isLoading || (accepted.length === 0 && pending.length === 0)) return null;
 
@@ -64,6 +72,15 @@ const SharedWithMeSection: React.FC = () => {
               </svg>
             </Link>
           ))}
+        </div>
+      )}
+
+      {hasNextPage && (
+        <div
+          ref={sentinelRef}
+          className="mt-2 h-4 text-center text-[10px] text-ink-muted"
+        >
+          {isFetchingNextPage ? 'Loading more…' : ''}
         </div>
       )}
     </section>

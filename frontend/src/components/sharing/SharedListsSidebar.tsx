@@ -1,6 +1,12 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { useMyShares, useSharedWithMe, useRemoveShare } from '../../hooks/useSharing';
+import {
+  useMyShares,
+  useSharedWithMe,
+  useRemoveShare,
+  flattenShares,
+} from '../../hooks/useSharing';
+import { useInfiniteScroll } from '../../hooks/useInfiniteScroll';
 import { SharedUser } from '../../types/share';
 import ShareInvites from './ShareInvites';
 
@@ -38,12 +44,23 @@ const ProgressBar: React.FC<{ done: number; total: number }> = ({ done, total })
 
 /** Sidebar with "Shared with me" and "Shared by me" lists. */
 const SharedListsSidebar: React.FC = () => {
-  const { data: withMe, isLoading } = useSharedWithMe();
-  const { data: mine } = useMyShares();
+  const withMeQuery = useSharedWithMe();
+  const mineQuery = useMyShares();
   const removeShare = useRemoveShare();
 
-  const pending = (mine ?? []).filter((share) => share.status === 'pending');
-  const accepted = (withMe ?? []).filter((share) => share.status === 'accepted');
+  const mine = flattenShares(mineQuery.data);
+  const pending = mine.filter((s) => s.status === 'pending');
+  const accepted = flattenShares(withMeQuery.data).filter((s) => s.status === 'accepted');
+  const { isLoading } = withMeQuery;
+
+  const withMeRef = useInfiniteScroll(
+    withMeQuery.fetchNextPage,
+    Boolean(withMeQuery.hasNextPage) && !withMeQuery.isFetchingNextPage
+  );
+  const mineRef = useInfiniteScroll(
+    mineQuery.fetchNextPage,
+    Boolean(mineQuery.hasNextPage) && !mineQuery.isFetchingNextPage
+  );
 
   return (
     <div className="space-y-5">
@@ -85,6 +102,12 @@ const SharedListsSidebar: React.FC = () => {
               </li>
             ))}
           </ul>
+        )}
+
+        {withMeQuery.hasNextPage && (
+          <div ref={withMeRef} className="mt-1 text-center text-[10px] text-ink-muted">
+            {withMeQuery.isFetchingNextPage ? 'Loading…' : ''}
+          </div>
         )}
       </section>
 
@@ -131,6 +154,11 @@ const SharedListsSidebar: React.FC = () => {
             {pending.length} invitation{pending.length === 1 ? '' : 's'} waiting for a
             response.
           </p>
+        )}
+      {mineQuery.hasNextPage && (
+          <div ref={mineRef} className="mt-1 text-center text-[10px] text-ink-muted">
+            {mineQuery.isFetchingNextPage ? 'Loading…' : ''}
+          </div>
         )}
       </section>
     </div>

@@ -17,7 +17,7 @@ import { Task, CreateTaskInput, UpdateTaskInput, Category, Priority, Status } fr
 import TaskCard from './TaskCard';
 import TaskForm from './TaskForm';
 import ShareModal from '../sharing/ShareModal';
-import { useMyShares } from '../../hooks/useSharing';
+import { useMyShares, flattenShares } from '../../hooks/useSharing';
 import SearchBar from '../common/SearchBar';
 import FilterDropdown from '../common/FilterDropdown';
 
@@ -62,7 +62,7 @@ const TaskList: React.FC = () => {
   // Ids of tasks I have shared, used for the "Shared" tag on the card.
   const sharedTaskIds = useMemo(() => {
     const ids = new Set<string>();
-    (myShares ?? []).forEach((share) => {
+    (myShares ? flattenShares(myShares) : []).forEach((share) => {
       if (share.status === 'declined') return;
       (share.task_ids ?? []).forEach((id) => ids.add(id));
     });

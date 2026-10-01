@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useSharedWithMe, useRespondToShare } from '../../hooks/useSharing';
+import { useSharedWithMe, useRespondToShare, flattenShares } from '../../hooks/useSharing';
 import { useUiStore } from '../../store/uiStore';
 import Avatar from './Avatar';
 
@@ -15,7 +15,7 @@ const ShareInvites: React.FC = () => {
   const pushToast = useUiStore((s) => s.pushToast);
   const navigate = useNavigate();
 
-  const pending = (data ?? []).filter((share) => share.status === 'pending');
+  const pending = flattenShares(data).filter((share) => share.status === 'pending');
 
   // Report the outcome so a failed request is never silent.
   const handleRespond = (id: string, status: 'accepted' | 'declined') => {

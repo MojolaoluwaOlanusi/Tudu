@@ -14,6 +14,17 @@ const headers = (token: string) => ({
   headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
 });
 
+/** Page envelope returned by the paginated shared-list endpoints. */
+export interface PagedResult<T> {
+  items: T[];
+  total: number;
+}
+
+export interface PageParam {
+  limit: number;
+  offset: number;
+}
+
 export const shareService = {
   /** Find a user by email so we can show who we are inviting. */
   lookupUser: async (token: string, email: string): Promise<SharedUser> => {
@@ -30,9 +41,15 @@ export const shareService = {
     return response.data;
   },
 
-  /** Lists I have shared with other people. */
-  getMyShares: async (token: string): Promise<SharedList[]> => {
-    const response = await axios.get(`${API_URL}/api/share`, headers(token));
+  /** Lists I have shared with other people (paginated). */
+  getMyShares: async (
+    token: string,
+    page: PageParam
+  ): Promise<PagedResult<SharedList>> => {
+    const response = await axios.get(`${API_URL}/api/share`, {
+      ...headers(token),
+      params: page,
+    });
     return response.data;
   },
 
@@ -53,11 +70,14 @@ export const shareService = {
     return response.data;
   },
 
-  /** Lists other people shared with me (pending invitations included). */
-  getSharedWithMe: async (token: string, status?: 'pending' | 'accepted'): Promise<SharedList[]> => {
+  /** Lists other people shared with me, pending invitations included (paginated). */
+  getSharedWithMe: async (
+    token: string,
+    page: PageParam
+  ): Promise<PagedResult<SharedList>> => {
     const response = await axios.get(`${API_URL}/api/shared-lists`, {
       ...headers(token),
-      params: status ? { status } : undefined,
+      params: page,
     });
     return response.data;
   },

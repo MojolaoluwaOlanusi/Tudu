@@ -1,11 +1,17 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { shareService } from '../services/shareService';
 import { useAuthStore } from '../store/authStore';
 import { queryKeys } from '../lib/queryClient';
-import { CreateShareInput, ShareStatus } from '../types/share';
+import { CreateShareInput, ShareStatus, SharedList } from '../types/share';
 import { UpdateTaskInput } from '../types/task';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PAGE_SIZE = 20;
+
+/** Flatten the pages of an infinite query into a single list. */
+export const flattenShares = (data?: {
+  pages: Array<{ items: SharedList[] }>;
+}): SharedList[] => (data?.pages ?? []).flatMap((page) => page.items);
 
 /** Find someone by email while typing in the share modal. */
 export const useLookupUser = (email: string) => {
@@ -21,13 +27,20 @@ export const useLookupUser = (email: string) => {
   });
 };
 
-/** Lists I have shared with other people. */
+/** Lists I have shared with other people (infinite scroll). */
 export const useMyShares = () => {
   const { token } = useAuthStore();
 
-  return useQuery({
+  return useInfiniteQuery({
     queryKey: queryKeys.shares.mine,
-    queryFn: () => shareService.getMyShares(token!),
+    queryFn: ({ pageParam }) => shareService.getMyShares(token!, pageParam),
+    initialPageParam: { limit: PAGE_SIZE, offset: 0 },
+    getNextPageParam: (last, _all, lastPageParam) => {
+      const nextOffset = lastPageParam.offset + lastPageParam.limit;
+      return nextOffset < last.total
+        ? { limit: PAGE_SIZE, offset: nextOffset }
+        : undefined;
+    },
     enabled: !!token,
   });
 };
@@ -36,9 +49,16 @@ export const useMyShares = () => {
 export const useSharedWithMe = () => {
   const { token } = useAuthStore();
 
-  return useQuery({
+  return useInfiniteQuery({
     queryKey: queryKeys.shares.withMe,
-    queryFn: () => shareService.getSharedWithMe(token!),
+    queryFn: ({ pageParam }) => shareService.getSharedWithMe(token!, pageParam),
+    initialPageParam: { limit: PAGE_SIZE, offset: 0 },
+    getNextPageParam: (last, _all, lastPageParam) => {
+      const nextOffset = lastPageParam.offset + lastPageParam.limit;
+      return nextOffset < last.total
+        ? { limit: PAGE_SIZE, offset: nextOffset }
+        : undefined;
+    },
     enabled: !!token,
   });
 };

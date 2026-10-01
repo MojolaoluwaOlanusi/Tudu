@@ -12,6 +12,20 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MAX_SHARED_TASKS = 100;
 
+/** Pagination defaults for the shared-list feeds. */
+const DEFAULT_PAGE_SIZE = 20;
+const MAX_PAGE_SIZE = 100;
+
+const parsePaging = (req: Request): { limit: number; offset: number } => {
+  const rawLimit = parseInt(String(req.query.limit ?? ''), 10);
+  const rawOffset = parseInt(String(req.query.offset ?? ''), 10);
+  const limit = Number.isFinite(rawLimit)
+    ? Math.min(Math.max(rawLimit, 1), MAX_PAGE_SIZE)
+    : DEFAULT_PAGE_SIZE;
+  const offset = Number.isFinite(rawOffset) && rawOffset > 0 ? rawOffset : 0;
+  return { limit, offset };
+};
+
 const isValidUuid = (value: unknown): value is string =>
   typeof value === 'string' && UUID_RE.test(value);
 const isValidEmail = (value: unknown): value is string =>
@@ -214,14 +228,22 @@ export const getMyShares = async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    const result = await pool.query(
-      `${SHARE_WITH_USERS_SQL}
-       WHERE sl.owner_id = $1
-       ORDER BY sl.created_at DESC`,
-      [userId]
-    );
+    const { limit, offset } = parsePaging(req);
+    const [result, count] = await Promise.all([
+      pool.query(
+        `${SHARE_WITH_USERS_SQL}
+         WHERE sl.owner_id = $1
+         ORDER BY sl.created_at DESC
+         LIMIT $2 OFFSET $3`,
+        [userId, limit, offset]
+      ),
+      pool.query(
+        'SELECT COUNT(*)::int AS total FROM shared_lists WHERE owner_id = $1',
+        [userId]
+      ),
+    ]);
 
-    res.json(result.rows.map(toSharedList));
+    res.json({ items: result.rows.map(toSharedList), total: count.rows[0].total });
   } catch (error) {
     console.error('Error fetching my shares:', error);
     res.status(500).json({ error: 'Failed to fetch shares' });
@@ -244,8 +266,10 @@ export const getSharedWithMe = async (req: Request, res: Response) => {
         ? [requested]
         : ['pending', 'accepted'];
 
-    const result = await pool.query(
-      `SELECT sl.*,
+    const { limit, offset } = parsePaging(req);
+    const [result, count] = await Promise.all([
+      pool.query(
+        `SELECT sl.*,
               o.name AS owner_name, o.email AS owner_email, o.avatar_url AS owner_avatar,
               s.name AS shared_name, s.email AS shared_email, s.avatar_url AS shared_avatar,
               COALESCE(cardinality(sl.task_ids), 0)::int AS task_count,
@@ -253,15 +277,23 @@ export const getSharedWithMe = async (req: Request, res: Response) => {
                 SELECT COUNT(*)::int FROM tasks t
                 WHERE t.id = ANY(sl.task_ids) AND t.user_id = sl.owner_id AND t.status = 'done'
               ), 0) AS tasks_completed
-       FROM shared_lists sl
-       JOIN users o ON o.id = sl.owner_id
-       JOIN users s ON s.id = sl.shared_with_user_id
-       WHERE sl.shared_with_user_id = $1 AND sl.status = ANY($2::varchar[])
-       ORDER BY (sl.status = 'pending') DESC, sl.created_at DESC`,
-      [userId, statuses]
-    );
+         FROM shared_lists sl
+         JOIN users o ON o.id = sl.owner_id
+         JOIN users s ON s.id = sl.shared_with_user_id
+         WHERE sl.shared_with_user_id = $1 AND sl.status = ANY($2::varchar[])
+         ORDER BY (sl.status = 'pending') DESC, sl.created_at DESC
+         LIMIT $3 OFFSET $4`,
+        [userId, statuses, limit, offset]
+      ),
+      pool.query(
+        `SELECT COUNT(*)::int AS total
+         FROM shared_lists
+         WHERE shared_with_user_id = $1 AND status = ANY($2::varchar[])`,
+        [userId, statuses]
+      ),
+    ]);
 
-    res.json(result.rows.map(toSharedList));
+    res.json({ items: result.rows.map(toSharedList), total: count.rows[0].total });
   } catch (error) {
     console.error('Error fetching shared lists:', error);
     res.status(500).json({ error: 'Failed to fetch shared lists' });
