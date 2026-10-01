@@ -1,12 +1,18 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { User, AuthState } from '../types/user';
+import { User } from '../types/user';
 
-interface AuthStore extends AuthState {
+/**
+ * Auth state (Zustand + persist).
+ * Only the *session* lives here - server data for the user is fetched and
+ * cached through React Query (see `hooks/useAuth.ts`).
+ */
+interface AuthStore {
+  user: User | null;
+  token: string | null;
+  isAuthenticated: boolean;
   setUser: (user: User, token: string) => void;
   logout: () => void;
-  setLoading: (loading: boolean) => void;
-  initializeAuth: () => void;
 }
 
 export const useAuthStore = create<AuthStore>()(
@@ -15,39 +21,13 @@ export const useAuthStore = create<AuthStore>()(
       user: null,
       token: null,
       isAuthenticated: false,
-      isLoading: false,
-      setUser: (user, token) =>
-        set({
-          user,
-          token,
-          isAuthenticated: true,
-          isLoading: false,
-        }),
-      logout: () =>
-        set({
-          user: null,
-          token: null,
-          isAuthenticated: false,
-          isLoading: false,
-        }),
-      setLoading: (isLoading) => set({ isLoading }),
-      initializeAuth: () => {
-        const storedUser = localStorage.getItem('auth-storage');
-        if (storedUser) {
-          const parsed = JSON.parse(storedUser);
-          if (parsed.state?.user && parsed.state?.token) {
-            set({
-              user: parsed.state.user,
-              token: parsed.state.token,
-              isAuthenticated: parsed.state.isAuthenticated,
-              isLoading: false,
-            });
-          }
-        }
-      },
+      setUser: (user, token) => set({ user, token, isAuthenticated: true }),
+      logout: () => set({ user: null, token: null, isAuthenticated: false }),
     }),
     {
       name: 'auth-storage',
+      // Rehydrate synchronously from localStorage so the router never flashes
+      // the login screen for an already signed-in user.
       partialize: (state) => ({
         user: state.user,
         token: state.token,
@@ -56,3 +36,8 @@ export const useAuthStore = create<AuthStore>()(
     }
   )
 );
+
+export const selectToken = (state: AuthStore) => state.token;
+export const selectUser = (state: AuthStore) => state.user;
+export const selectIsAuthenticated = (state: AuthStore) => state.isAuthenticated;
+

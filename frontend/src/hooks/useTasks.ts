@@ -3,14 +3,14 @@ import {
   useMutation,
   useQueryClient,
   type QueryClient,
-  type QueryKey,
 } from '@tanstack/react-query';
 import { taskService } from '../services/taskService';
 import { useAuthStore } from '../store/authStore';
+import { queryKeys } from '../lib/queryClient';
 import { Task, CreateTaskInput, UpdateTaskInput, TaskFilters } from '../types/task';
 
-const TASKS_KEY: QueryKey = ['tasks'];
-const OVERDUE_KEY: QueryKey = ['overdue-tasks'];
+const TASKS_KEY = queryKeys.tasks.all;
+const OVERDUE_KEY = queryKeys.tasks.overdue;
 
 const isTaskOverdue = (task: Task): boolean =>
   !!task.due_date && new Date(task.due_date) < new Date() && task.status !== 'done';
@@ -43,18 +43,21 @@ const patchTaskLists = (
   queryClient: QueryClient,
   patch: (tasks: Task[], filters?: TaskFilters) => Task[]
 ) => {
-  queryClient.getQueriesData<Task[]>({ queryKey: TASKS_KEY }).forEach(([key, data]) => {
-    if (!data) return;
-    const filters = Array.isArray(key) ? (key[1] as TaskFilters | undefined) : undefined;
-    queryClient.setQueryData<Task[]>(key, patch(data, filters));
-  });
+  queryClient
+    .getQueriesData<Task[]>({ queryKey: TASKS_KEY })
+    .forEach(([key, data]) => {
+      // Only patch the filtered *list* caches - never the detail/overdue caches.
+      if (!data || !Array.isArray(key) || key[1] !== 'list') return;
+      const filters = key[2] as TaskFilters | undefined;
+      queryClient.setQueryData<Task[]>(key, patch(data, filters));
+    });
 };
 
 export const useTasks = (filters?: TaskFilters) => {
   const { token } = useAuthStore();
 
   return useQuery({
-    queryKey: ['tasks', filters],
+    queryKey: queryKeys.tasks.list(filters),
     queryFn: () => taskService.getTasks(token!, filters!),
     enabled: !!token,
   });
@@ -64,7 +67,7 @@ export const useTask = (id: string) => {
   const { token } = useAuthStore();
 
   return useQuery({
-    queryKey: ['task', id],
+    queryKey: queryKeys.tasks.detail(id),
     queryFn: () => taskService.getTaskById(token!, id),
     enabled: !!token && !!id,
   });
@@ -132,11 +135,11 @@ export const useUpdateTask = () => {
     onMutate: async ({ id, task: updates }) => {
       await queryClient.cancelQueries({ queryKey: TASKS_KEY });
       await queryClient.cancelQueries({ queryKey: OVERDUE_KEY });
-      await queryClient.cancelQueries({ queryKey: ['task', id] });
+      await queryClient.cancelQueries({ queryKey: queryKeys.tasks.detail(id) });
 
       const previousTasks = queryClient.getQueriesData<Task[]>({ queryKey: TASKS_KEY });
       const previousOverdue = queryClient.getQueryData<Task[]>(OVERDUE_KEY);
-      const previousSingle = queryClient.getQueryData<Task>(['task', id]);
+      const previousSingle = queryClient.getQueryData<Task>(queryKeys.tasks.detail(id));
 
       const applyUpdate = (task: Task): Task => {
         const definedUpdates = Object.fromEntries(
@@ -162,7 +165,7 @@ export const useUpdateTask = () => {
       });
 
       if (previousSingle) {
-        queryClient.setQueryData<Task>(['task', id], applyUpdate(previousSingle));
+        queryClient.setQueryData<Task>(queryKeys.tasks.detail(id), applyUpdate(previousSingle));
       }
 
       return { previousTasks, previousOverdue, previousSingle };
@@ -171,13 +174,13 @@ export const useUpdateTask = () => {
       context?.previousTasks?.forEach(([key, data]) => queryClient.setQueryData(key, data));
       queryClient.setQueryData(OVERDUE_KEY, context?.previousOverdue);
       if (context?.previousSingle) {
-        queryClient.setQueryData(['task', variables.id], context.previousSingle);
+        queryClient.setQueryData(queryKeys.tasks.detail(variables.id), context.previousSingle);
       }
     },
     onSettled: (_data, _error, { id }) => {
       queryClient.invalidateQueries({ queryKey: TASKS_KEY });
       queryClient.invalidateQueries({ queryKey: OVERDUE_KEY });
-      queryClient.invalidateQueries({ queryKey: ['task', id] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.tasks.detail(id) });
     },
   });
 };
