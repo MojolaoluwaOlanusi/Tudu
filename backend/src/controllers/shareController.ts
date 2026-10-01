@@ -2,6 +2,8 @@ import { Request, Response } from 'express';
 import pool from '../config/database';
 import { emitToUser } from '../utils/socket';
 import { logActivity } from '../services/activityService';
+import { broadcastTask } from '../services/realtimeService';
+import { SOCKET_EVENTS } from '../types/socket';
 import {
   SharePermission,
   ShareStatus,
@@ -502,6 +504,10 @@ export const updateSharedTask = async (req: Request, res: Response) => {
       shareId: row.id,
       task: updated.rows[0],
     });
+
+    // Also emit the standard task event so the owner's board applies the change
+    // to the cache directly rather than waiting on the refetch above.
+    await broadcastTask(SOCKET_EVENTS.taskUpdate, userId, updated.rows[0]);
 
     res.json(updated.rows[0]);
   } catch (error) {
