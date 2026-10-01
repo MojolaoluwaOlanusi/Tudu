@@ -6,11 +6,14 @@ import {
   useDeleteSubtask,
 } from '../../hooks/useSubtasks';
 import { Subtask } from '../../types/task';
+import AiBreakdownModal from '../ai/AiBreakdownModal';
 
 interface SubtaskListProps {
   taskId: string;
   /** View-only, e.g. a shared list the user cannot edit. */
   readOnly?: boolean;
+  /** Parent task title, so the AI knows what it is breaking down. */
+  taskTitle?: string;
 }
 
 const DeleteIcon: React.FC = () => (
@@ -26,7 +29,11 @@ const DeleteIcon: React.FC = () => (
   </svg>
 );
 
-const SubtaskList: React.FC<SubtaskListProps> = ({ taskId, readOnly }) => {
+const SubtaskList: React.FC<SubtaskListProps> = ({
+  taskId,
+  readOnly,
+  taskTitle,
+}) => {
   const { data: subtasks, isLoading, isError } = useSubtasks(taskId);
   const createSubtask = useCreateSubtask();
   const updateSubtask = useUpdateSubtask();
@@ -35,6 +42,7 @@ const SubtaskList: React.FC<SubtaskListProps> = ({ taskId, readOnly }) => {
   const [title, setTitle] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState('');
+  const [showBreakdown, setShowBreakdown] = useState(false);
 
   const total = subtasks?.length ?? 0;
   const completed = subtasks?.filter((subtask) => subtask.completed).length ?? 0;
@@ -177,7 +185,29 @@ const SubtaskList: React.FC<SubtaskListProps> = ({ taskId, readOnly }) => {
 
       {/* Add a sub-task straight from the task view */}
       {!readOnly && (
-        <form onSubmit={handleAdd} className="flex items-center gap-2">
+        <>
+          {taskTitle && (
+            <button
+              type="button"
+              onClick={() => setShowBreakdown(true)}
+              className="mb-2 inline-flex items-center gap-1.5 rounded-lg border border-hairline bg-surface-2 px-2.5 py-1.5 text-xs font-medium text-ink-muted transition-colors hover:border-accent hover:text-accent-strong"
+            >
+              <svg
+                className="h-3.5 w-3.5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                viewBox="0 0 24 24"
+              >
+                <path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1" />
+              </svg>
+              Break this down
+            </button>
+          )}
+
+          <form onSubmit={handleAdd} className="flex items-center gap-2">
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
@@ -192,7 +222,16 @@ const SubtaskList: React.FC<SubtaskListProps> = ({ taskId, readOnly }) => {
           >
             Add
           </button>
-        </form>
+          </form>
+
+          {showBreakdown && taskTitle && (
+            <AiBreakdownModal
+              taskTitle={taskTitle}
+              taskId={taskId}
+              onClose={() => setShowBreakdown(false)}
+            />
+          )}
+        </>
       )}
     </div>
   );

@@ -18,7 +18,7 @@ A senior-level, feature-rich todo application with a friendly, brush-stroke aest
 - **Collaboration**: Share lists with other users via email
 - **Activity Log**: Track all task actions with timestamps
 - **Natural Language Input**: Type "Buy milk tomorrow at 9am #personal" to auto-parse
-- **AI Task Breakdown**: Break complex tasks into sub-tasks using OpenAI GPT-4
+- **AI Task Breakdown**: Break complex tasks into sub-tasks using a free AI provider (Gemini, Groq or local Ollama)
 - **Pomodoro Timer**: Full Pomodoro sessions with time tracking
 - **Analytics Dashboard**: Charts showing completion rates and time spent
 
@@ -48,7 +48,7 @@ A senior-level, feature-rich todo application with a friendly, brush-stroke aest
 - **ORM**: pg (PostgreSQL client)
 - **Authentication**: Passport.js with OAuth (Google, GitHub)
 - **Real-time**: Socket.io
-- **AI**: OpenAI GPT-4 API
+- **AI**: Gemini / Groq / Ollama (pluggable, all free - no SDK, plain HTTP)
 - **Date Parsing**: chrono-node, date-fns
 - **Validation**: Zod
 - **Security**: Helmet, express-rate-limit
@@ -71,7 +71,7 @@ tudu/
 │   │   ├── middleware/      # Auth, error handling, validation
 │   │   ├── models/          # Database models
 │   │   ├── routes/          # API routes
-│   │   ├── services/        # Business logic (OpenAI, NLP, email)
+│   │   ├── services/        # Business logic (AI providers, NLP, activity)
 │   │   ├── utils/           # Helper functions
 │   │   ├── app.ts           # Express app configuration
 │   │   └── server.ts        # Server entry point with Socket.io
@@ -115,7 +115,10 @@ tudu/
 - PostgreSQL database (Neon account recommended)
 - Google OAuth credentials (Google Cloud Console)
 - GitHub OAuth credentials (GitHub Developer Settings)
-- OpenAI API key (OpenAI Platform)
+- An AI provider key - **optional**, only needed for the AI breakdown feature.
+  All supported providers are free and need no credit card; see
+  [AI Task Breakdown](#ai-task-breakdown). Without a key the rest of the app
+  works normally and only that feature is disabled.
 
 ### Getting OAuth Credentials
 
@@ -140,12 +143,17 @@ tudu/
 4. Copy the Client ID and generate a Client Secret
 5. Add both to your `.env` file
 
-#### OpenAI API Key
-1. Go to [OpenAI Platform](https://platform.openai.com)
-2. Sign up or log in
-3. Go to API Keys section
-4. Create a new API key
-5. Copy the key to your `.env` file
+#### AI Provider Key (optional)
+
+Only needed for the AI breakdown feature. Pick one - all are free and none
+require a credit card. Full comparison in [AI Task Breakdown](#ai-task-breakdown).
+
+1. **Gemini (recommended)** - go to [Google AI Studio](https://aistudio.google.com/apikey),
+   sign in with a Google account, click "Create API Key"
+2. **Groq** - go to [console.groq.com/keys](https://console.groq.com/keys) and create a key
+3. **Ollama** - no key at all; just run `ollama serve` locally
+
+Copy the key into your `.env` file.
 
 #### Neon Database Setup
 1. Go to [Neon](https://neon.tech)
@@ -180,7 +188,8 @@ tudu/
    GITHUB_CLIENT_ID=your-github-client-id
    GITHUB_CLIENT_SECRET=your-github-client-secret
    GITHUB_CALLBACK_URL=http://localhost:5000/auth/github/callback
-   OPENAI_API_KEY=your-openai-api-key
+   AI_PROVIDER=gemini
+   GEMINI_API_KEY=your-free-gemini-key
    SESSION_SECRET=your-session-secret (generate a random string)
    FRONTEND_URL=http://localhost:5173
    PORT=5000
@@ -330,7 +339,8 @@ tudu/
 - `GET /api/pomodoro/stats` - Get Pomodoro statistics
 
 ### AI
-- `POST /api/ai/breakdown` - Generate sub-tasks via AI
+- `GET /api/ai/status` - Which AI provider is configured, and whether it is usable
+- `POST /api/ai/breakdown` - Suggest sub-tasks for a task title
 
 ### Analytics
 - `GET /api/analytics/overview` - Get overview statistics
@@ -398,6 +408,77 @@ the caller left blank, so an explicit `category` or `priority` always wins. Pass
 
 In the UI the new-task form previews the result live as you type and leaves the
 fields alone until you press **Use these details**.
+
+## AI Task Breakdown
+
+Open a task, expand its sub-tasks, and press **Break this down**. The AI
+suggests a list of steps, which you can edit, untick, delete or add to before
+anything is saved.
+
+### Choosing a provider (all free, none need a card)
+
+The provider is chosen with the `AI_PROVIDER` environment variable. No vendor
+SDK is used - every provider is called over plain HTTP, so there is nothing to
+install and no vendor lock-in.
+
+| `AI_PROVIDER` | Needs an API key? | Card needed? | Get a key |
+|---|---|---|---|
+| `gemini` (default) | Yes | **No** - the free tier does not require linking billing | [aistudio.google.com/apikey](https://aistudio.google.com/apikey) |
+| `groq` | Yes | **No** - free plan | [console.groq.com/keys](https://console.groq.com/keys) |
+| `ollama` | No | **No** - runs on your own machine | `ollama serve` then `ollama pull llama3.2` |
+
+**Gemini** is the default and needs only a Google account. Its free tier covers
+everyday use; only the higher Tier 1 rate limits require linking a billing
+account, which this project never asks you to do.
+
+**Groq** is the fastest option and also has a documented free plan
+(~30 requests/minute, ~1000/day).
+
+**Ollama** runs the model locally. It needs no account, no key and no network,
+which makes it the only option with no third party involved at all - at the cost
+of downloading a model and having enough RAM to run it.
+
+### Setup
+
+```bash
+# 1. Get a free key from Google AI Studio
+#    https://aistudio.google.com/apikey
+
+# 2. Add it to backend/.env
+AI_PROVIDER=gemini
+GEMINI_API_KEY=your-key-here
+
+# 3. Restart the backend. Check it picked up:
+curl http://localhost:5000/api/ai/status -H "Authorization: Bearer <token>"
+# {"provider":"gemini","configured":true,"envVar":"GEMINI_API_KEY"}
+```
+
+To switch providers, change one line - no code changes needed:
+
+```bash
+AI_PROVIDER=groq
+GROQ_API_KEY=your-groq-key
+```
+
+Or run it fully locally:
+
+```bash
+ollama serve
+ollama pull llama3.2
+AI_PROVIDER=ollama
+```
+
+### How it behaves
+
+- **Nothing is saved until you press "Add ... to task"** - the suggestions are a
+  starting point you curate, not an automatic change.
+- `POST /api/ai/breakdown` is rate limited to **10 requests per minute** per
+  client, since it calls an external provider.
+- If no key is configured the endpoint returns a clear `503` explaining exactly
+  which variable to set, rather than failing silently.
+- Provider errors are translated into plain language: a rate limit, a rejected
+  key, a timeout and an unreachable local Ollama each get their own message,
+  and the modal offers a "Try again" button.
 
 ## Deployment
 
