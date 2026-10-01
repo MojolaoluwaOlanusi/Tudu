@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import pool from '../config/database';
 import { CreateSubtaskInput, UpdateSubtaskInput } from '../types/task';
+import { logActivity } from '../services/activityService';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -96,7 +97,12 @@ export const createSubtask = async (req: Request, res: Response) => {
       [taskId, title.trim(), completed ?? false]
     );
 
-    res.status(201).json(result.rows[0]);
+    const created = result.rows[0];
+    await logActivity(userId, 'subtask_created', taskId, {
+      subtaskTitle: created.title,
+    });
+
+    res.status(201).json(created);
   } catch (error) {
     console.error('Error creating subtask:', error);
     res.status(500).json({ error: 'Failed to create subtask' });
@@ -164,7 +170,15 @@ export const updateSubtask = async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Subtask not found' });
     }
 
-    res.json(result.rows[0]);
+    const updated = result.rows[0];
+    await logActivity(
+      userId,
+      completed === true ? 'subtask_completed' : 'subtask_updated',
+      taskId,
+      { subtaskTitle: updated.title }
+    );
+
+    res.json(updated);
   } catch (error) {
     console.error('Error updating subtask:', error);
     res.status(500).json({ error: 'Failed to update subtask' });
@@ -199,6 +213,10 @@ export const deleteSubtask = async (req: Request, res: Response) => {
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Subtask not found' });
     }
+
+    await logActivity(userId, 'subtask_deleted', taskId, {
+      subtaskTitle: '(removed)',
+    });
 
     res.json({ message: 'Subtask deleted successfully' });
   } catch (error) {

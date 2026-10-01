@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import pool from '../config/database';
 import { emitToUser } from '../utils/socket';
+import { logActivity } from '../services/activityService';
 import { CreateTaskInput, UpdateTaskInput, TaskFilters, Status } from '../types/task';
 
 /**
@@ -144,7 +145,10 @@ export const createTask = async (req: Request, res: Response) => {
       [userId, title, description, category, priority, due_date]
     );
 
-    res.status(201).json(result.rows[0]);
+    const created = result.rows[0];
+    await logActivity(userId, 'task_created', created.id, { title: created.title });
+
+    res.status(201).json(created);
   } catch (error) {
     console.error('Error creating task:', error);
     res.status(500).json({ error: 'Failed to create task' });
@@ -160,6 +164,13 @@ export const updateTask = async (req: Request, res: Response) => {
     if (!userId) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
+
+    // Read the current values so we can describe what actually changed.
+    const previous = await pool.query(
+      'SELECT title, status FROM tasks WHERE id = $1 AND user_id = $2',
+      [id, userId]
+    );
+    const before = previous.rows[0];
 
     // Build dynamic update query
     const updates: string[] = [];
@@ -228,12 +239,35 @@ export const updateTask = async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Task not found' });
     }
 
-    // Owners editing their own task must still reach their collaborators.
-    await notifyCollaborators(id, userId, 'shared-task-updated', {
-      task: result.rows[0],
-    });
+    const updated = result.rows[0];
 
-    res.json(result.rows[0]);
+    // Owners editing their own task must still reach their collaborators.
+    await notifyCollaborators(id, userId, 'shared-task-updated', { task: updated });
+
+    const changedFields = [
+      'title',
+      'description',
+      'category',
+      'priority',
+      'due_date',
+      'status',
+    ].filter((field) => req.body[field] !== undefined);
+
+    if (status !== undefined && before && status !== before.status) {
+      await logActivity(
+        userId,
+        status === 'done' ? 'task_completed' : 'task_moved',
+        id,
+        { title: updated.title, from: before.status, to: status }
+      );
+    } else {
+      await logActivity(userId, 'task_updated', id, {
+        title: updated.title,
+        fields: changedFields,
+      });
+    }
+
+    res.json(updated);
   } catch (error) {
     console.error('Error updating task:', error);
     res.status(500).json({ error: 'Failed to update task' });
@@ -368,6 +402,10 @@ export const deleteTask = async (req: Request, res: Response) => {
     }
 
     await notifyCollaborators(id, userId, 'shared-task-deleted', { taskId: id });
+
+    // task_id is deliberately null: activity_log cascades with the task, so
+    // the entry keeps the title in its details instead of disappearing.
+    await logActivity(userId, 'task_deleted', null, { title: result.rows[0].title });
 
     res.json({ message: 'Task deleted successfully' });
   } catch (error) {

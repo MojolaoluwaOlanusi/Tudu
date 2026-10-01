@@ -100,6 +100,8 @@ export const useCreateTask = () => {
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: TASKS_KEY });
       queryClient.invalidateQueries({ queryKey: OVERDUE_KEY });
+      // Keep the activity feed in step with what just happened.
+      queryClient.invalidateQueries({ queryKey: ['activity'] });
     },
   });
 };
@@ -160,6 +162,8 @@ export const useUpdateTask = () => {
       queryClient.invalidateQueries({ queryKey: TASKS_KEY });
       queryClient.invalidateQueries({ queryKey: OVERDUE_KEY });
       queryClient.invalidateQueries({ queryKey: queryKeys.tasks.detail(id) });
+      // Keep the activity feed in step with what just happened.
+      queryClient.invalidateQueries({ queryKey: ['activity'] });
     },
   });
 };
@@ -191,6 +195,8 @@ export const useDeleteTask = () => {
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: TASKS_KEY });
       queryClient.invalidateQueries({ queryKey: OVERDUE_KEY });
+      // Keep the activity feed in step with what just happened.
+      queryClient.invalidateQueries({ queryKey: ['activity'] });
     },
   });
 };
