@@ -1,6 +1,8 @@
 import { Request, Response } from 'express';
 import pool from '../config/database';
 import { logActivity } from '../services/activityService';
+// Aliased: the controller handler below shares its name with the service.
+import { parseTaskText as parseNaturalLanguage } from '../services/nlpService';
 import {
   broadcastTask,
   broadcastTaskDeleted,
@@ -107,6 +109,55 @@ export const getTaskById = async (req: Request, res: Response) => {
   }
 };
 
+export const MAX_PARSE_LENGTH = 500;
+
+/**
+ * POST /api/tasks/parse
+ * Preview how a natural-language sentence will be turned into task fields.
+ * Read-only: it never creates anything.
+ */
+export const parseTaskText = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const { text, now, timezoneOffset } = req.body as {
+      text?: unknown;
+      now?: unknown;
+      timezoneOffset?: unknown;
+    };
+
+    if (typeof text !== 'string' || !text.trim()) {
+      return res.status(400).json({ error: 'text is required' });
+    }
+    if (text.length > MAX_PARSE_LENGTH) {
+      return res
+        .status(400)
+        .json({ error: `text must be ${MAX_PARSE_LENGTH} characters or fewer` });
+    }
+
+    // The client sends its own clock so "tomorrow" means tomorrow where the
+    // user is, not where this server happens to run.
+    let reference: Date | undefined;
+    if (typeof now === 'string') {
+      const parsed = new Date(now);
+      if (!Number.isNaN(parsed.getTime())) reference = parsed;
+    }
+
+    const offset =
+      typeof timezoneOffset === 'number' && Number.isFinite(timezoneOffset)
+        ? Math.max(-840, Math.min(840, Math.trunc(timezoneOffset)))
+        : 0;
+
+    res.json(parseNaturalLanguage(text, { now: reference, timezoneOffset: offset }));
+  } catch (error) {
+    console.error('Error parsing task text:', error);
+    res.status(500).json({ error: 'Failed to parse task text' });
+  }
+};
+
 export const createTask = async (req: Request, res: Response) => {
   try {
     const userId = req.user?.userId;
@@ -114,10 +165,23 @@ export const createTask = async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    const { title, description, category, priority, due_date }: CreateTaskInput = req.body;
+    const { description, naturalLanguage } = req.body as Partial<CreateTaskInput> & {
+      naturalLanguage?: boolean;
+    };
+    let { title, category, priority, due_date } = req.body as CreateTaskInput;
 
     if (!title) {
       return res.status(400).json({ error: 'Title is required' });
+    }
+
+    // Fill in only what the caller left blank, so an explicit choice always
+    // wins. Opt out with `naturalLanguage: false` to keep the title verbatim.
+    if (naturalLanguage !== false) {
+      const parsed = parseNaturalLanguage(title);
+      title = parsed.title || title.trim();
+      category = category ?? parsed.category ?? undefined;
+      priority = priority ?? parsed.priority ?? undefined;
+      due_date = due_date ?? parsed.dueDate ?? undefined;
     }
 
     const result = await pool.query(

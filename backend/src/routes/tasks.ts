@@ -20,6 +20,9 @@ router.get('/overdue', taskController.getOverdueTasks);
 // Get single task by ID
 router.get('/:id', taskController.getTaskById);
 
+// Preview how natural language will be interpreted (no task is created)
+router.post('/parse', taskController.parseTaskText);
+
 // Create new task
 router.post('/', taskController.createTask);
 

@@ -303,11 +303,11 @@ tudu/
 
 ### Tasks
 - `GET /api/tasks` - List tasks (supports query params for filtering)
-- `POST /api/tasks` - Create new task
+- `POST /api/tasks` - Create new task (parses natural language unless `naturalLanguage: false`)
 - `PUT /api/tasks/:id` - Update task
 - `DELETE /api/tasks/:id` - Delete task
 - `GET /api/tasks/overdue` - Get overdue tasks
-- `POST /api/tasks/parse` - Parse natural language input
+- `POST /api/tasks/parse` - Preview how a sentence will be interpreted (creates nothing)
 
 ### Subtasks
 - `GET /api/tasks/:taskId/subtasks` - List subtasks
@@ -363,29 +363,41 @@ The following sharing events are also emitted:
 
 ## Natural Language Input Syntax
 
-The NLP parser supports the following syntax:
+Type a task the way you'd say it. The parser understands three things: a date,
+a category hashtag, and a priority keyword. Everything it recognises is stripped
+from the title.
 
-**Dates/Times**:
-- "Buy milk tomorrow"
-- "Meeting at 3pm"
-- "Submit report next Monday"
-- "Call mom tomorrow at 9am"
+**Dates/Times** (chrono-node):
+- "Buy milk tomorrow" · "Meeting at 3pm" · "Submit report next Monday"
+- "Call mom tomorrow at 9am" · "Pay rent friday" · "Standup next week"
+
+Dates resolve in **the user's own timezone** - the client sends its clock and
+offset, so "9am" means 9am where the person typing is.
 
 **Categories** (hashtags):
-- "#work" - Work category
-- "#personal" - Personal category
-- "#study" - Study category
+- `#work` · `#personal` · `#study`
 
-**Priorities** (keywords):
-- "urgent" or "asap" - High priority
-- "important" - Medium priority
-- "low priority" - Low priority
+Any other hashtag is left alone in the title rather than being discarded.
+
+**Priorities** (keywords, checked in order):
+- High: "urgent", "asap", "as soon as possible", "immediately", "critical", "high priority"
+- Medium: "medium priority", "normal priority"
+- Low: "low priority", "no rush", "not urgent", "whenever"
 
 **Examples**:
-- "Buy milk tomorrow at 9am #personal" → Due: tomorrow 9am, Category: personal
-- "Finish report urgent #work" → Priority: high, Category: work
-- "Study for exam next week #study" → Due: next week, Category: study
-- "Call client important #work" → Priority: medium, Category: work
+- "Buy milk tomorrow at 9am #personal" → Title: *Buy milk*, Due: tomorrow 9am, Category: personal
+- "Finish report urgent #work" → Title: *Finish report*, Priority: high, Category: work
+- "Study for exam next week #study" → Title: *Study for exam*, Due: next week, Category: study
+- "Pay rent friday low priority #personal" → Title: *Pay rent*, Due: friday, Priority: low, Category: personal
+
+**How it is applied**
+
+`POST /api/tasks` parses the title automatically and fills in only the fields
+the caller left blank, so an explicit `category` or `priority` always wins. Pass
+`"naturalLanguage": false` to store the title verbatim.
+
+In the UI the new-task form previews the result live as you type and leaves the
+fields alone until you press **Use these details**.
 
 ## Deployment
 
