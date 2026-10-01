@@ -11,7 +11,7 @@ const OAuthButton: React.FC<OAuthButtonProps> = ({ provider, onClick }) => {
   return (
     <button
       onClick={onClick}
-      className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-lg border-2 border-gray-300 dark:border-gray-600 hover:border-brand-green dark:hover:border-brand-green transition-all duration-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 font-medium text-gray-700 dark:text-gray-200 brush-stroke"
+      className="flex w-full items-center justify-center gap-3 rounded-xl border border-hairline bg-surface px-4 py-3 font-medium text-ink transition-all duration-200 hover:border-accent hover:bg-surface-2"
     >
       {isGoogle ? (
         <>

@@ -74,26 +74,26 @@ const Login: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-brand-light dark:bg-brand-dark px-4">
-      <div className="max-w-md w-full">
-        <div className="text-center mb-8">
-          <h1 className="text-6xl font-handwritten text-gray-800 dark:text-white mb-4">
+    <div className="flex min-h-screen items-center justify-center bg-page px-4 py-10">
+      <div className="w-full max-w-md">
+        <div className="mb-8 text-center">
+          <h1 className="font-handwritten text-6xl text-ink">
             Tudu
           </h1>
-          <p className="text-gray-600 dark:text-gray-300 text-lg">
+          <p className="mt-1 text-lg text-ink-muted">
             Your friendly todo app
           </p>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-lg">
-          <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-6 text-center">
+        <div className="card p-6 sm:p-8">
+          <h2 className="mb-6 text-center font-handwritten text-3xl text-ink">
             {showEmailForm && emailMode === 'signup'
               ? 'Create your account'
               : 'Welcome back'}
           </h2>
 
           {error && (
-            <div className="mb-4 p-3 bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-300 rounded-lg text-sm">
+            <div className="mb-4 rounded-lg bg-red-100 p-3 text-sm text-red-700 dark:bg-red-900/30 dark:text-red-300">
               {error}
             </div>
           )}
@@ -107,10 +107,10 @@ const Login: React.FC = () => {
 
               <div className="relative mb-6">
                 <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-300 dark:border-gray-600"></div>
+                  <div className="w-full border-t border-hairline"></div>
                 </div>
                 <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-white dark:bg-gray-800 text-gray-500">or</span>
+                  <span className="bg-surface px-2 text-ink-muted">or</span>
                 </div>
               </div>
 
@@ -120,7 +120,7 @@ const Login: React.FC = () => {
                   setError('');
                   setShowEmailForm(true);
                 }}
-                className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-200 hover:border-brand-green dark:hover:border-brand-green transition-colors font-medium"
+                className="w-full rounded-xl border border-hairline bg-surface px-4 py-3 font-medium text-ink transition-colors hover:border-accent hover:text-accent-strong"
               >
                 Continue with Email
               </button>
@@ -129,41 +129,38 @@ const Login: React.FC = () => {
             <form onSubmit={handleEmailSubmit} className="space-y-4">
               {emailMode === 'signup' && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Name
-                  </label>
+                  <label className="label" htmlFor="login-name">Name</label>
                   <input
+                    id="login-name"
                     type="text"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Your name"
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-brand-green focus:border-transparent"
+                    className="input"
                   />
                 </div>
               )}
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Email
-                </label>
+                <label className="label" htmlFor="login-email">Email</label>
                 <input
+                  id="login-email"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-brand-green focus:border-transparent"
+                  className="input"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Password
-                </label>
+                <label className="label" htmlFor="login-password">Password</label>
                 <input
+                  id="login-password"
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-brand-green focus:border-transparent"
+                  className="input"
                   required
                   minLength={6}
                 />
@@ -172,7 +169,7 @@ const Login: React.FC = () => {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full px-4 py-3 bg-brand-green text-white rounded-lg hover:bg-green-600 transition-colors font-medium disabled:opacity-50 brush-stroke"
+                className="btn-accent brush-stroke w-full py-3"
               >
                 {isLoading
                   ? emailMode === 'signup'
@@ -183,7 +180,7 @@ const Login: React.FC = () => {
                     : 'Sign In'}
               </button>
 
-              <p className="text-center text-sm text-gray-600 dark:text-gray-400">
+              <p className="text-center text-sm text-ink-muted">
                 {emailMode === 'signin' ? (
                   <>
                     Don't have an account?{' '}
@@ -193,7 +190,7 @@ const Login: React.FC = () => {
                         setEmailMode('signup');
                         setError('');
                       }}
-                      className="text-brand-green hover:text-green-600 font-medium"
+                      className="font-medium text-accent-strong hover:text-accent"
                     >
                       Sign Up
                     </button>
@@ -207,7 +204,7 @@ const Login: React.FC = () => {
                         setEmailMode('signin');
                         setError('');
                       }}
-                      className="text-brand-green hover:text-green-600 font-medium"
+                      className="font-medium text-accent-strong hover:text-accent"
                     >
                       Sign In
                     </button>
@@ -221,7 +218,7 @@ const Login: React.FC = () => {
                   setShowEmailForm(false);
                   setError('');
                 }}
-                className="w-full text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                className="w-full text-sm text-ink-muted hover:text-ink"
               >
                 Back to OAuth options
               </button>

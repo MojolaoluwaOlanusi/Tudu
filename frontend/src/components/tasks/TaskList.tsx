@@ -91,7 +91,7 @@ const TaskList: React.FC = () => {
 
   if (error) {
     return (
-      <div className="text-center py-12">
+      <div className="card p-10 text-center">
         <p className="text-red-500">Error loading tasks. Please try again.</p>
       </div>
     );
@@ -99,23 +99,23 @@ const TaskList: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-handwritten text-gray-800 dark:text-white">
-          My Tasks
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="font-handwritten text-3xl text-ink sm:text-4xl">
+          My tasks
         </h2>
         <button
           onClick={() => {
             setEditingTask(null);
             setShowForm(!showForm);
           }}
-          className="px-4 py-2 bg-brand-green text-white rounded-lg hover:bg-green-600 transition-colors brush-stroke"
+          className="btn-accent brush-stroke shrink-0"
         >
-          {showForm ? 'Cancel' : '+ New Task'}
+          {showForm ? 'Cancel' : '+ New task'}
         </button>
       </div>
 
       {/* Search and Filters */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm">
+      <div className="card p-4">
         <div className="space-y-4">
           <SearchBar
             value={filters.search || ''}
@@ -123,7 +123,7 @@ const TaskList: React.FC = () => {
             placeholder="Search tasks by title or description..."
           />
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <FilterDropdown
               label="Status"
               value={filters.status || ''}
@@ -159,7 +159,7 @@ const TaskList: React.FC = () => {
           {hasActiveFilters && (
             <button
               onClick={clearFilters}
-              className="text-sm text-brand-green hover:text-green-600 transition-colors"
+              className="text-sm font-medium text-accent-strong transition-colors hover:text-accent"
             >
               Clear all filters
             </button>
@@ -169,9 +169,9 @@ const TaskList: React.FC = () => {
 
       {/* Overdue Tasks Section */}
       {overdueTasks && overdueTasks.length > 0 && (
-        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-          <h3 className="text-lg font-semibold text-red-800 dark:text-red-200 mb-3">
-            Overdue Tasks ({overdueTasks.length})
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-4 dark:border-red-900/40 dark:bg-red-900/20">
+          <h3 className="mb-3 text-lg font-semibold text-red-800 dark:text-red-200">
+            Overdue tasks ({overdueTasks.length})
           </h3>
           <div className="grid gap-3">
             {overdueTasks.map((task) => (
@@ -200,9 +200,9 @@ const TaskList: React.FC = () => {
       )}
 
       {!tasks || tasks.length === 0 ? (
-        <div className="text-center py-12">
-          <p className="text-gray-500 dark:text-gray-400 text-lg">
-            No tasks yet. Create your first task!
+        <div className="card p-10 text-center">
+          <p className="font-handwritten text-2xl text-ink-muted">
+            No tasks yet — create your first one!
           </p>
         </div>
       ) : (

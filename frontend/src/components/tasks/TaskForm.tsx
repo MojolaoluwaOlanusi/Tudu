@@ -52,49 +52,46 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSubmit, onCancel, isLoading, init
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-lg">
-      <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-4">
-        {isEditing ? 'Edit Task' : 'Create New Task'}
+    <section className="card animate-fade-in p-5 sm:p-6">
+      <h2 className="mb-4 font-handwritten text-2xl text-ink sm:text-3xl">
+        {isEditing ? 'Edit task' : 'New task'}
       </h2>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            Title *
-          </label>
+          <label className="label" htmlFor="task-title">Title *</label>
           <input
+            id="task-title"
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-brand-green focus:border-transparent"
-            placeholder="Enter task title"
+            className="input"
+            placeholder="What needs doing?"
             disabled={isLoading}
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            Description
-          </label>
+          <label className="label" htmlFor="task-desc">Description</label>
           <textarea
+            id="task-desc"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-brand-green focus:border-transparent resize-none"
+            className="input resize-none"
             rows={3}
-            placeholder="Enter task description"
+            placeholder="Add a few details (optional)"
             disabled={isLoading}
           />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Category
-            </label>
+            <label className="label" htmlFor="task-category">Category</label>
             <select
+              id="task-category"
               value={category}
               onChange={(e) => setCategory(e.target.value as Category | '')}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-brand-green focus:border-transparent"
+              className="input"
               disabled={isLoading}
             >
               <option value="">None</option>
@@ -105,13 +102,12 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSubmit, onCancel, isLoading, init
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Priority
-            </label>
+            <label className="label" htmlFor="task-priority">Priority</label>
             <select
+              id="task-priority"
               value={priority}
               onChange={(e) => setPriority(e.target.value as Priority | '')}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-brand-green focus:border-transparent"
+              className="input"
               disabled={isLoading}
             >
               <option value="">None</option>
@@ -122,44 +118,38 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSubmit, onCancel, isLoading, init
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Due Date &amp; Time
-            </label>
+            <label className="label" htmlFor="task-due">Due date &amp; time</label>
             <input
+              id="task-due"
               type="datetime-local"
               value={dueDate}
               onChange={(e) => setDueDate(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-brand-green focus:border-transparent"
+              className="input"
               disabled={isLoading}
             />
           </div>
         </div>
 
-        <div className="flex gap-3 justify-end pt-4">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
-            disabled={isLoading}
-          >
+        <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">
+          <button type="button" onClick={onCancel} className="btn-ghost" disabled={isLoading}>
             Cancel
           </button>
           <button
             type="submit"
             disabled={isLoading || !title.trim()}
-            className="px-6 py-2 bg-brand-green text-white rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed brush-stroke"
+            className="btn-accent brush-stroke"
           >
             {isLoading
               ? isEditing
                 ? 'Saving...'
                 : 'Creating...'
               : isEditing
-                ? 'Save Changes'
-                : 'Create Task'}
+                ? 'Save changes'
+                : 'Create task'}
           </button>
         </div>
       </form>
-    </div>
+    </section>
   );
 };
 

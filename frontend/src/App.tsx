@@ -1,4 +1,3 @@
-import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Login from './components/auth/Login';
@@ -27,11 +26,11 @@ function App() {
             path="/"
             element={
               <ProtectedRoute>
-                <div className="min-h-screen bg-brand-light dark:bg-brand-dark">
+                <div className="min-h-screen">
                   <Header />
-                  <div className="container mx-auto px-4 py-8">
+                  <main className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
                     <TaskList />
-                  </div>
+                  </main>
                 </div>
               </ProtectedRoute>
             }
