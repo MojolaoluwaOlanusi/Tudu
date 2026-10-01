@@ -1,6 +1,7 @@
 import express from 'express';
 import { authenticate } from '../middleware/auth';
 import * as taskController from '../controllers/taskController';
+import * as subtaskController from '../controllers/subtaskController';
 
 const router = express.Router();
 
@@ -30,5 +31,11 @@ router.patch('/:id/status', taskController.updateTaskStatus);
 
 // Delete task
 router.delete('/:id', taskController.deleteTask);
+
+/* ------------------------- Sub-tasks ------------------------- */
+router.get('/:taskId/subtasks', subtaskController.getSubtasks);
+router.post('/:taskId/subtasks', subtaskController.createSubtask);
+router.patch('/:taskId/subtasks/:subtaskId', subtaskController.updateSubtask);
+router.delete('/:taskId/subtasks/:subtaskId', subtaskController.deleteSubtask);
 
 export default router;

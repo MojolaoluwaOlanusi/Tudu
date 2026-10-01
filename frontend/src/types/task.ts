@@ -13,6 +13,9 @@ export interface Task {
   status: Status;
   created_at: string;
   updated_at: string;
+  /** Sub-task progress, supplied by the backend. */
+  subtask_count?: number;
+  subtasks_completed?: number;
 }
 
 export interface CreateTaskInput {
@@ -43,4 +46,22 @@ export interface TaskFilters {
 export interface StatusChange {
   id: string;
   status: Status;
+}
+
+export interface Subtask {
+  id: string;
+  task_id: string;
+  title: string;
+  completed: boolean;
+  created_at: string;
+}
+
+export interface CreateSubtaskInput {
+  title: string;
+  completed?: boolean;
+}
+
+export interface UpdateSubtaskInput {
+  title?: string;
+  completed?: boolean;
 }

@@ -98,3 +98,40 @@ export const applyStatusChanges = (
     );
   }
 };
+
+/**
+ * Nudge the sub-task counters on a task inside every task cache, so the
+ * "2/5 completed" badge updates without a refetch.
+ */
+export const adjustSubtaskCounts = (
+  queryClient: QueryClient,
+  taskId: string,
+  delta: { total?: number; completed?: number }
+): void => {
+  const patch = (task: Task): Task =>
+    task.id === taskId
+      ? {
+          ...task,
+          subtask_count: Math.max(0, (task.subtask_count ?? 0) + (delta.total ?? 0)),
+          subtasks_completed: Math.max(
+            0,
+            (task.subtasks_completed ?? 0) + (delta.completed ?? 0)
+          ),
+        }
+      : task;
+
+  queryClient.setQueryData<Task[]>(queryKeys.tasks.kanban, (old) =>
+    old ? old.map(patch) : old
+  );
+
+  queryClient
+    .getQueriesData<Task[]>({ queryKey: queryKeys.tasks.all })
+    .forEach(([key, data]) => {
+      if (!data || !Array.isArray(key) || key[1] !== 'list') return;
+      queryClient.setQueryData<Task[]>(key, (old) => (old ? old.map(patch) : old));
+    });
+
+  queryClient.setQueryData<Task>(queryKeys.tasks.detail(taskId), (old) =>
+    old ? patch(old) : old
+  );
+};
