@@ -17,6 +17,7 @@ import SharedListView from './components/sharing/SharedListView';
 import PomodoroStats from './components/pomodoro/PomodoroStats';
 import PomodoroRunner from './components/pomodoro/PomodoroRunner';
 import ToastContainer from './components/common/ToastContainer';
+import OnboardingRoot from './components/onboarding/OnboardingRoot';
 import { ConfettiProvider } from './components/common/ConfettiProvider';
 
 /** Opens the real-time socket once we know who is signed in. */
@@ -36,7 +37,7 @@ const Shell = ({ children }: { children: ReactNode }) => (
   <div className="min-h-screen">
     <Header />
     <div className="mx-auto flex w-full max-w-6xl gap-6 px-4 py-6 sm:px-6 sm:py-8">
-      <aside className="hidden w-64 shrink-0 lg:block">
+      <aside className="hidden w-64 shrink-0 lg:block" data-tour="shared">
         <SharedListsSidebar />
       </aside>
       <main className="min-w-0 flex-1">
@@ -46,7 +47,7 @@ const Shell = ({ children }: { children: ReactNode }) => (
         </div>
         <SharedWithMeSection />
         {children}
-        <div className="mt-6">
+        <div className="mt-6" data-tour="activity">
           <RecentActivity />
         </div>
       </main>
@@ -62,29 +63,35 @@ const Dashboard = () => (
 
 const Board = () => (
   <Shell>
-    <KanbanBoard />
+    <div data-tour="board">
+      <KanbanBoard />
+    </div>
   </Shell>
 );
 
 const Stats = () => (
   <Shell>
-    <h1 className="mb-4 font-handwritten text-3xl text-ink">Focus stats</h1>
-    <PomodoroStats />
+    <div data-tour="stats">
+      <h1 className="mb-4 font-handwritten text-3xl text-ink">Focus stats</h1>
+      <PomodoroStats />
+    </div>
   </Shell>
 );
 
 const Analytics = () => (
   <Shell>
-    <h1 className="mb-4 font-handwritten text-3xl text-ink">Analytics</h1>
-    <Suspense
-      fallback={
-        <div className="card p-6">
-          <p className="text-sm text-ink-muted">Loading your dashboard…</p>
-        </div>
-      }
-    >
-      <AnalyticsDashboard />
-    </Suspense>
+    <div data-tour="analytics">
+      <h1 className="mb-4 font-handwritten text-3xl text-ink">Analytics</h1>
+      <Suspense
+        fallback={
+          <div className="card p-6">
+            <p className="text-sm text-ink-muted">Loading your dashboard…</p>
+          </div>
+        }
+      >
+        <AnalyticsDashboard />
+      </Suspense>
+    </div>
   </Shell>
 );
 
@@ -140,6 +147,7 @@ function App() {
         </Routes>
         <CollaborationBridge />
         <PomodoroRunner />
+        <OnboardingRoot />
         <ToastContainer />
         </Router>
       </ConfettiProvider>

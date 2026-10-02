@@ -56,7 +56,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onEdit, onDelete, onStatusCha
   }, [task.status, celebrated]);
 
   return (
-    <div className="card p-4 transition-all hover:-translate-y-0.5 hover:shadow-lg">
+    <div className="card p-4 transition-all hover:-translate-y-0.5 hover:shadow-lg" data-tour="task-card">
       <div className="mb-2 flex items-start justify-between gap-3">
         <div className="flex min-w-0 flex-1 items-start gap-2">
           {task.status === 'done' && (
@@ -137,6 +137,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onEdit, onDelete, onStatusCha
           type="button"
           onClick={() => setShowSubtasks((open) => !open)}
           aria-expanded={showSubtasks}
+          data-tour="subtasks"
           className="flex w-full items-center gap-2 text-left"
         >
           <svg

@@ -8,7 +8,7 @@ interface SearchBarProps {
 
 const SearchBar: React.FC<SearchBarProps> = ({ value, onChange, placeholder = 'Search tasks...' }) => {
   return (
-    <div className="relative">
+    <div className="relative" data-tour="search">
       <svg
         className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-ink-muted"
         fill="none"

@@ -77,6 +77,7 @@ const PomodoroTimer: React.FC<PomodoroTimerProps> = ({ compact }) => {
       className={`inline-flex max-w-full items-center gap-2 rounded-full border border-hairline bg-surface-2 ${
         compact ? 'px-2 py-1 sm:px-2.5' : 'px-3 py-2'
       }`}
+      data-tour={compact ? 'pomodoro' : undefined}
       title={finished ? 'Session finished' : `${modeLabel(mode)} session in progress`}
     >
       <span className={tomatoClass.replace('h-10 w-10', compact ? 'h-6 w-6' : 'h-9 w-9')}>

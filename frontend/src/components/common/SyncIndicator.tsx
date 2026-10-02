@@ -72,6 +72,7 @@ const SyncIndicator: React.FC = () => {
     <span
       title="Connected - changes appear instantly"
       aria-label="Live updates connected"
+      data-tour="sync"
       className="inline-flex items-center gap-1.5 px-1 py-1"
     >
       <span className={`${dotClass} bg-accent`} />
