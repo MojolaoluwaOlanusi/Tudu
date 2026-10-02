@@ -4,6 +4,7 @@ import { useAuthStore } from '../../store/authStore';
 import ThemeToggle from '../common/ThemeToggle';
 import SyncIndicator from '../common/SyncIndicator';
 import PomodoroTimer from '../pomodoro/PomodoroTimer';
+import Wordmark from '../brand/Wordmark';
 
 const navClass = ({ isActive }: { isActive: boolean }) =>
   `rounded-full px-3 py-1.5 text-xs font-semibold transition-colors sm:px-4 sm:text-sm ${
@@ -32,13 +33,9 @@ const Header: React.FC = () => {
     );
 
   return (
-    <header className="sticky top-0 z-20 border-b border-hairline bg-surface shadow-sm">
+    <header className="glass sticky top-0 z-20 shadow-surface">
       <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-x-3 gap-y-2 px-4 py-3 sm:flex-nowrap sm:px-6">
-        <img
-          src="/wordmark.png"
-          alt="Tudu"
-          className="h-9 w-auto shrink-0 dark:invert sm:h-10"
-        />
+        <Wordmark className="h-9 w-auto shrink-0 text-ink sm:h-10" />
 
         {/* On mobile the nav drops onto its own full-width row so it can
             never overlap the wordmark or the controls beside it. */}

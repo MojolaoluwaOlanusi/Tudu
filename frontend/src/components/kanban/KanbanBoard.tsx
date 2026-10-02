@@ -15,6 +15,7 @@ import { useKanbanTasks, useMoveTasks } from '../../hooks/useKanban';
 import { useUiStore } from '../../store/uiStore';
 import KanbanColumn from './KanbanColumn';
 import { KanbanCardBody } from './KanbanCard';
+import { useConfetti } from '../common/ConfettiProvider';
 
 const COLUMNS: { status: Status; title: string }[] = [
   { status: 'todo', title: 'To-do' },
@@ -33,6 +34,7 @@ const KanbanBoard: React.FC = () => {
   const { mutate: moveTasks, isPending } = useMoveTasks();
   const openTaskForm = useUiStore((s) => s.openTaskForm);
   const pushToast = useUiStore((s) => s.pushToast);
+  const { burst } = useConfetti();
 
   const [activeId, setActiveId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -93,6 +95,10 @@ const KanbanBoard: React.FC = () => {
 
     moveTasks(updates, {
       onError: () => pushToast('Could not move the task. It was put back.', 'error'),
+      // Only celebrate once the server has actually accepted the move.
+      onSuccess: () => {
+        if (targetStatus === 'done') burst();
+      },
     });
 
     setSelectedIds([]);

@@ -49,12 +49,12 @@ const ShareModal: React.FC<ShareModalProps> = ({ tasks }) => {
 
   return (
     <div
-      className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-4"
+      className="scrim fixed inset-0 z-40 flex items-center justify-center p-4"
       role="dialog"
       aria-modal="true"
       aria-label="Share list"
     >
-      <div className="card animate-fade-in w-full max-w-lg p-5 sm:p-6">
+      <div className="card animate-pop-in w-full max-w-lg p-5 sm:p-6">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="font-handwritten text-2xl text-ink">Share your list</h3>
           <button

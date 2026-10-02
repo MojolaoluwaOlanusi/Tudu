@@ -2,10 +2,9 @@ import React from 'react';
 import { useUiStore, type ToastVariant } from '../../store/uiStore';
 
 const variantStyles: Record<ToastVariant, string> = {
-  success: 'border-accent bg-surface-2 text-ink',
-  error:
-    'border-red-300 bg-red-50 text-red-800 dark:border-red-900/50 dark:bg-red-900/30 dark:text-red-200',
-  info: 'border-hairline bg-surface text-ink',
+  success: 'border-accent text-ink',
+  error: 'border-red-300 text-red-800 dark:border-red-900/50 dark:text-red-200',
+  info: 'border-hairline text-ink',
 };
 
 /** Renders transient notifications from the UI store. */
@@ -22,7 +21,7 @@ const ToastContainer: React.FC = () => {
           key={toast.id}
           role="status"
           aria-live="polite"
-          className={`animate-fade-in pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-xl border px-4 py-3 text-sm shadow-lg ${variantStyles[toast.variant]}`}
+          className={`glass animate-fade-in pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-xl border px-4 py-3 text-sm shadow-surface ${variantStyles[toast.variant]}`}
         >
           <span className="flex-1">{toast.message}</span>
           <button

@@ -63,7 +63,7 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSubmit, onCancel, isLoading, init
   };
 
   return (
-    <section className="card animate-fade-in p-5 sm:p-6">
+    <section className="card animate-pop-in p-5 sm:p-6">
       <h2 className="mb-4 font-handwritten text-2xl text-ink sm:text-3xl">
         {isEditing ? 'Edit task' : 'New task'}
       </h2>

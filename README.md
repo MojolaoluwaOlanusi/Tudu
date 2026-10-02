@@ -25,9 +25,51 @@ A senior-level, feature-rich todo application with a friendly, brush-stroke aest
 
 ### User Experience
 - **Dark/Light Mode**: Toggle between themes with smooth transitions
-- **Responsive Design**: Mobile-first approach, works on all devices
+- **Responsive Design**: Mobile-first approach with 44px touch targets on mobile
 - **Instant Search & Filters**: Real-time filtering by status, priority, category
 - **Friendly UI**: Brush-stroke aesthetic matching the brand design
+- **Confetti & Micro-interactions**: A burst when a task is completed, plus
+  stroke-on checkmarks and spring animations
+- **Reduced Motion**: Every animation is disabled under `prefers-reduced-motion`
+
+## Branding
+
+The wordmark is a handwritten brush-stroke "tudu" with a green checkmark
+sweeping underneath. Both brand marks are inline SVG (`components/brand/`),
+so they stay sharp at any size and pick up the theme's ink colour in dark mode.
+
+| Token | Value | Used for |
+|---|---|---|
+| `--color-accent` | `#22c55e` | Green accent, sampled from the wordmark's checkmark |
+| `--color-bg` (light) | `#fafafa` | Off-white paper background |
+| `--color-bg` (dark) | `#1a1a1a` | Dark grey background |
+
+### Assets
+
+| File | Purpose |
+|---|---|
+| `public/favicon.svg` | Scalable favicon - green disc, white checkmark, brush texture |
+| `public/icon-192.png`, `icon-512.png` | PWA / install icons |
+| `public/apple-touch-icon.png` | iOS home-screen icon |
+| `public/manifest.webmanifest` | Installable-app metadata and theme colours |
+
+The icon artwork uses an SVG `feTurbulence`/`feDisplacementMap` filter to
+rough up the disc's edge, so it reads as brush-painted rather than a flat
+sticker. The PNG icons are generated from the same geometry.
+
+The old `favicon.png` (722 kB) and `wordmark.png` have been removed - the SVG
+versions replace them at a fraction of the size, and the wordmark no longer
+needs `dark:invert`, which used to flip the green checkmark to magenta.
+
+### Surfaces
+
+- `.card` - opaque panels with a 1px brush-textured edge
+- `.glass` - frosted panels for floating content (header, toasts)
+- `.scrim` - blurred, tinted modal backdrop
+
+Both `.glass` and `.scrim` combine a **real background colour** with a
+`backdrop-filter` blur. Neither is fully transparent, so text never sits on a
+bare blur and stays readable over whatever is behind it.
 
 ## Tech Stack
 

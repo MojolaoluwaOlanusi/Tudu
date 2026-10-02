@@ -17,6 +17,7 @@ import SharedListView from './components/sharing/SharedListView';
 import PomodoroStats from './components/pomodoro/PomodoroStats';
 import PomodoroRunner from './components/pomodoro/PomodoroRunner';
 import ToastContainer from './components/common/ToastContainer';
+import { ConfettiProvider } from './components/common/ConfettiProvider';
 
 /** Opens the real-time socket once we know who is signed in. */
 const CollaborationBridge = () => {
@@ -90,7 +91,8 @@ const Analytics = () => (
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <Router>
+      <ConfettiProvider>
+        <Router>
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
@@ -139,7 +141,8 @@ function App() {
         <CollaborationBridge />
         <PomodoroRunner />
         <ToastContainer />
-      </Router>
+        </Router>
+      </ConfettiProvider>
     </QueryClientProvider>
   );
 }

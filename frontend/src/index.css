@@ -9,31 +9,41 @@
   :root {
     color-scheme: light;
 
-    --color-bg: #f7f5ef;             /* off-white paper */
+    /* Brand palette, matched to the wordmark's brush stroke. */
+    --brand-green: #22c55e;
+    --brand-green-deep: #16a34a;
+    --brand-ink: #1f2a24;
+
+    --color-bg: #fafafa;             /* off-white paper */
     --color-surface: #ffffff;        /* cards / panels */
-    --color-surface-2: #f1eee5;      /* subtle panels */
-    --color-border: #e6e1d5;         /* hairline borders */
+    --color-surface-2: #f4f4f5;      /* subtle panels */
+    --color-border: #e7e7e9;         /* hairline borders */
     --color-text: #1f2a24;           /* primary ink */
     --color-text-muted: #6b7280;     /* secondary ink */
-    --color-accent: #22c55e;         /* brand green (from the wordmark) */
+    --color-accent: #22c55e;
     --color-accent-strong: #16a34a;
     --color-accent-soft: rgba(34, 197, 94, 0.12);
     --shadow-surface: 0 12px 30px -18px rgba(31, 42, 36, 0.35);
+
+    /* Grain/paper speckle opacity, tuned per theme. */
+    --grain-opacity: 0.5;
   }
 
   .dark {
     color-scheme: dark;
 
-    --color-bg: #121417;             /* dark grey / near-black */
-    --color-surface: #1b1e24;
-    --color-surface-2: #23262e;
-    --color-border: #2e323b;
-    --color-text: #e8eaed;
+    --color-bg: #1a1a1a;             /* dark grey */
+    --color-surface: #242424;
+    --color-surface-2: #2e2e2e;
+    --color-border: #3a3a3a;
+    --color-text: #ededed;
     --color-text-muted: #9aa4b2;
     --color-accent: #22c55e;
     --color-accent-strong: #4ade80;
     --color-accent-soft: rgba(34, 197, 94, 0.16);
     --shadow-surface: 0 14px 34px -18px rgba(0, 0, 0, 0.75);
+
+    --grain-opacity: 0.28;
   }
 
   * {
@@ -50,22 +60,31 @@
     color: var(--color-text);
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
-    /* Subtle paper texture + soft green glow */
+    /* Soft green glow + a fine paper grain. */
     background-image:
       radial-gradient(circle at 22% 10%, rgba(34, 197, 94, 0.07), transparent 42%),
-      radial-gradient(circle at 1px 1px, rgba(31, 42, 36, 0.045) 1px, transparent 0);
-    background-size: 100% 100%, 24px 24px;
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.055'/%3E%3C/svg%3E");
+    background-size: 100% 100%, 160px 160px;
     background-attachment: fixed;
   }
 
   .dark body {
     background-image:
       radial-gradient(circle at 22% 10%, rgba(34, 197, 94, 0.09), transparent 42%),
-      radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.05) 1px, transparent 0);
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
   }
 
   ::selection {
     background: var(--color-accent-soft);
+  }
+
+  /* Touch targets: 44px is the smallest comfortably tappable size. */
+  button,
+  a,
+  input,
+  select,
+  textarea {
+    touch-action: manipulation;
   }
 }
 
@@ -74,10 +93,80 @@
 /* ------------------------------------------------------------------ */
 @layer components {
   .card {
+    position: relative;
     border-radius: 1rem;
+    /* Kept as a real border: some call sites override the colour (e.g.
+       `card border-accent`), which would otherwise produce no edge at all. */
     border: 1px solid var(--color-border);
     background-color: var(--color-surface);
     box-shadow: var(--shadow-surface);
+    transition: transform 0.25s cubic-bezier(0.34, 1.3, 0.64, 1),
+      box-shadow 0.25s ease;
+  }
+
+  /* The brush edge: a slightly irregular stroke rather than a clean rule. */
+  .card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(
+        120deg,
+        rgba(31, 42, 36, 0.16),
+        rgba(31, 42, 36, 0.05) 40%,
+        rgba(31, 42, 36, 0.14)
+      ),
+      radial-gradient(circle at 1px 1px, rgba(31, 42, 36, 0.14) 1px, transparent 0);
+    background-size: 100% 100%, 7px 7px;
+    -webkit-mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+    opacity: 0.85;
+  }
+
+  .dark .card::after {
+    background:
+      linear-gradient(
+        120deg,
+        rgba(255, 255, 255, 0.14),
+        rgba(255, 255, 255, 0.04) 40%,
+        rgba(255, 255, 255, 0.12)
+      ),
+      radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.12) 1px, transparent 0);
+    background-size: 100% 100%, 7px 7px;
+  }
+
+  /* Frosted panel. Deliberately not fully transparent: it keeps a real
+     background colour *and* a backdrop blur, so text never sits on a
+     bare blur and stays readable on any page content. */
+  .glass {
+    background-color: color-mix(in srgb, var(--color-surface) 72%, transparent);
+    backdrop-filter: blur(14px) saturate(160%);
+    -webkit-backdrop-filter: blur(14px) saturate(160%);
+    border: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
+  }
+
+  .dark .glass {
+    background-color: color-mix(in srgb, var(--color-bg) 68%, transparent);
+  }
+
+  /* Modal backdrop: blurred and tinted rather than a flat black wash, so the
+     page behind stays legible without shouting through the dialog. */
+  .scrim {
+    background-color: color-mix(in srgb, var(--color-bg) 55%, transparent);
+    backdrop-filter: blur(6px) saturate(120%);
+    -webkit-backdrop-filter: blur(6px) saturate(120%);
+  }
+
+  .dark .scrim {
+    background-color: rgba(0, 0, 0, 0.55);
   }
 
   .input {
@@ -110,10 +199,12 @@
   }
 
   .btn-accent {
+    position: relative;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
+    overflow: hidden;
     border-radius: 0.75rem;
     background-color: var(--color-accent);
     color: #ffffff;
@@ -121,17 +212,46 @@
     font-size: 0.875rem;
     font-weight: 600;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-    transition: background-color 0.2s ease, box-shadow 0.2s ease;
+    transition: background-color 0.25s ease, box-shadow 0.25s ease,
+      transform 0.18s cubic-bezier(0.34, 1.4, 0.64, 1);
+  }
+
+  /* A wash of paint sweeping across on hover, rather than a flat colour swap. */
+  .btn-accent::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      100deg,
+      transparent 20%,
+      rgba(255, 255, 255, 0.35) 50%,
+      transparent 80%
+    );
+    transform: translateX(-120%);
+    transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+    pointer-events: none;
   }
 
   .btn-accent:hover {
     background-color: var(--color-accent-strong);
-    box-shadow: 0 4px 14px -6px rgba(34, 197, 94, 0.6);
+    box-shadow: 0 6px 18px -6px rgba(34, 197, 94, 0.65);
+  }
+
+  .btn-accent:hover::before {
+    transform: translateX(120%);
+  }
+
+  .btn-accent:active {
+    transform: scale(0.97);
   }
 
   .btn-accent:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+  }
+
+  .btn-accent:disabled::before {
+    display: none;
   }
 
   .btn-ghost {
@@ -182,6 +302,110 @@
     border-radius: 999px;
     opacity: 0.7;
     transform: rotate(-0.5deg);
+  }
+
+  /* Satisfying stroke-on checkmark: the dash is drawn in two passes. */
+  .check-pop {
+    stroke-dasharray: 48;
+    stroke-dashoffset: 48;
+    animation: check-draw 0.45s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+  }
+
+  /* Confetti pieces are positioned and rotated by the caller via inline
+     custom properties, then animated here. */
+  .confetti-piece {
+    position: fixed;
+    top: var(--confetti-top, 50%);
+    left: var(--confetti-left, 50%);
+    width: var(--confetti-size, 8px);
+    height: var(--confetti-size, 8px);
+    background-color: var(--confetti-color, #22c55e);
+    border-radius: 2px;
+    pointer-events: none;
+    z-index: 100;
+    animation: confetti-fly var(--confetti-duration, 1400ms)
+      cubic-bezier(0.18, 0.89, 0.32, 1.2) forwards;
+    animation-delay: var(--confetti-delay, 0ms);
+  }
+
+  /* Minimum comfortable tap target on touch devices. */
+  .tap-target {
+    position: relative;
+  }
+
+  @media (pointer: coarse) {
+    .tap-target::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 44px;
+      height: 44px;
+      transform: translate(-50%, -50%);
+    }
+  }
+}
+
+/* Respect users who have asked for less motion. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .check-pop {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes check-draw {
+  0% {
+    stroke-dashoffset: 48;
+  }
+  60% {
+    stroke-dashoffset: 0;
+  }
+  70% {
+    stroke-dashoffset: 0;
+    transform: scale(1.12);
+  }
+  100% {
+    stroke-dashoffset: 0;
+    transform: scale(1);
+  }
+}
+
+@keyframes confetti-fly {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) rotate(0deg) scale(0.4);
+  }
+  10% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(
+        var(--confetti-x, 0px),
+        var(--confetti-y, 0px),
+        0
+      )
+      rotate(var(--confetti-rotate, 360deg)) scale(1);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 

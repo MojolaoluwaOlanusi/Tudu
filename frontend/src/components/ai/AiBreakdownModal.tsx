@@ -114,7 +114,7 @@ const AiBreakdownModal: React.FC<AiBreakdownModalProps> = ({
   };
 return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center"
+      className="scrim fixed inset-0 z-50 flex items-end justify-center p-4 sm:items-center"
       role="dialog"
       aria-modal="true"
       aria-label="AI task breakdown"

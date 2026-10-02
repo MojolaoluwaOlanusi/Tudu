@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Task, Category, Priority } from '../../types/task';
 import { format } from 'date-fns';
 import SubtaskList from './SubtaskList';
 import TaskActivity from '../activity/TaskActivity';
 import StartPomodoroButton from '../pomodoro/StartPomodoroButton';
 import PomodoroTimer from '../pomodoro/PomodoroTimer';
+import CheckPop from '../common/CheckPop';
 import { usePomodoroStore } from '../../store/pomodoroStore';
 
 interface TaskCardProps {
@@ -43,10 +44,37 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onEdit, onDelete, onStatusCha
   const subtaskPercent =
     subtaskTotal === 0 ? 0 : Math.round((subtaskDone / subtaskTotal) * 100);
 
+  // Re-keying on the status replays the checkmark stroke each time a task
+  // reaches done, rather than only animating on first mount.
+  const [celebrated, setCelebrated] = useState(task.status === 'done');
+  useEffect(() => {
+    if (task.status === 'done' && !celebrated) {
+      setCelebrated(true);
+    } else if (task.status !== 'done') {
+      setCelebrated(false);
+    }
+  }, [task.status, celebrated]);
+
   return (
-    <div className="rounded-2xl border border-hairline border-l-4 border-l-accent bg-surface p-4 shadow-surface transition-all hover:shadow-lg">
+    <div className="card p-4 transition-all hover:-translate-y-0.5 hover:shadow-lg">
       <div className="mb-2 flex items-start justify-between gap-3">
-        <h3 className="flex-1 font-semibold text-ink">{task.title}</h3>
+        <div className="flex flex-1 items-start gap-2">
+          {task.status === 'done' && (
+            <CheckPop
+              key={`${task.id}-${celebrated ? 'done' : 'open'}`}
+              size={20}
+              animate
+              className="mt-0.5"
+            />
+          )}
+          <h3
+            className={`flex-1 font-semibold transition-colors ${
+              task.status === 'done' ? 'text-ink-muted line-through' : 'text-ink'
+            }`}
+          >
+            {task.title}
+          </h3>
+        </div>
         <div className="flex shrink-0 gap-1">
           {onEdit && (
             <button
@@ -190,7 +218,8 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onEdit, onDelete, onStatusCha
           <select
             value={task.status}
             onChange={(e) => onStatusChange(task.id, e.target.value as Task['status'])}
-            className="rounded-lg border border-hairline bg-surface px-2.5 py-1 text-sm text-ink"
+            aria-label="Change task status"
+            className="tap-target rounded-lg border border-hairline bg-surface px-2.5 py-2 text-sm text-ink"
           >
             <option value="todo">To-do</option>
             <option value="doing">Doing</option>

@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <filter id="brush" x="-10%" y="-10%" width="120%" height="120%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="3" seed="7" result="noise"/>
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="3" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+    <clipPath id="disc"><circle cx="64" cy="64" r="60"/></clipPath>
+  </defs>
+  <g filter="url(#brush)">
+    <circle cx="64" cy="64" r="60" fill="#22c55e"/>
+  </g>
+  <g clip-path="url(#disc)" opacity="0.22">
+    <rect width="128" height="128" filter="url(#brush)"/>
+  </g>
+  <path d="M40 66 L58 84 L90 46" fill="none" stroke="#ffffff" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

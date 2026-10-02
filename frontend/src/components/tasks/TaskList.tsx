@@ -13,13 +13,14 @@ import {
   useTaskFilters,
   useHasActiveFilters,
 } from '../../store/filterStore';
-import { Task, CreateTaskInput, UpdateTaskInput, Category, Priority, Status } from '../../types/task';
+import { Task, CreateTaskInput, Category, Priority, Status } from '../../types/task';
 import TaskCard from './TaskCard';
 import TaskForm from './TaskForm';
 import ShareModal from '../sharing/ShareModal';
 import { useMyShares, flattenShares } from '../../hooks/useSharing';
 import SearchBar from '../common/SearchBar';
 import FilterDropdown from '../common/FilterDropdown';
+import { useConfetti } from '../common/ConfettiProvider';
 
 const TaskList: React.FC = () => {
   /* ------------- Filters (Zustand) ------------- */
@@ -100,13 +101,7 @@ const TaskList: React.FC = () => {
     }
   };
 
-  const handleUpdateTask = async (id: string, updates: UpdateTaskInput) => {
-    try {
-      await updateTask.mutateAsync({ id, task: updates });
-    } catch (err) {
-      notify(err, 'Could not update the task');
-    }
-  };
+  const { burst } = useConfetti();
 
   const handleDeleteTask = async (id: string) => {
     if (!window.confirm('Are you sure you want to delete this task?')) return;
@@ -118,8 +113,20 @@ const TaskList: React.FC = () => {
     }
   };
 
-  const handleStatusChange = (id: string, status: Task['status']) =>
-    handleUpdateTask(id, { status });
+  // Celebrate only when a task actually reaches "done" *and* the save
+  // succeeds - celebrating on selection alone would fire even if the request
+  // failed and the task stayed open.
+  const handleStatusChange = async (id: string, status: Task['status']) => {
+    const previous = tasks?.find((task) => task.id === id)?.status;
+    try {
+      await updateTask.mutateAsync({ id, task: { status } });
+      if (status === 'done' && previous !== 'done') {
+        burst();
+      }
+    } catch (err) {
+      notify(err, 'Could not update the task');
+    }
+  };
 
   const handleEdit = (task: Task) => openTaskForm(task.id);
 
