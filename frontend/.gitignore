@@ -16,6 +16,7 @@ yarn.lock
 dist/
 dist-ssr/
 build/
+test/
 
 # Logs
 logs/
