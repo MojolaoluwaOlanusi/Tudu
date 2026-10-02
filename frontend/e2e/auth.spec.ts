@@ -1,28 +1,10 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect } from '@playwright/test';
+import { createTask, PASSWORD, signUp, uniqueEmail } from './helpers';
 
 /**
  * The two flows that matter most: an account can be created and signed into,
  * and a task can be created then completed.
  */
-
-const uniqueEmail = (label: string) =>
-  `e2e-${label}-${Date.now()}-${Math.floor(Math.random() * 1e6)}@example.test`;
-
-const PASSWORD = 'Passw0rd!23';
-
-/** Registers through the UI and lands on the task list. */
-async function signUp(page: Page, email: string) {
-  await page.goto('/login');
-
-  await page.getByRole('button', { name: 'Continue with Email' }).click();
-  await page.getByRole('button', { name: /sign up|create account/i }).click();
-
-  await page.getByLabel(/email/i).fill(email);
-  await page.getByLabel(/password/i).fill(PASSWORD);
-  await page.getByRole('button', { name: /sign up|create account/i }).click();
-
-  await expect(page.getByRole('heading', { name: /my tasks/i })).toBeVisible();
-}
 
 test.describe('authentication', () => {
   test('a new user can sign up and reach their task list', async ({ page }) => {
@@ -65,33 +47,36 @@ test.describe('task lifecycle', () => {
     await signUp(page, uniqueEmail('task'));
 
     const title = `E2E task ${Date.now()}`;
-
-    await page.getByRole('button', { name: /new task/i }).click();
-    await page.getByLabel(/title/i).fill(title);
-    await page.getByRole('button', { name: /save|create/i }).click();
-
-    const card = page.getByText(title);
-    await expect(card).toBeVisible();
+    const card = await createTask(page, title);
 
     // Complete it via the status dropdown.
-    const statusSelect = card.locator('xpath=ancestor::div[contains(@class,"card")]').getByLabel('Change task status');
-    await statusSelect.selectOption('done');
+    await card.getByLabel('Change task status').selectOption('done');
 
-    await expect(card).toHaveClass(/line-through/);
+    await expect(card.getByRole('heading', { name: title, exact: true })).toHaveClass(
+      /line-through/
+    );
+    // Assert the saved value, not just the optimistic one: the row is painted
+    // done immediately, and only the saved state proves the update was accepted.
+    await expect(card.getByLabel('Change task status')).toHaveValue('done');
   });
 
   test('completing a task shows the confetti burst', async ({ page }) => {
     await signUp(page, uniqueEmail('confetti'));
 
     const title = `Confetti ${Date.now()}`;
-    await page.getByRole('button', { name: /new task/i }).click();
-    await page.getByLabel(/title/i).fill(title);
-    await page.getByRole('button', { name: /save|create/i }).click();
+    const card = await createTask(page, title);
 
-    const card = page.getByText(title);
-    await card.locator('xpath=ancestor::div[contains(@class,"card")]').getByLabel('Change task status').selectOption('done');
+    await card.getByLabel('Change task status').selectOption('done');
 
     // Regression guard for the phase-17 context bug that silenced confetti.
-    await expect(page.locator('.confetti-piece').first()).toBeVisible();
+    //
+    // The card flips to done optimistically, but the burst deliberately waits
+    // for the server to accept the change, so it lands a round trip later -
+    // and the pieces only live for 2.2s once they appear. Polling starts here,
+    // before the burst, so a generous timeout is safe: a slow response delays
+    // the pieces rather than making this assertion miss them.
+    await expect(page.locator('.confetti-piece').first()).toBeVisible({
+      timeout: 20_000,
+    });
   });
 });

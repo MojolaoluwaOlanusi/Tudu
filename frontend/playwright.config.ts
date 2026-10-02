@@ -9,8 +9,10 @@ import { defineConfig, devices } from '@playwright/test';
  */
 export default defineConfig({
   testDir: './e2e',
-  timeout: 30_000,
-  expect: { timeout: 7_000 },
+  // Generous: each test drives a full sign-up plus a task mutation, and a cold
+  // dev server on a slow machine can spend most of 30s just on the first load.
+  timeout: 60_000,
+  expect: { timeout: 10_000 },
   fullyParallel: false,
   // A stray console error should not fail a run, but it is printed.
   reporter: [['list'], ['html', { open: 'never' }]],
