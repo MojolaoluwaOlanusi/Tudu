@@ -190,6 +190,7 @@ const SubtaskList: React.FC<SubtaskListProps> = ({
             <button
               type="button"
               onClick={() => setShowBreakdown(true)}
+              data-tour="ai-breakdown"
               className="mb-2 inline-flex items-center gap-1.5 rounded-lg border border-hairline bg-surface-2 px-2.5 py-1.5 text-xs font-medium text-ink-muted transition-colors hover:border-accent hover:text-accent-strong"
             >
               <svg

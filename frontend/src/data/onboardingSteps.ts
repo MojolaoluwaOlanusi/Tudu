@@ -21,6 +21,12 @@ export interface TourStep {
   placement?: Placement;
   /** The New task form must be open for the target to exist. */
   openTaskForm?: boolean;
+  /**
+   * Click this `data-tour` element before measuring, so the step's own target
+   * becomes visible. The AI breakdown button lives inside the collapsible
+   * sub-task panel, so the tour has to open that panel itself.
+   */
+  reveal?: string;
   /** A before/after example, for the plain-language input. */
   example?: { input: string; result: string };
 }
@@ -108,6 +114,23 @@ export const TOUR_STEPS: TourStep[] = [
     target: 'task-card',
     placement: 'top',
     body: 'Each card is a little home. Change its status, add sub-steps to break big jobs down, pop open its history, or start a focus session on it. Edit, share and delete are in the corner.',
+  },
+  {
+    id: 'subtasks',
+    emoji: '🧱',
+    title: 'Break big jobs into steps',
+    target: 'subtasks',
+    placement: 'top',
+    body: 'Every card has its own sub-task list. Split something big into smaller steps, tick them off as you go, and watch the progress bar fill up.',
+  },
+  {
+    id: 'ai-breakdown',
+    emoji: '🤖',
+    title: 'Let AI do the hard part',
+    target: 'ai-breakdown',
+    reveal: 'subtasks',
+    placement: 'bottom',
+    body: 'Stuck on where to start? "Break this down" asks AI to suggest the steps for you. Edit, untick or delete anything you don\'t want first — nothing is added until you press "Add to task".',
   },
   {
     id: 'activity',

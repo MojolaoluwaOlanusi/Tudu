@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { signUp, uniqueEmail } from './helpers';
+import { createTask, signUp, uniqueEmail } from './helpers';
 
 /**
  * The onboarding tour.
@@ -58,6 +58,30 @@ test.describe('onboarding', () => {
     }
     await expect(page).toHaveURL(/\/board/);
     await expect(tourCard(page).getByRole('heading', { name: /board view/i })).toBeVisible();
+  });
+
+  test('the tour opens the sub-task panel to reach the AI breakdown button', async ({ page }) => {
+    await signUp(page, uniqueEmail('tour-ai'), { keepOnboardingPrompt: true });
+
+    // Clear the welcome modal, give the tour a real card to point at, then
+    // start it from the header.
+    await page.getByRole('button', { name: /maybe later/i }).click();
+    await createTask(page, `AI tour task ${Date.now()}`);
+    await page.getByTestId('tour-button').click();
+
+    // Walk forward until the AI step is showing, rather than hard-coding an
+    // index that a future copy edit would invalidate.
+    const aiHeading = tourCard(page).getByRole('heading', { name: /let ai do the hard part/i });
+    for (let i = 0; i < 18; i += 1) {
+      if (await aiHeading.isVisible().catch(() => false)) break;
+      await page.getByTestId('tour-next').click();
+      await page.waitForTimeout(150);
+    }
+    await expect(aiHeading).toBeVisible();
+
+    // The sub-task panel starts collapsed, so this button does not exist until
+    // something opens it. The tour has to do that itself.
+    await expect(page.locator('[data-tour="ai-breakdown"]')).toBeVisible();
   });
 
   test('skipping closes the tour and it is not offered again straight away', async ({ page }) => {

@@ -127,20 +127,35 @@ const ProductTour: React.FC = () => {
   /* --------------------------- Position the spotlight --------------------- */
   useEffect(() => {
     if (!isTourOpen) return;
+
+    // Some targets only exist once their container is open - the AI breakdown
+    // button lives inside the collapsible sub-task panel. Open it ourselves,
+    // but only when the target is genuinely absent, so a panel the user already
+    // expanded is never toggled shut again.
+    if (step.reveal && step.target) {
+      const alreadyThere = document.querySelector(`[data-tour="${step.target}"]`);
+      if (!alreadyThere) {
+        document
+          .querySelector(`[data-tour="${step.reveal}"]`)
+          ?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      }
+    }
+
     if (step.target) {
       document
         .querySelector<HTMLElement>(`[data-tour="${step.target}"]`)
         ?.scrollIntoView({ block: 'center', inline: 'center', behavior: 'smooth' });
     }
     measure();
-  }, [isTourOpen, step.target, measure]);
+  }, [isTourOpen, step.target, step.reveal, measure]);
 
-  // Routes render asynchronously, so re-measure once the new screen has painted.
+  // Routes render asynchronously, and revealing a panel shifts the layout, so
+  // re-measure once things have settled.
   useEffect(() => {
     if (!isTourOpen) return;
     const id = window.setTimeout(measure, 150);
     return () => window.clearTimeout(id);
-  }, [isTourOpen, location.pathname, measure]);
+  }, [isTourOpen, location.pathname, step.reveal, measure]);
 
   // Keep the spotlight pinned to the element while the page scrolls or resizes.
   useEffect(() => {

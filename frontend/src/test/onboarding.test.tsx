@@ -187,17 +187,30 @@ describe('tour steps', () => {
       .map((file) => readFileSync(file, 'utf8'))
       .join('\n');
 
-    const targets = TOUR_STEPS.filter((step) => step.target).map((step) => step.target!);
-    expect(targets.length).toBeGreaterThan(0);
+    // `reveal` anchors are just as load-bearing: they are what opens a nested
+    // panel, so a stale one means the step silently never reveals anything.
+    const anchors = [
+      ...TOUR_STEPS.map((step) => step.target),
+      ...TOUR_STEPS.map((step) => step.reveal),
+    ].filter((value): value is string => Boolean(value));
+    expect(anchors.length).toBeGreaterThan(0);
 
     // Match the attribute as written, tolerating both a plain string value and
     // the conditional form used by PomodoroTimer.
     const attributeFor = (target: string) =>
       new RegExp(`data-tour=(?:"${target}"|\\{[^}]*'${target}'[^}]*\\})`);
 
-    const missing = targets.filter((target) => !attributeFor(target).test(source));
+    const missing = anchors.filter((target) => !attributeFor(target).test(source));
     // Comparing the missing list keeps a failure readable; asserting against
     // the whole bundle of source would dump thousands of lines.
     expect(missing, 'tour steps point at data-tour attributes that do not exist').toEqual([]);
+  });
+
+  it('reveals the sub-task panel before pointing at the AI breakdown button', () => {
+    // The AI button is nested inside the collapsible sub-task panel, so without
+    // a reveal it would never exist for anyone who has not expanded it.
+    const ai = TOUR_STEPS.find((step) => step.target === 'ai-breakdown');
+    expect(ai).toBeDefined();
+    expect(ai?.reveal).toBe('subtasks');
   });
 });

@@ -137,6 +137,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onEdit, onDelete, onStatusCha
           type="button"
           onClick={() => setShowSubtasks((open) => !open)}
           aria-expanded={showSubtasks}
+          data-tour="subtasks"
           className="flex w-full items-center gap-2 text-left"
         >
           <svg

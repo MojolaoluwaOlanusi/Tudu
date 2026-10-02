@@ -31,7 +31,7 @@ A senior-level, feature-rich todo application with a friendly, brush-stroke aest
 - **Confetti & Micro-interactions**: A burst when a task is completed, plus
   stroke-on checkmarks and spring animations
 - **Reduced Motion**: Every animation is disabled under `prefers-reduced-motion`
-- **Onboarding Tour**: A friendly 16-step guided tour offered to new accounts,
+- **Onboarding Tour**: A friendly 18-step guided tour offered to new accounts,
   with a spotlight over each feature (see [Onboarding Tour](#onboarding-tour))
 
 ## Branding
@@ -598,14 +598,20 @@ the first time they sign in.
 
 ### The tour
 
-16 steps covering every feature: navigation, the focus timer, dark mode, live
+18 steps covering every feature: navigation, the focus timer, dark mode, live
 sync, creating tasks, plain-language input, search, filters, the task card,
-activity, sharing, the board, focus stats and analytics.
+sub-tasks, the AI task breakdown, activity, sharing, the board, focus stats and
+analytics.
 
 Each step dims the screen and cuts a spotlight out over the element it is
 describing, with a card of copy beside it. The tour **navigates by itself** -
 stepping into the board, stats and analytics screens on its way - and can be
 moved through with *Next* / *Back*, the arrow keys, or abandoned at any time.
+
+A step can also declare a `reveal` anchor, which the tour clicks before
+spotlighting. The AI breakdown button lives inside the collapsible sub-task
+panel, so the tour opens that panel itself rather than pointing at something
+that is not there.
 
 ### Implementation notes
 
