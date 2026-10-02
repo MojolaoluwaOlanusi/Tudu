@@ -3,7 +3,6 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import OAuthButton from './OAuthButton';
 import { useAuthStore } from '../../store/authStore';
 import { authService } from '../../services/authService';
-import Wordmark from '../brand/Wordmark';
 
 type EmailMode = 'signin' | 'signup';
 
@@ -76,7 +75,11 @@ const Login: React.FC = () => {
     <div className="flex min-h-screen items-center justify-center bg-page px-4 py-10">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
-          <Wordmark className="mx-auto h-24 w-auto text-ink sm:h-28" />
+          <img
+            src="/wordmark.png"
+            alt="Tudu"
+            className="mx-auto h-20 w-auto dark:invert sm:h-24"
+          />
           <p className="mt-2 text-center text-lg text-ink-muted">
             Your friendly todo app
           </p>

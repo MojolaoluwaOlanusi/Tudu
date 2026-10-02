@@ -35,31 +35,22 @@ A senior-level, feature-rich todo application with a friendly, brush-stroke aest
 ## Branding
 
 The wordmark is a handwritten brush-stroke "tudu" with a green checkmark
-sweeping underneath. Both brand marks are inline SVG (`components/brand/`),
-so they stay sharp at any size and pick up the theme's ink colour in dark mode.
+sweeping underneath. Both brand marks are the original raster artwork:
+
+| File | Used for |
+|---|---|
+| `public/wordmark.png` | The logo in the header and on the login screen |
+| `public/favicon.png` | The browser tab icon |
+
+On the dark theme the wordmark is rendered with `dark:invert`. That inverts
+lightness but preserves hue, so the green checkmark becomes a slightly
+brighter green (`#22c55e` → `#36e175`) rather than changing colour.
 
 | Token | Value | Used for |
 |---|---|---|
 | `--color-accent` | `#22c55e` | Green accent, sampled from the wordmark's checkmark |
 | `--color-bg` (light) | `#fafafa` | Off-white paper background |
 | `--color-bg` (dark) | `#1a1a1a` | Dark grey background |
-
-### Assets
-
-| File | Purpose |
-|---|---|
-| `public/favicon.svg` | Scalable favicon - green disc, white checkmark, brush texture |
-| `public/icon-192.png`, `icon-512.png` | PWA / install icons |
-| `public/apple-touch-icon.png` | iOS home-screen icon |
-| `public/manifest.webmanifest` | Installable-app metadata and theme colours |
-
-The icon artwork uses an SVG `feTurbulence`/`feDisplacementMap` filter to
-rough up the disc's edge, so it reads as brush-painted rather than a flat
-sticker. The PNG icons are generated from the same geometry.
-
-The old `favicon.png` (722 kB) and `wordmark.png` have been removed - the SVG
-versions replace them at a fraction of the size, and the wordmark no longer
-needs `dark:invert`, which used to flip the green checkmark to magenta.
 
 ### Surfaces
 

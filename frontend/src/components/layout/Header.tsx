@@ -4,7 +4,6 @@ import { useAuthStore } from '../../store/authStore';
 import ThemeToggle from '../common/ThemeToggle';
 import SyncIndicator from '../common/SyncIndicator';
 import PomodoroTimer from '../pomodoro/PomodoroTimer';
-import Wordmark from '../brand/Wordmark';
 
 const navClass = ({ isActive }: { isActive: boolean }) =>
   `rounded-full px-3 py-1.5 text-xs font-semibold transition-colors sm:px-4 sm:text-sm ${
@@ -35,7 +34,14 @@ const Header: React.FC = () => {
   return (
     <header className="glass sticky top-0 z-20 shadow-surface">
       <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-x-3 gap-y-2 px-4 py-3 sm:flex-nowrap sm:px-6">
-        <Wordmark className="h-9 w-auto shrink-0 text-ink sm:h-10" />
+        {/* The original raster wordmark. dark:invert keeps the lettering
+            legible on the dark header; the green checkmark survives it as a
+            lighter green (#22c55e -> #36e175) rather than shifting hue. */}
+        <img
+          src="/wordmark.png"
+          alt="Tudu"
+          className="h-9 w-auto shrink-0 dark:invert sm:h-10"
+        />
 
         {/* On mobile the nav drops onto its own full-width row so it can
             never overlap the wordmark or the controls beside it. */}
@@ -76,7 +82,7 @@ const Header: React.FC = () => {
               <button
                 onClick={logout}
                 title="Logout"
-                className="group inline-flex items-center gap-2 rounded-full border border-hairline bg-surface px-3 py-2 text-sm font-medium text-ink shadow-sm transition-all hover:border-accent hover:bg-accent-soft hover:text-accent-strong"
+                className="group inline-flex items-center gap-2 rounded-full border border-hairline bg-surface px-3 py-2 text-sm font-medium text-ink shadow-sm transition-all hover:border-red-400 hover:bg-red-50 hover:text-red-600 dark:hover:border-red-500 dark:hover:bg-red-900/30 dark:hover:text-red-300"
               >
                 <svg
                   className="h-4 w-4 transition-transform group-hover:translate-x-0.5"
