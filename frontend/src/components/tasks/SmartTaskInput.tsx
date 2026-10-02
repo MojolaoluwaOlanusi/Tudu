@@ -49,7 +49,7 @@ const SmartTaskInput: React.FC<SmartTaskInputProps> = ({
   const hasChips = chips.length > 0;
 
   return (
-    <div>
+    <div data-tour="smart-input">
       <div className="mb-1.5 flex items-center justify-between">
         <label className="label mb-0" htmlFor="task-title">
           Title *

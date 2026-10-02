@@ -3,6 +3,7 @@ import { NavLink } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import ThemeToggle from '../common/ThemeToggle';
 import SyncIndicator from '../common/SyncIndicator';
+import TourButton from '../onboarding/TourButton';
 import PomodoroTimer from '../pomodoro/PomodoroTimer';
 
 const navClass = ({ isActive }: { isActive: boolean }) =>
@@ -45,7 +46,10 @@ const Header: React.FC = () => {
 
         {/* On mobile the nav drops onto its own full-width row so it can
             never overlap the wordmark or the controls beside it. */}
-        <nav className="order-last flex w-full min-w-0 shrink flex-wrap items-center justify-center gap-1.5 rounded-full border border-hairline bg-surface-2 p-1 sm:order-none sm:mx-auto sm:w-auto sm:justify-start">
+        <nav
+          data-tour="nav"
+          className="order-last flex w-full min-w-0 shrink flex-wrap items-center justify-center gap-1.5 rounded-full border border-hairline bg-surface-2 p-1 sm:order-none sm:mx-auto sm:w-auto sm:justify-start"
+        >
           <NavLink to="/" end className={navClass}>
             List
           </NavLink>
@@ -64,6 +68,7 @@ const Header: React.FC = () => {
           {user && <SyncIndicator />}
           {user && <PomodoroTimer compact />}
           <ThemeToggle />
+          {user && <TourButton />}
 
           {user && (
             <>

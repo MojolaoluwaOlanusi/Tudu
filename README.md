@@ -31,6 +31,8 @@ A senior-level, feature-rich todo application with a friendly, brush-stroke aest
 - **Confetti & Micro-interactions**: A burst when a task is completed, plus
   stroke-on checkmarks and spring animations
 - **Reduced Motion**: Every animation is disabled under `prefers-reduced-motion`
+- **Onboarding Tour**: A friendly 16-step guided tour offered to new accounts,
+  with a spotlight over each feature (see [Onboarding Tour](#onboarding-tour))
 
 ## Branding
 
@@ -574,6 +576,56 @@ AI_PROVIDER=ollama
   key, a timeout and an unreachable local Ollama each get their own message,
   and the modal offers a "Try again" button.
 
+## Onboarding Tour
+
+Tudu has a lot of surface area, so new accounts are offered a short guided tour
+the first time they sign in.
+
+### How it behaves
+
+- The welcome modal appears **once** for a brand new account, offering three
+  deliberately different ways out:
+  - **Show me around** - starts the tour.
+  - **Tapping outside the modal** (or *Maybe later*, or `Esc`) - dismisses it and
+    it is offered again **a week later**.
+  - **Don't show again** - opts out permanently.
+- The tour itself can be abandoned at any point. *Skip tour*, `Esc` or leaving
+  via the header `?` button all snooze it for a week rather than counting it as
+  finished, so someone who bails early still gets offered it later.
+- Reaching the final step marks it complete and it stops being offered.
+- The `?` button in the header always replays the tour, so opting out is never
+  a dead end.
+
+### The tour
+
+16 steps covering every feature: navigation, the focus timer, dark mode, live
+sync, creating tasks, plain-language input, search, filters, the task card,
+activity, sharing, the board, focus stats and analytics.
+
+Each step dims the screen and cuts a spotlight out over the element it is
+describing, with a card of copy beside it. The tour **navigates by itself** -
+stepping into the board, stats and analytics screens on its way - and can be
+moved through with *Next* / *Back*, the arrow keys, or abandoned at any time.
+
+### Implementation notes
+
+- `src/store/onboardingStore.ts` - persisted Zustand store. `shouldOfferOnboarding`
+  is exported as a plain function so the offer/snooze/opt-out rules are testable
+  without mounting React.
+- `src/data/onboardingSteps.ts` - the step content, kept separate from the
+  component that renders it.
+- `src/components/onboarding/` - `OnboardingRoot` (mount point), `OnboardingPrompt`,
+  `ProductTour` and `TourButton`.
+- Steps are anchored to elements by a `data-tour="..."` attribute. A unit test
+  reads the source tree and fails if a step points at an anchor that no longer
+  exists, which stops a refactor from silently downgrading a step to the
+  centred fallback.
+- **Missing targets degrade gracefully.** A brand new account has no tasks, so
+  the task card, shared sidebar and focus timer do not exist yet. Those steps
+  fall back to a centred card and the tour carries on rather than dead-ending.
+- The tour is mounted once at the app root, not inside the page `Shell`,
+  because it navigates between routes and would otherwise lose its place.
+
 ## Deployment
 
 ### Frontend (Vercel)
@@ -726,6 +778,13 @@ This project uses a PR-based workflow with feature branches:
   320/390/768px, which guards the responsiveness bug fixed in phase 17.
 - `e2e/auth.spec.ts` covers sign-up, sign-in and the task lifecycle, including
   the confetti burst on completion.
+- `e2e/onboarding.spec.ts` covers the tour in a real browser - jsdom cannot
+  check the spotlight geometry or that the tour navigates between routes by
+  itself. It also asserts that skipping does not re-prompt, and that opting out
+  is not a dead end.
+- `e2e/helpers.ts#signUp` clears the onboarding prompt by default, since it
+  otherwise sits over the page and swallows clicks. Onboarding specs pass
+  `{ keepOnboardingPrompt: true }` to assert on it instead.
 
 ## Troubleshooting
 

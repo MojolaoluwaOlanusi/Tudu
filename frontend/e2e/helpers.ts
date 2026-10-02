@@ -20,7 +20,11 @@ export const taskCard = (page: Page, title: string) =>
   });
 
 /** Registers through the UI and lands on the task list. */
-export async function signUp(page: Page, email: string) {
+export async function signUp(
+  page: Page,
+  email: string,
+  opts: { keepOnboardingPrompt?: boolean } = {}
+) {
   await page.goto('/login');
 
   await page.getByRole('button', { name: 'Continue with Email' }).click();
@@ -35,6 +39,18 @@ export async function signUp(page: Page, email: string) {
   await expect(page.getByRole('heading', { name: /my tasks/i })).toBeVisible({
     timeout: 30_000,
   });
+
+  // Every brand new account is offered the onboarding tour. Specs that are not
+  // about onboarding must clear it, or its modal sits over the page and swallows
+  // the clicks they are trying to make. Pass `keepOnboardingPrompt` to assert
+  // on it instead.
+  if (!opts.keepOnboardingPrompt) {
+    const prompt = page.getByTestId('onboarding-prompt');
+    if (await prompt.isVisible().catch(() => false)) {
+      await page.getByRole('button', { name: /maybe later/i }).click();
+      await expect(prompt).toBeHidden();
+    }
+  }
 }
 
 /** Creates a task through the form and waits for its card to render. */

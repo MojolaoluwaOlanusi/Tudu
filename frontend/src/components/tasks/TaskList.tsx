@@ -170,6 +170,7 @@ const TaskList: React.FC = () => {
               isTaskFormOpen && !editingTask ? closeTaskForm() : openTaskForm(null)
             }
             className="btn-accent brush-stroke shrink-0"
+            data-tour="new-task"
           >
             {isTaskFormOpen && !editingTask ? 'Cancel' : '+ New task'}
           </button>
@@ -188,7 +189,7 @@ const TaskList: React.FC = () => {
       />
 
       {/* Filter panel: collapsible on mobile, always open from sm upwards */}
-      <div className={`card p-4 ${isSidebarOpen ? 'block' : 'hidden'} sm:block`}>
+      <div className={`card p-4 ${isSidebarOpen ? 'block' : 'hidden'} sm:block`} data-tour="filters">
         <div className="space-y-4">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <FilterDropdown
