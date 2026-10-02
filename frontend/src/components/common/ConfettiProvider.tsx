@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useRef } from 'react';
+import React, { createContext, useCallback, useContext, useRef } from 'react';
 import Confetti, { type ConfettiHandle } from './Confetti';
 
 /**
@@ -10,12 +10,20 @@ const ConfettiContext = createContext<ConfettiHandle | null>(null);
 export const ConfettiProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  const confetti = useRef<ConfettiHandle>(null);
+  const handle = useRef<ConfettiHandle | null>(null);
+
+  // The context value must be a stable function that reads the ref when it is
+  // *called*. Passing `handle.current` as the value does not work: the
+  // provider renders before the child assigns the ref, so the value is
+  // captured as null and every consumer silently gets the no-op fallback.
+  const burst = useCallback<ConfettiHandle['burst']>((origin) => {
+    handle.current?.burst(origin);
+  }, []);
 
   return (
-    <ConfettiContext.Provider value={confetti.current}>
+    <ConfettiContext.Provider value={{ burst }}>
       {children}
-      <Confetti ref={confetti} />
+      <Confetti ref={handle} />
     </ConfettiContext.Provider>
   );
 };
