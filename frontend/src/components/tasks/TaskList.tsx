@@ -154,11 +154,11 @@ const TaskList: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="font-handwritten text-3xl text-ink sm:text-4xl">
           My tasks
         </h2>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button onClick={toggleSidebar} className="btn-ghost sm:hidden">
             {isSidebarOpen ? 'Hide filters' : 'Filters'}
           </button>

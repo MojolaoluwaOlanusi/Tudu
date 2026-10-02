@@ -135,9 +135,9 @@ const KanbanBoard: React.FC = () => {
       onDragCancel={() => setActiveId(null)}
     >
       <div className="space-y-6">
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="font-handwritten text-3xl text-ink sm:text-4xl">Board</h2>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {selectedIds.length > 0 && (
               <button onClick={() => setSelectedIds([])} className="btn-ghost">
                 Clear ({selectedIds.length})

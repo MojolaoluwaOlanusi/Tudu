@@ -180,7 +180,7 @@ return (
                     type="text"
                     value={item.text}
                     onChange={(e) => updateItem(index, { text: e.target.value })}
-                    className="input flex-1 !py-1.5 text-sm"
+                    className="input min-w-0 flex-1 !py-1.5 text-sm"
                     disabled={isSaving}
                   />
                   <button

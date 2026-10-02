@@ -45,7 +45,7 @@ const Header: React.FC = () => {
 
         {/* On mobile the nav drops onto its own full-width row so it can
             never overlap the wordmark or the controls beside it. */}
-        <nav className="order-last flex w-full shrink-0 items-center justify-center gap-1.5 rounded-full border border-hairline bg-surface-2 p-1 sm:order-none sm:mx-auto sm:w-auto sm:justify-start">
+        <nav className="order-last flex w-full min-w-0 shrink flex-wrap items-center justify-center gap-1.5 rounded-full border border-hairline bg-surface-2 p-1 sm:order-none sm:mx-auto sm:w-auto sm:justify-start">
           <NavLink to="/" end className={navClass}>
             List
           </NavLink>
@@ -60,7 +60,7 @@ const Header: React.FC = () => {
           </NavLink>
         </nav>
 
-        <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+        <div className="flex min-w-0 max-w-full flex-wrap items-center justify-end gap-2 sm:flex-nowrap sm:gap-3">
           {user && <SyncIndicator />}
           {user && <PomodoroTimer compact />}
           <ThemeToggle />

@@ -58,7 +58,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onEdit, onDelete, onStatusCha
   return (
     <div className="card p-4 transition-all hover:-translate-y-0.5 hover:shadow-lg">
       <div className="mb-2 flex items-start justify-between gap-3">
-        <div className="flex flex-1 items-start gap-2">
+        <div className="flex min-w-0 flex-1 items-start gap-2">
           {task.status === 'done' && (
             <CheckPop
               key={`${task.id}-${celebrated ? 'done' : 'open'}`}
@@ -68,7 +68,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onEdit, onDelete, onStatusCha
             />
           )}
           <h3
-            className={`flex-1 font-semibold transition-colors ${
+            className={`min-w-0 flex-1 font-semibold transition-colors ${
               task.status === 'done' ? 'text-ink-muted line-through' : 'text-ink'
             }`}
           >

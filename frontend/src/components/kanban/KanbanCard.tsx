@@ -45,7 +45,7 @@ export const KanbanCardBody: React.FC<KanbanCardBodyProps> = ({
         isSelected ? 'ring-2 ring-accent' : ''
       }`}
     >
-      <div className="flex items-start gap-2">
+      <div className="flex min-w-0 items-start gap-2">
         <input
           type="checkbox"
           checked={isSelected}
@@ -56,7 +56,7 @@ export const KanbanCardBody: React.FC<KanbanCardBodyProps> = ({
         <button
           type="button"
           onClick={() => onEdit(task)}
-          className="flex-1 text-left text-sm font-semibold text-ink transition-colors hover:text-accent-strong"
+          className="min-w-0 flex-1 break-words text-left text-sm font-semibold text-ink transition-colors hover:text-accent-strong"
         >
           {task.title}
         </button>

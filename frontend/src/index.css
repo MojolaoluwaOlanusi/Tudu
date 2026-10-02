@@ -54,12 +54,24 @@
     scroll-behavior: smooth;
   }
 
+  /* Nothing may scroll the page sideways. `clip` rather than `hidden`:
+     `hidden` turns the body into a scroll container, which silently breaks
+     every `position: sticky` header below it. `clip` contains the overflow
+     without that side effect. */
+  html,
+  body {
+    overflow-x: clip;
+  }
+
   body {
     min-height: 100vh;
     background-color: var(--color-bg);
     color: var(--color-text);
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
+    /* A long unbroken task title must wrap instead of widening the layout
+       past the viewport and forcing a horizontal scroll. */
+    overflow-wrap: break-word;
     /* Soft green glow + a fine paper grain. */
     background-image:
       radial-gradient(circle at 22% 10%, rgba(34, 197, 94, 0.07), transparent 42%),

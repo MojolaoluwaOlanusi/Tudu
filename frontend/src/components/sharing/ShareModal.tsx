@@ -131,7 +131,7 @@ const ShareModal: React.FC<ShareModalProps> = ({ tasks }) => {
                       onChange={() => toggle(task.id)}
                       className="h-3.5 w-3.5 accent-[#22c55e]"
                     />
-                    <span className="flex-1 truncate text-xs text-ink">{task.title}</span>
+                    <span className="min-w-0 flex-1 truncate text-xs text-ink">{task.title}</span>
                     <span className="text-[10px] uppercase text-ink-muted">{task.status}</span>
                   </label>
                 ))
