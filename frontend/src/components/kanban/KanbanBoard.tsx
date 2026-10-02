@@ -10,18 +10,13 @@ import {
   type DragStartEvent,
   type DragEndEvent,
 } from '@dnd-kit/core';
-import { Task, Status, StatusChange } from '../../types/task';
+import { Task, Status } from '../../types/task';
 import { useKanbanTasks, useMoveTasks } from '../../hooks/useKanban';
 import { useUiStore } from '../../store/uiStore';
 import KanbanColumn from './KanbanColumn';
 import { KanbanCardBody } from './KanbanCard';
 import { useConfetti } from '../common/ConfettiProvider';
-
-const COLUMNS: { status: Status; title: string }[] = [
-  { status: 'todo', title: 'To-do' },
-  { status: 'doing', title: 'Doing' },
-  { status: 'done', title: 'Done' },
-];
+import { COLUMNS, resolveTargetStatus, buildMoveUpdates, isNoOpMove } from './logic';
 
 /** Bouncy drop animation played when a card is released. */
 const dropAnimation = {
@@ -67,12 +62,6 @@ const KanbanBoard: React.FC = () => {
     setActiveId(String(event.active.id));
   };
 
-  // A drop target is either a column id ("todo") or another card's id.
-  const resolveTargetStatus = (overId: string): Status | null => {
-    if (COLUMNS.some((column) => column.status === overId)) return overId as Status;
-    return allTasks.find((task) => task.id === overId)?.status ?? null;
-  };
-
   const handleDragEnd = (event: DragEndEvent) => {
     setActiveId(null);
     const { active, over } = event;
@@ -82,14 +71,12 @@ const KanbanBoard: React.FC = () => {
     const dragged = allTasks.find((task) => task.id === draggedId);
     if (!dragged) return;
 
-    const targetStatus = resolveTargetStatus(String(over.id));
-    if (!targetStatus || targetStatus === dragged.status) return;
+    const targetStatus = resolveTargetStatus(String(over.id), allTasks);
+    if (!targetStatus || isNoOpMove(dragged.status, targetStatus)) return;
 
     // Move the dragged card, plus any other selected cards.
     const idsToMove = selectedIds.includes(draggedId) ? selectedIds : [draggedId];
-    const updates: StatusChange[] = allTasks
-      .filter((task) => idsToMove.includes(task.id) && task.status !== targetStatus)
-      .map((task) => ({ id: task.id, status: targetStatus }));
+    const updates = buildMoveUpdates(allTasks, idsToMove, targetStatus);
 
     if (updates.length === 0) return;
 

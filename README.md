@@ -680,9 +680,52 @@ This project uses a PR-based workflow with feature branches:
 - Use TypeScript for request/response types
 
 ### Testing
-- Write unit tests for critical functions
-- Test components with React Testing Library
-- Add E2E tests for critical user flows
+
+#### Running the tests
+
+| Command | Runs |
+|---|---|
+| `cd backend && npm test` | Backend unit + integration suites (Jest) |
+| `cd backend && npm run test:unit` | Backend unit tests only (mocked, no database) |
+| `cd backend && npm run test:coverage` | Backend with a coverage report |
+| `cd frontend && npm test` | Frontend unit + component tests (Vitest) |
+| `cd frontend && npm run test:coverage` | Frontend with a coverage report |
+| `cd frontend && npm run test:e2e` | End-to-end tests (Playwright) |
+
+#### Backend
+
+- `tests/unit/` — pure logic with a mocked pool, so these run without a database.
+- `tests/integration/` — the real Express app driven by Supertest against the
+  configured database.
+- **Integration tests hit the database in `backend/.env`.** Each test creates a
+  throwaway user with a random email and deletes it in `afterAll`; because the
+  schema cascades, no fixture data survives a run. Point `DATABASE_URL` at a
+  throwaway database if that is not acceptable.
+- Suites run with `maxWorkers: 1`. Neon is a remote database over the network,
+  so parallel workers only add connection pressure.
+- Do **not** call `pool.end()` from a suite's `afterAll`: Jest shares one
+  process across suites, so the first suite to finish would break every suite
+  after it. `forceExit` in `jest.config.js` handles the leftover socket.
+
+#### Frontend
+
+- Vitest with jsdom and React Testing Library.
+- `src/test/setup.ts` polyfills `matchMedia` and `ResizeObserver`, which jsdom
+  lacks and Chart.js needs.
+- Drag-and-drop is covered by testing the extracted decision logic in
+  `src/components/kanban/logic.ts`; dnd-kit's pointer gestures cannot be
+  simulated reliably in jsdom.
+
+#### End-to-end
+
+- Playwright, two projects: a desktop Chrome and a mobile profile.
+- The frontend dev server is started automatically; the backend must already be
+  running on port 5000.
+- **First run needs the browser binary:** `npx playwright install chromium`.
+- `e2e/responsive.spec.ts` asserts that no page overflows horizontally at
+  320/390/768px, which guards the responsiveness bug fixed in phase 17.
+- `e2e/auth.spec.ts` covers sign-up, sign-in and the task lifecycle, including
+  the confetti burst on completion.
 
 ## Troubleshooting
 

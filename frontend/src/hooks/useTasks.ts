@@ -91,7 +91,17 @@ export const useCreateTask = () => {
         );
       }
 
-      return { previousTasks, previousOverdue };
+      return { previousTasks, previousOverdue, optimisticId: optimisticTask.id };
+    },
+    onSuccess: (_created, _taskInput, context) => {
+      // Drop the placeholder now the real row exists. The refetch below (and
+      // the socket broadcast) put the saved task in the cache; leaving the
+      // placeholder behind renders the same task twice, and acting on it sends
+      // its fake id to the API and comes back 500.
+      if (!context?.optimisticId) return;
+      patchTaskLists(queryClient, (tasks) =>
+        tasks.filter((task) => task.id !== context.optimisticId)
+      );
     },
     onError: (_error, _variables, context) => {
       context?.previousTasks?.forEach(([key, data]) => queryClient.setQueryData(key, data));

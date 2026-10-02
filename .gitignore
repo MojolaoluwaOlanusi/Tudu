@@ -4,3 +4,13 @@
 
 # Build output
 dist/
+
+# Test + tooling artifacts
+frontend/test-results/
+frontend/playwright-report/
+frontend/blob-report/
+frontend/.playwright/
+
+# Emitted by `tsc -b` for the Vite config, which is tooling-only
+frontend/vite.config.js
+frontend/vite.config.d.ts
