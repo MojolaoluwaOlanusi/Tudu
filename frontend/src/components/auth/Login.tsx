@@ -75,10 +75,12 @@ const Login: React.FC = () => {
     <div className="flex min-h-screen items-center justify-center bg-page px-4 py-10">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
-          <h1 className="font-handwritten text-6xl text-ink">
-            Tudu
-          </h1>
-          <p className="mt-1 text-lg text-ink-muted">
+          <img
+            src="/wordmark.png"
+            alt="Tudu"
+            className="mx-auto h-20 w-auto dark:invert sm:h-24"
+          />
+          <p className="mt-2 text-center text-lg text-ink-muted">
             Your friendly todo app
           </p>
         </div>

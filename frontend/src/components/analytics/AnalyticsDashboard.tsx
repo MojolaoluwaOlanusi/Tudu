@@ -68,7 +68,7 @@ const MetricCard: React.FC<{
   hint?: string;
   tone?: 'default' | 'alert';
 }> = ({ label, value, hint, tone = 'default' }) => (
-  <div className="card p-4">
+  <div className="card min-w-0 p-4">
     <p className="text-xs uppercase tracking-wide text-ink-muted">{label}</p>
     <p
       className={`mt-1 text-2xl font-semibold ${
@@ -86,7 +86,7 @@ const ChartCard: React.FC<{
   subtitle?: string;
   children: React.ReactNode;
 }> = ({ title, subtitle, children }) => (
-  <div className="card p-5">
+  <div className="card min-w-0 p-5">
     <h3 className="font-handwritten text-xl text-ink">{title}</h3>
     {subtitle && <p className="mb-3 text-xs text-ink-muted">{subtitle}</p>}
     <div className="mt-3">{children}</div>
@@ -271,7 +271,7 @@ const AnalyticsDashboard: React.FC = () => {
 
       {ready && overview && completed && timeSpent && (
         <>
-          <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
             <MetricCard
               label="Total tasks"
               value={String(overview.tasks.total)}

@@ -151,14 +151,14 @@ const SubtaskList: React.FC<SubtaskListProps> = ({
                     if (e.key === 'Escape') setEditingId(null);
                   }}
                   autoFocus
-                  className="flex-1 rounded border border-hairline bg-surface px-1.5 py-0.5 text-xs text-ink focus:outline-none focus:ring-2 focus:ring-accent"
+                  className="min-w-0 flex-1 rounded border border-hairline bg-surface px-1.5 py-0.5 text-xs text-ink focus:outline-none focus:ring-2 focus:ring-accent"
                 />
               ) : (
                 <button
                   type="button"
                   onClick={() => startEditing(subtask)}
                   title="Click to rename"
-                  className={`flex-1 text-left text-xs transition-colors hover:text-accent-strong ${
+                  className={`min-w-0 flex-1 break-words text-left text-xs transition-colors hover:text-accent-strong ${
                     subtask.completed
                       ? 'text-ink-muted line-through'
                       : 'text-ink'

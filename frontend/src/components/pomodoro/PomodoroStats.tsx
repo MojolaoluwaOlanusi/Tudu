@@ -7,7 +7,7 @@ const StatCard: React.FC<{ label: string; value: string; hint?: string }> = ({
   value,
   hint,
 }) => (
-  <div className="card p-4">
+  <div className="card min-w-0 p-4">
     <p className="text-xs uppercase tracking-wide text-ink-muted">{label}</p>
     <p className="mt-1 text-2xl font-semibold text-ink">{value}</p>
     {hint && <p className="mt-0.5 text-xs text-ink-muted">{hint}</p>}
@@ -46,7 +46,7 @@ const PomodoroStats: React.FC = () => {
 
   return (
     <div className="space-y-5">
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Today" value={humaniseMinutes(data.today.minutes)} hint={`${data.today.sessions} session${data.today.sessions === 1 ? '' : 's'}`} />
         <StatCard label="This week" value={humaniseMinutes(data.week.minutes)} hint={`${data.week.sessions} session${data.week.sessions === 1 ? '' : 's'}`} />
         <StatCard label="All time" value={humaniseMinutes(data.totals.minutes)} hint={`${data.totals.sessions} completed`} />

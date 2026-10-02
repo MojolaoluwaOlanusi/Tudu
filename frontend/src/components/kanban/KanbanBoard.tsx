@@ -15,6 +15,7 @@ import { useKanbanTasks, useMoveTasks } from '../../hooks/useKanban';
 import { useUiStore } from '../../store/uiStore';
 import KanbanColumn from './KanbanColumn';
 import { KanbanCardBody } from './KanbanCard';
+import { useConfetti } from '../common/ConfettiProvider';
 
 const COLUMNS: { status: Status; title: string }[] = [
   { status: 'todo', title: 'To-do' },
@@ -33,6 +34,7 @@ const KanbanBoard: React.FC = () => {
   const { mutate: moveTasks, isPending } = useMoveTasks();
   const openTaskForm = useUiStore((s) => s.openTaskForm);
   const pushToast = useUiStore((s) => s.pushToast);
+  const { burst } = useConfetti();
 
   const [activeId, setActiveId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -93,6 +95,10 @@ const KanbanBoard: React.FC = () => {
 
     moveTasks(updates, {
       onError: () => pushToast('Could not move the task. It was put back.', 'error'),
+      // Only celebrate once the server has actually accepted the move.
+      onSuccess: () => {
+        if (targetStatus === 'done') burst();
+      },
     });
 
     setSelectedIds([]);
@@ -129,9 +135,9 @@ const KanbanBoard: React.FC = () => {
       onDragCancel={() => setActiveId(null)}
     >
       <div className="space-y-6">
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="font-handwritten text-3xl text-ink sm:text-4xl">Board</h2>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {selectedIds.length > 0 && (
               <button onClick={() => setSelectedIds([])} className="btn-ghost">
                 Clear ({selectedIds.length})

@@ -67,7 +67,7 @@ const SmartTaskInput: React.FC<SmartTaskInputProps> = ({
           </button>
 
           {showHelp && (
-            <div className="absolute right-0 top-7 z-30 w-72 rounded-xl border border-hairline bg-surface p-3 shadow-lg">
+            <div className="absolute right-0 top-7 z-30 w-[min(18rem,calc(100vw-2.5rem))] rounded-xl border border-hairline bg-surface p-3 shadow-lg">
               <p className="mb-2 text-xs font-semibold text-ink">Write it how you'd say it</p>
               <ul className="space-y-2">
                 {SYNTAX_HELP.map((item) => (

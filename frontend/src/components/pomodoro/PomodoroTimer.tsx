@@ -74,8 +74,8 @@ const PomodoroTimer: React.FC<PomodoroTimerProps> = ({ compact }) => {
 
   return (
     <div
-      className={`inline-flex items-center gap-2 rounded-full border border-hairline bg-surface-2 ${
-        compact ? 'px-2.5 py-1' : 'px-3 py-2'
+      className={`inline-flex max-w-full items-center gap-2 rounded-full border border-hairline bg-surface-2 ${
+        compact ? 'px-2 py-1 sm:px-2.5' : 'px-3 py-2'
       }`}
       title={finished ? 'Session finished' : `${modeLabel(mode)} session in progress`}
     >
@@ -83,7 +83,7 @@ const PomodoroTimer: React.FC<PomodoroTimerProps> = ({ compact }) => {
         <TomatoIcon />
       </span>
 
-      <span className="tabular-nums text-sm font-semibold text-ink">
+      <span className="min-w-0 truncate tabular-nums text-xs font-semibold text-ink sm:text-sm">
         {formatCountdown(remaining)}
       </span>
 

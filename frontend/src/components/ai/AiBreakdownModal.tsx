@@ -114,7 +114,7 @@ const AiBreakdownModal: React.FC<AiBreakdownModalProps> = ({
   };
 return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center"
+      className="scrim fixed inset-0 z-50 flex items-end justify-center p-4 sm:items-center"
       role="dialog"
       aria-modal="true"
       aria-label="AI task breakdown"
@@ -180,7 +180,7 @@ return (
                     type="text"
                     value={item.text}
                     onChange={(e) => updateItem(index, { text: e.target.value })}
-                    className="input flex-1 !py-1.5 text-sm"
+                    className="input min-w-0 flex-1 !py-1.5 text-sm"
                     disabled={isSaving}
                   />
                   <button

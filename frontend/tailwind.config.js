@@ -24,8 +24,8 @@ export default {
         // Brand palette (kept for backwards compatibility).
         brand: {
           green: '#22c55e',
-          dark: '#121417',
-          light: '#f7f5ef',
+          dark: '#1a1a1a',
+          light: '#fafafa',
         },
       },
       fontFamily: {
@@ -41,9 +41,16 @@ export default {
           '0%': { opacity: '0', transform: 'translateY(6px)' },
           '100%': { opacity: '1', transform: 'translateY(0)' },
         },
+        // A short spring used for cards and popovers appearing.
+        'pop-in': {
+          '0%': { opacity: '0', transform: 'scale(0.96) translateY(4px)' },
+          '60%': { transform: 'scale(1.01) translateY(0)' },
+          '100%': { opacity: '1', transform: 'scale(1) translateY(0)' },
+        },
       },
       animation: {
         'fade-in': 'fade-in 0.3s ease-out',
+        'pop-in': 'pop-in 0.28s cubic-bezier(0.34, 1.4, 0.64, 1)',
       },
     },
   },
