@@ -51,15 +51,25 @@ export const restoreTaskCaches = (
   if (snapshot.overdue) queryClient.setQueryData(queryKeys.tasks.overdue, snapshot.overdue);
 };
 
-/** Every task we can see across the caches (used to rebuild the overdue list). */
+/**
+ * Every task we can see across the caches (used to rebuild the overdue list).
+ *
+ * Only the list-shaped caches count. `['tasks', ...]` also holds per-task
+ * detail entries, which contain a single Task rather than an array of them,
+ * so the shape has to be checked before iterating.
+ */
 const collectKnownTasks = (queryClient: QueryClient): Task[] => {
   const map = new Map<string, Task>();
-  queryClient
-    .getQueryData<Task[]>(queryKeys.tasks.kanban)
-    ?.forEach((task) => map.set(task.id, task));
+  const collect = (tasks: Task[] | undefined) =>
+    tasks?.forEach((task) => map.set(task.id, task));
+
+  collect(queryClient.getQueryData<Task[]>(queryKeys.tasks.kanban));
   queryClient
     .getQueriesData<Task[]>({ queryKey: queryKeys.tasks.all })
-    .forEach(([, data]) => data?.forEach((task) => map.set(task.id, task)));
+    .forEach(([, data]) => {
+      if (!Array.isArray(data)) return;
+      collect(data);
+    });
   return Array.from(map.values());
 };
 
