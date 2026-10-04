@@ -2,6 +2,7 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import ThemeToggle from '../common/ThemeToggle';
+import Wordmark from '../common/Wordmark';
 import SyncIndicator from '../common/SyncIndicator';
 import TourButton from '../onboarding/TourButton';
 import PomodoroTimer from '../pomodoro/PomodoroTimer';
@@ -35,14 +36,9 @@ const Header: React.FC = () => {
   return (
     <header className="glass sticky top-0 z-20 shadow-surface">
       <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-x-3 gap-y-2 px-4 py-3 sm:flex-nowrap sm:px-6">
-        {/* The original raster wordmark. dark:invert keeps the lettering
-            legible on the dark header; the green checkmark survives it as a
-            lighter green (#22c55e -> #36e175) rather than shifting hue. */}
-        <img
-          src="/wordmark.png"
-          alt="Tudu"
-          className="h-9 w-auto shrink-0 dark:invert sm:h-10"
-        />
+        {/* Swaps to the pre-recoloured dark asset so the lettering stays
+            legible without colour-inverting the green checkstroke. */}
+        <Wordmark className="h-9 w-auto shrink-0 sm:h-10" />
 
         {/* On mobile the nav drops onto its own full-width row so it can
             never overlap the wordmark or the controls beside it. */}

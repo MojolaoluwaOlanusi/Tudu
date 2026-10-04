@@ -41,12 +41,18 @@ sweeping underneath. Both brand marks are the original raster artwork:
 
 | File | Used for |
 |---|---|
-| `public/wordmark.png` | The logo in the header and on the login screen |
+| `public/wordmark.png` | The logo on the light theme (black lettering, green check) |
+| `public/wordmark-dark.png` | The logo on the dark theme (light lettering, same green check) |
 | `public/favicon.png` | The browser tab icon |
 
-On the dark theme the wordmark is rendered with `dark:invert`. That inverts
-lightness but preserves hue, so the green checkmark becomes a slightly
-brighter green (`#22c55e` → `#36e175`) rather than changing colour.
+The dark theme uses a separate pre-recoloured asset rather than a CSS filter.
+`invert(1)` flips every colour channel, so applying it to the wordmark would
+turn the green checkstroke magenta as well as lightening the lettering — the
+brand colour would not survive. `wordmark-dark.png` is the same artwork with the
+lettering recoloured to near-white (`#f2f4f3`) and the checkstroke kept at the
+brand green (`#22c55e`), with the original alpha channel untouched so the
+anti-aliased brush edges stay smooth. The `Wordmark` component
+(`src/components/common/Wordmark.tsx`) swaps the source from the theme store.
 
 | Token | Value | Used for |
 |---|---|---|
