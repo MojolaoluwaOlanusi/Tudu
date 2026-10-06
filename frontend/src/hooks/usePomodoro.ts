@@ -3,6 +3,7 @@ import { pomodoroService } from '../services/pomodoroService';
 import { useAuthStore } from '../store/authStore';
 import { usePomodoroStore } from '../store/pomodoroStore';
 import { queryKeys } from '../lib/queryClient';
+import { requestNotificationPermission } from '../lib/pomodoroAlerts';
 
 export const usePomodoroStats = (days = 7) => {
   const token = useAuthStore((state) => state.token);
@@ -30,6 +31,8 @@ export const useStartPomodoro = () => {
     }) => pomodoroService.start(token!, taskId, duration),
 
     onSuccess: (session, variables) => {
+      // Funnel for every start path; a no-op once the browser has decided.
+      requestNotificationPermission();
       begin({
         sessionId: session.id,
         taskId: session.task_id,

@@ -54,6 +54,37 @@ const StopIcon: React.FC = () => (
   </svg>
 );
 
+const SoundOnIcon: React.FC = () => (
+  <svg
+    className="h-3.5 w-3.5"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={1.8}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    viewBox="0 0 24 24"
+  >
+    <path d="M11 5 6 9H3v6h3l5 4V5z" />
+    <path d="M15.5 8.5a5 5 0 0 1 0 7" />
+    <path d="M18.5 6a8.5 8.5 0 0 1 0 12" />
+  </svg>
+);
+
+const SoundOffIcon: React.FC = () => (
+  <svg
+    className="h-3.5 w-3.5"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={1.8}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    viewBox="0 0 24 24"
+  >
+    <path d="M11 5 6 9H3v6h3l5 4V5z" />
+    <path d="M16 9.5l5 5M21 9.5l-5 5" />
+  </svg>
+);
+
 /**
  * Reads the shared Pomodoro state. Renders nothing when idle, so the header only
  * shows the timer while a session is actually in flight.
@@ -63,9 +94,11 @@ const PomodoroTimer: React.FC<PomodoroTimerProps> = ({ compact }) => {
   const mode = usePomodoroStore((state) => state.mode);
   const remaining = usePomodoroStore((state) => state.remaining);
   const running = usePomodoroStore((state) => state.running);
+  const soundEnabled = usePomodoroStore((state) => state.soundEnabled);
   const pause = usePomodoroStore((state) => state.pause);
   const resume = usePomodoroStore((state) => state.resume);
   const abandon = usePomodoroStore((state) => state.abandon);
+  const toggleSound = usePomodoroStore((state) => state.toggleSound);
   const { mutate: logSession } = useCompletePomodoro();
 
   if (!sessionId) return null;
@@ -93,6 +126,16 @@ const PomodoroTimer: React.FC<PomodoroTimerProps> = ({ compact }) => {
       )}
 
       <span className="flex items-center gap-1">
+        <button
+          type="button"
+          onClick={toggleSound}
+          aria-label={soundEnabled ? 'Mute finish alarm' : 'Unmute finish alarm'}
+          aria-pressed={soundEnabled}
+          title={soundEnabled ? 'Mute alarm' : 'Unmute alarm'}
+          className="rounded-full p-1.5 text-ink-muted transition-colors hover:bg-surface hover:text-accent-strong"
+        >
+          {soundEnabled ? <SoundOnIcon /> : <SoundOffIcon />}
+        </button>
         {finished ? (
           <button
             type="button"

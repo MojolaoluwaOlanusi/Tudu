@@ -2,6 +2,7 @@ import React from 'react';
 import { useStartPomodoro } from '../../hooks/usePomodoro';
 import { usePomodoroStore } from '../../store/pomodoroStore';
 import { FOCUS_MINUTES } from '../../types/pomodoro';
+import { requestNotificationPermission } from '../../lib/pomodoroAlerts';
 
 interface StartPomodoroButtonProps {
   taskId: string;
@@ -56,7 +57,12 @@ const StartPomodoroButton: React.FC<StartPomodoroButtonProps> = ({
   return (
     <button
       type="button"
-      onClick={() => start({ taskId, duration: FOCUS_MINUTES })}
+      onClick={() => {
+        // Inside the click gesture, which Safari requires for the prompt -
+        // so the finish alarm can raise a desktop notification (#23).
+        requestNotificationPermission();
+        start({ taskId, duration: FOCUS_MINUTES });
+      }}
       disabled={isPending}
       className="inline-flex items-center gap-1.5 rounded-lg border border-hairline bg-surface-2 px-2.5 py-1.5 text-xs font-medium text-ink-muted transition-colors hover:border-accent hover:text-accent-strong disabled:opacity-50"
     >
