@@ -3,7 +3,7 @@ import { usePomodoroStore, formatCountdown } from '../../store/pomodoroStore';
 
 /**
  * A minimal timer display for the header that shows only the time and sound toggle.
- * All control buttons (play/pause/stop) are hidden and only available on the task card.
+ * All control buttons (play/pause/stop/log) are hidden and only available on the task card.
  */
 const PomodoroTimerHeader: React.FC = () => {
   const sessionId = usePomodoroStore((state) => state.sessionId);

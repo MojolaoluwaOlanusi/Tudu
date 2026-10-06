@@ -58,7 +58,7 @@ const Header: React.FC = () => {
           </NavLink>
         </nav>
 
-        {/* Right-side controls: sync, timer (header only), theme, tour, avatar, logout */}
+        {/* Right-side controls */}
         <div className="flex min-w-0 max-w-full flex-wrap items-center justify-end gap-2 sm:flex-nowrap sm:gap-3">
           {user && <SyncIndicator />}
           {user && <PomodoroTimerHeader />}
