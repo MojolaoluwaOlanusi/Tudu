@@ -7,10 +7,11 @@ import {
 import { useCompletePomodoro } from '../../hooks/usePomodoro';
 
 interface PomodoroTimerProps {
-  /** Shown in the header: a compact pill with no controls. */
   compact?: boolean;
+  className?: string;
 }
 
+/** Shared timer styling; compact mode is used in the header. */
 const tomatoClass =
   'inline-flex h-10 w-10 items-center justify-center rounded-full bg-accent text-white';
 
@@ -89,7 +90,7 @@ const SoundOffIcon: React.FC = () => (
  * Reads the shared Pomodoro state. Renders nothing when idle, so the header only
  * shows the timer while a session is actually in flight.
  */
-const PomodoroTimer: React.FC<PomodoroTimerProps> = ({ compact }) => {
+const PomodoroTimer: React.FC<PomodoroTimerProps> = ({ compact, className = '' }) => {
   const sessionId = usePomodoroStore((state) => state.sessionId);
   const mode = usePomodoroStore((state) => state.mode);
   const remaining = usePomodoroStore((state) => state.remaining);
@@ -107,9 +108,11 @@ const PomodoroTimer: React.FC<PomodoroTimerProps> = ({ compact }) => {
 
   return (
     <div
-      className={`inline-flex max-w-full items-center gap-2 rounded-full border border-hairline bg-surface-2 ${
-        compact ? 'px-2 py-1 sm:px-2.5' : 'px-3 py-2'
-      }`}
+      className={[
+        'inline-flex min-w-0 max-w-full items-center gap-2 rounded-full border border-hairline bg-surface-2',
+        compact ? 'px-2 py-1 sm:px-2.5' : 'px-3 py-2',
+        className,
+      ].join(' ')}
       data-tour={compact ? 'pomodoro' : undefined}
       title={finished ? 'Session finished' : `${modeLabel(mode)} session in progress`}
     >
@@ -117,7 +120,7 @@ const PomodoroTimer: React.FC<PomodoroTimerProps> = ({ compact }) => {
         <TomatoIcon />
       </span>
 
-      <span className="min-w-0 truncate tabular-nums text-xs font-semibold text-ink sm:text-sm">
+      <span className="min-w-0 shrink truncate tabular-nums text-xs font-semibold text-ink sm:text-sm">
         {formatCountdown(remaining)}
       </span>
 
@@ -125,7 +128,7 @@ const PomodoroTimer: React.FC<PomodoroTimerProps> = ({ compact }) => {
         <span className="text-xs font-medium text-ink-muted">{modeLabel(mode)}</span>
       )}
 
-      <span className="flex items-center gap-1">
+      <span className="flex shrink-0 items-center gap-1">
         <button
           type="button"
           onClick={toggleSound}
@@ -136,6 +139,7 @@ const PomodoroTimer: React.FC<PomodoroTimerProps> = ({ compact }) => {
         >
           {soundEnabled ? <SoundOnIcon /> : <SoundOffIcon />}
         </button>
+
         {finished ? (
           <button
             type="button"
@@ -154,6 +158,7 @@ const PomodoroTimer: React.FC<PomodoroTimerProps> = ({ compact }) => {
             >
               {running ? <PauseIcon /> : <PlayIcon />}
             </button>
+
             <button
               type="button"
               onClick={abandon}
