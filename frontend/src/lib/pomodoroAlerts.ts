@@ -1,12 +1,7 @@
 /**
  * Finish alerts for the Pomodoro timer: alarm sound, desktop notification,
- * tab-title hint and a vibration buzz (the "you are done" signals from #23).
- *
- * Every browser API used here is feature-detected, so unsupported browsers -
- * and jsdom in the test suite - degrade to a silent no-op.
+ * tab-title hint and a vibration buzz.
  */
-
-/** Original tab title, parked while the "Time's up!" hint is showing. */
 let titleToRestore: string | null = null;
 
 const FINISH_TITLE = "⏰ 00:00 Time's up! - Tudu";
@@ -14,8 +9,8 @@ const FINISH_TITLE = "⏰ 00:00 Time's up! - Tudu";
 let audioContext: AudioContext | null = null;
 
 /**
- * Three short rising beeps, synthesised through the Web Audio API so no audio
- * asset has to ship (or be reloaded) with the bundle.
+ * Long, unmistakable finish tone that lasts ~10 seconds so it is clearly
+ * audible even if the user is in another tab or a different app.
  */
 export const playAlarm = (): void => {
   try {
@@ -28,26 +23,31 @@ export const playAlarm = (): void => {
 
     audioContext ??= new AudioContextCtor();
     const context = audioContext;
-    // Autoplay policies may have suspended the context (it often starts that way).
+
     if (context.state === 'suspended') void context.resume();
 
     const startAt = context.currentTime;
-    [880, 1108.73, 1318.51].forEach((frequency, index) => {
-      const offset = index * 0.35;
+    const pattern = [880, 660, 784, 932, 1046, 932, 784, 660, 523, 659];
+
+    pattern.forEach((frequency, index) => {
+      const offset = index * 1.05;
       const oscillator = context.createOscillator();
       const gain = context.createGain();
+
       oscillator.type = 'sine';
       oscillator.frequency.value = frequency;
       gain.gain.setValueAtTime(0.0001, startAt + offset);
-      gain.gain.exponentialRampToValueAtTime(0.3, startAt + offset + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.0001, startAt + offset + 0.3);
+      gain.gain.exponentialRampToValueAtTime(0.18, startAt + offset + 0.04);
+      gain.gain.exponentialRampToValueAtTime(0.0001, startAt + offset + 0.9);
+
       oscillator.connect(gain);
       gain.connect(context.destination);
+
       oscillator.start(startAt + offset);
-      oscillator.stop(startAt + offset + 0.32);
+      oscillator.stop(startAt + offset + 0.92);
     });
   } catch {
-    // A missing API or a strict autoplay policy - the other alerts still fire.
+    // Browser audio is best effort; other alerts still fire.
   }
 };
 
