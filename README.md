@@ -19,7 +19,7 @@ A senior-level, feature-rich todo application with a friendly, brush-stroke aest
 - **Activity Log**: Track all task actions with timestamps
 - **Natural Language Input**: Type "Buy milk tomorrow at 9am #personal" to auto-parse
 - **AI Task Breakdown**: Break complex tasks into sub-tasks using a free AI provider (Gemini, Groq or local Ollama)
-- **Pomodoro Timer**: Full Pomodoro sessions with time tracking
+- **Pomodoro Timer**: Full Pomodoro sessions with time tracking - keeps perfect time in background tabs and sounds an alarm when done
 - **Analytics Dashboard**: Chart.js dashboard of completion rates, time spent and
   priority distribution, with a date-range filter and CSV/JSON export
 
@@ -494,6 +494,15 @@ automatically when it reaches zero.
 - **Completion is logged exactly once.** A single `PomodoroRunner` drives the
   countdown for the whole app, so the header timer and the card timer cannot
   race and log the same session twice.
+- **The countdown follows the wall clock.** A running session is anchored to an
+  absolute end timestamp and every tick recomputes the remaining seconds from
+  `Date.now()`, so a throttled (or suspended) background tab still lands on zero
+  at the right moment. The runner also resyncs on `visibilitychange`/`focus`,
+  and a one-shot timeout is aimed straight at the deadline.
+- **You notice when it ends.** A three-beep alarm (with a mute/unmute toggle on
+  the timer pill), a desktop notification - permission is requested when you
+  press Start - a "Time's up!" tab title, a vibration buzz on supported devices
+  and a toast.
 - The **Stats** page (nav bar) shows today / this week / all time, a seven-day
   bar chart, time per task, and your recent sessions.
 
