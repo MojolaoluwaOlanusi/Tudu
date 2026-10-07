@@ -91,3 +91,55 @@ CREATE INDEX IF NOT EXISTS idx_shared_lists_owner_id ON shared_lists(owner_id);
 CREATE INDEX IF NOT EXISTS idx_shared_lists_shared_with_user_id ON shared_lists(shared_with_user_id);
 CREATE INDEX IF NOT EXISTS idx_pomodoro_sessions_user_id ON pomodoro_sessions(user_id);
 CREATE INDEX IF NOT EXISTS idx_pomodoro_sessions_task_id ON pomodoro_sessions(task_id);
+
+-- ---------------------------------------------------------------------------
+-- Phase 1.1 - Custom columns & board flexibility
+--
+-- Board & column definitions are purely additive: `tasks.status` is left
+-- exactly as it was and stays the source of truth for the lifecycle, because
+-- it carries a CHECK constraint and is read by the Kanban grouping, the
+-- analytics aggregates, the activity log and the status filters. Dropping it
+-- (as ENTERPRISE_ROADMAP.md suggests) would break all of those, so instead:
+--
+--   * every column belongs to a *stage* ('todo' | 'doing' | 'done'),
+--   * `tasks.column_id` records which column a card sits in,
+--   * `tasks.status` mirrors that column's stage.
+--
+-- A task with `column_id IS NULL` (every task that existed before this
+-- migration) is still placed by its status, so nothing needs backfilling and
+-- the board looks identical until a user edits their columns.
+-- ---------------------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS boards (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  name VARCHAR(255) NOT NULL,
+  position INTEGER NOT NULL DEFAULT 0,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- `column` is a SQL keyword, hence the qualified table name.
+CREATE TABLE IF NOT EXISTS board_columns (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  board_id UUID REFERENCES boards(id) ON DELETE CASCADE,
+  name VARCHAR(100) NOT NULL,
+  position INTEGER NOT NULL DEFAULT 0,
+  color VARCHAR(30) NOT NULL DEFAULT 'gray',
+  stage VARCHAR(20) NOT NULL DEFAULT 'todo' CHECK (stage IN ('todo', 'doing', 'done')),
+  wip_limit INTEGER CHECK (wip_limit IS NULL OR wip_limit >= 1),
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- ON DELETE SET NULL rather than CASCADE: deleting a column must never take
+-- tasks (and everything cascading from them) with it.
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS board_id UUID REFERENCES boards(id) ON DELETE CASCADE;
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS column_id UUID REFERENCES board_columns(id) ON DELETE SET NULL;
+
+CREATE INDEX IF NOT EXISTS idx_boards_user_id ON boards(user_id);
+CREATE INDEX IF NOT EXISTS idx_board_columns_board_id ON board_columns(board_id);
+CREATE INDEX IF NOT EXISTS idx_board_columns_position ON board_columns(board_id, position);
+CREATE INDEX IF NOT EXISTS idx_tasks_board_id ON tasks(board_id);
+CREATE INDEX IF NOT EXISTS idx_tasks_column_id ON tasks(column_id);
+

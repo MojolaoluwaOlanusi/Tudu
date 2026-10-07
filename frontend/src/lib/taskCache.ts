@@ -33,8 +33,26 @@ export interface TaskCacheSnapshot {
   overdue?: Task[];
 }
 
-const withStatus = (task: Task, changes: Record<string, Task['status']>): Task =>
-  changes[task.id] ? { ...task, status: changes[task.id] } : task;
+/**
+ * A pending move: a bare status (the classic payload) or a status plus the
+ * destination column. Accepting both keeps every existing caller working.
+ */
+export type TaskMovePatch =
+  | Task['status']
+  | { status: Task['status']; column_id?: string | null };
+
+const withStatus = (task: Task, changes: Record<string, TaskMovePatch>): Task => {
+  const patch = changes[task.id];
+  if (!patch) return task;
+  if (typeof patch === 'string') return { ...task, status: patch };
+  return {
+    ...task,
+    status: patch.status,
+    // Only overwrite placement when the move actually named a column, so a
+    // status-only move cannot blank out a column the card already sits in.
+    ...(patch.column_id != null ? { column_id: patch.column_id } : {}),
+  };
+};
 
 export const snapshotTaskCaches = (queryClient: QueryClient): TaskCacheSnapshot => ({
   kanban: queryClient.getQueryData<Task[]>(queryKeys.tasks.kanban),
@@ -79,7 +97,7 @@ const collectKnownTasks = (queryClient: QueryClient): Task[] => {
  */
 export const applyStatusChanges = (
   queryClient: QueryClient,
-  changes: Record<string, Task['status']>
+  changes: Record<string, TaskMovePatch>
 ): void => {
   // 1. Kanban board
   queryClient.setQueryData<Task[]>(queryKeys.tasks.kanban, (old) =>
