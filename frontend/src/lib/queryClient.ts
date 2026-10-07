@@ -38,6 +38,11 @@ export const queryKeys = {
     all: ['subtasks'] as const,
     list: (taskId: string) => ['subtasks', 'list', taskId] as const,
   },
+  boards: {
+    all: ['boards'] as const,
+    detail: (id: string) => ['boards', 'detail', id] as const,
+    columns: (boardId: string) => ['boards', 'columns', boardId] as const,
+  },
   shares: {
     all: ['shares'] as const,
     mine: ['shares', 'mine'] as const,

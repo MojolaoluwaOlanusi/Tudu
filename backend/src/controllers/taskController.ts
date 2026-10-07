@@ -348,19 +348,82 @@ async function logStatusChange(
 }
 
 /**
+ * Resolves an explicit destination column into the stage it represents,
+ * proving ownership through its board. Null when it does not exist or the
+ * caller does not own it.
+ */
+const columnStageForUser = async (columnId: string, userId: string): Promise<Status | null> => {
+  const result = await pool.query(
+    `SELECT bc.stage
+     FROM board_columns bc
+     JOIN boards b ON b.id = bc.board_id
+     WHERE bc.id = $1 AND b.user_id = $2`,
+    [columnId, userId]
+  );
+  return result.rows.length > 0 ? (result.rows[0].stage as Status) : null;
+};
+
+/**
+ * Keeps `column_id` and `status` pointing at the same place.
+ *
+ * * `column_id = $2` when an explicit destination column was supplied;
+ * * otherwise the card stays put if its current column already carries that
+ *   stage, so a status-only caller cannot shuffle cards between two
+ *   "doing" columns;
+ * * otherwise it falls back to the first column on its board with that stage,
+ *   and to whatever it already was if the board has none.
+ *
+ * The final `COALESCE(..., t.column_id)` is what leaves tasks that predate
+ * this phase - `board_id` still NULL - behaving exactly as they did before.
+ */
+const MOVE_COLUMN_SQL = `
+    column_id = CASE
+      WHEN $2::uuid IS NOT NULL THEN $2::uuid
+      WHEN EXISTS (
+        SELECT 1 FROM board_columns bc WHERE bc.id = t.column_id AND bc.stage = $1::text
+      ) THEN t.column_id
+      ELSE COALESCE(
+        (SELECT b2.id FROM board_columns b2
+         WHERE b2.board_id = t.board_id AND b2.stage = $1::text
+         ORDER BY b2.position ASC LIMIT 1),
+        t.column_id
+      )
+    END`;
+
+/**
  * PATCH /api/tasks/:id/status
  * Move a single task to another column (drag & drop on the Kanban board).
+ *
+ * Accepts a destination `column_id`, a bare `status`, or both. When both are
+ * present the column wins: `status` is read from the column's stage, so a card
+ * can never sit in a "Done" column while still reporting `doing`.
  */
 export const updateTaskStatus = async (req: Request, res: Response) => {
   try {
     const userId = req.user?.userId;
     const { id } = req.params;
-    const { status } = req.body as { status?: unknown };
+    const { status, column_id } = req.body as { status?: unknown; column_id?: unknown };
 
     if (!userId) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
-    if (!isValidStatus(status)) {
+
+    let targetStatus: unknown = status;
+    let targetColumn: string | null = null;
+
+    if (column_id !== undefined && column_id !== null && column_id !== '') {
+      if (!isValidUuid(column_id)) {
+        return res.status(400).json({ error: 'Invalid column id' });
+      }
+      const stage = await columnStageForUser(column_id, userId);
+      if (!stage) {
+        return res.status(404).json({ error: 'Column not found' });
+      }
+      targetStatus = stage;
+      targetColumn = column_id;
+    }
+
+    if (!isValidStatus(targetStatus)) {
       return res
         .status(400)
         .json({ error: 'Status must be one of: todo, doing, done' });
@@ -376,16 +439,18 @@ export const updateTaskStatus = async (req: Request, res: Response) => {
     }
 
     const result = await pool.query(
-      `UPDATE tasks
-       SET status = $1, updated_at = NOW()
-       WHERE id = $2 AND user_id = $3
+      `UPDATE tasks t
+       SET status = $1::text,
+       ${MOVE_COLUMN_SQL},
+           updated_at = NOW()
+       WHERE t.id = $3 AND t.user_id = $4
        RETURNING *`,
-      [status, id, userId]
+      [targetStatus, targetColumn, id, userId]
     );
 
     const task = result.rows[0];
 
-    await logStatusChange(userId, task.id, task.title, before.rows[0].status, status as string);
+    await logStatusChange(userId, task.id, task.title, before.rows[0].status, targetStatus as string);
 
     // A drag on a shared board must reach collaborators, same as an edit.
     await notifyCollaborators(id, userId, 'shared-task-updated', { task });
@@ -425,19 +490,43 @@ export const batchUpdateTaskStatus = async (req: Request, res: Response) => {
 
     const ids: string[] = [];
     const statuses: string[] = [];
+    // A null entry means "no explicit destination" - the SQL below then leaves
+    // the card in place if its column already has the right stage.
+    const columnIds: (string | null)[] = [];
 
-    for (const update of updates as { id?: unknown; status?: unknown }[]) {
+    for (const update of updates as {
+      id?: unknown;
+      status?: unknown;
+      column_id?: unknown;
+    }[]) {
       if (!update || typeof update !== 'object') {
         return res.status(400).json({ error: 'Each update must be an object' });
       }
       if (!isValidUuid(update.id)) {
         return res.status(400).json({ error: 'Each update requires a valid task id' });
       }
-      if (!isValidStatus(update.status)) {
+
+      let status: unknown = update.status;
+      let columnId: string | null = null;
+
+      if (update.column_id !== undefined && update.column_id !== null && update.column_id !== '') {
+        if (!isValidUuid(update.column_id)) {
+          return res.status(400).json({ error: 'Each update requires a valid column id' });
+        }
+        const stage = await columnStageForUser(update.column_id, userId);
+        if (!stage) {
+          return res.status(404).json({ error: 'Column not found' });
+        }
+        status = stage;
+        columnId = update.column_id;
+      }
+
+      if (!isValidStatus(status)) {
         return res.status(400).json({ error: 'Each update requires a valid status' });
       }
       ids.push(update.id);
-      statuses.push(update.status);
+      statuses.push(status);
+      columnIds.push(columnId);
     }
 
     const before = await pool.query(
@@ -447,11 +536,25 @@ export const batchUpdateTaskStatus = async (req: Request, res: Response) => {
 
     const result = await pool.query(
       `UPDATE tasks t
-       SET status = v.status, updated_at = NOW()
-       FROM unnest($1::uuid[], $2::text[]) AS v(id, status)
-       WHERE t.id = v.id AND t.user_id = $3
+       SET status = v.status,
+           column_id = CASE
+             WHEN v.column_id IS NOT NULL THEN v.column_id
+             WHEN EXISTS (
+               SELECT 1 FROM board_columns bc
+               WHERE bc.id = t.column_id AND bc.stage = v.status
+             ) THEN t.column_id
+             ELSE COALESCE(
+               (SELECT b2.id FROM board_columns b2
+                WHERE b2.board_id = t.board_id AND b2.stage = v.status
+                ORDER BY b2.position ASC LIMIT 1),
+               t.column_id
+             )
+           END,
+           updated_at = NOW()
+       FROM unnest($1::uuid[], $2::text[], $3::uuid[]) AS v(id, status, column_id)
+       WHERE t.id = v.id AND t.user_id = $4
        RETURNING t.*`,
-      [ids, statuses, userId]
+      [ids, statuses, columnIds, userId]
     );
 
     // A short result means one of the tasks does not belong to this user.

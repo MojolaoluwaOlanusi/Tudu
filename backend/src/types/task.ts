@@ -29,6 +29,9 @@ export interface Task {
   priority?: Priority;
   due_date?: string;
   status: Status;
+  /** Board/column placement. Null for tasks that predate custom columns. */
+  board_id?: string | null;
+  column_id?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -57,10 +60,18 @@ export interface TaskFilters {
   search?: string;
 }
 
-/** A single "move this card to that column" instruction. */
+/**
+ * A single "move this card to that column" instruction.
+ *
+ * `column_id` is optional: older callers (and the status dropdown) send only
+ * `status`, in which case the backend picks a column whose stage matches.
+ * When `column_id` is given it wins and `status` is derived from it, so the
+ * two can never disagree.
+ */
 export interface StatusChange {
   id: string;
   status: Status;
+  column_id?: string | null;
 }
 
 export interface BatchStatusUpdateInput {

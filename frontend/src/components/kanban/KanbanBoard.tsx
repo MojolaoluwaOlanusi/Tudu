@@ -10,13 +10,21 @@ import {
   type DragStartEvent,
   type DragEndEvent,
 } from '@dnd-kit/core';
-import { Task, Status } from '../../types/task';
+import { Task } from '../../types/task';
 import { useKanbanTasks, useMoveTasks } from '../../hooks/useKanban';
+import { useActiveBoardId, useBoardColumns } from '../../hooks/useBoards';
 import { useUiStore } from '../../store/uiStore';
 import KanbanColumn from './KanbanColumn';
+import ColumnManager from './ColumnManager';
 import { KanbanCardBody } from './KanbanCard';
 import { useConfetti } from '../common/ConfettiProvider';
-import { COLUMNS, resolveTargetStatus, buildMoveUpdates, isNoOpMove } from './logic';
+import {
+  FALLBACK_COLUMNS,
+  buildMoveUpdates,
+  columnForTask,
+  resolveTargetColumn,
+  type ColumnLike,
+} from './logic';
 
 /** Bouncy drop animation played when a card is released. */
 const dropAnimation = {
@@ -33,6 +41,7 @@ const KanbanBoard: React.FC = () => {
 
   const [activeId, setActiveId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [showColumns, setShowColumns] = useState(false);
 
   const sensors = useSensors(
     // A small threshold keeps clicks and checkboxes working.
@@ -40,13 +49,38 @@ const KanbanBoard: React.FC = () => {
     useSensor(KeyboardSensor)
   );
 
+  const boardId = useActiveBoardId();
+  const { data: boardColumns } = useBoardColumns(boardId);
+
+  // Real columns once the backend has answered; the three classic columns
+  // before that, and when the backend predates custom columns entirely.
+  const hasRealColumns = Array.isArray(boardColumns) && boardColumns.length > 0;
+  const columns: ColumnLike[] = hasRealColumns ? boardColumns! : FALLBACK_COLUMNS;
+
+  // Written as complete class names so Tailwind's scanner can see them; a
+  // template-built `grid-cols-${n}` would be purged from the stylesheet.
+  const gridClass =
+    columns.length > 4
+      ? 'grid grid-cols-1 gap-4 md:grid-cols-5'
+      : columns.length > 3
+        ? 'grid grid-cols-1 gap-4 md:grid-cols-4'
+        : 'grid grid-cols-1 gap-4 md:grid-cols-3';
+
   const allTasks = useMemo(() => tasks ?? [], [tasks]);
 
+  // Cards are grouped by the column they sit in rather than a fixed status
+  // bucket, so two columns sharing a stage ("Doing" / "In review") stay apart.
   const grouped = useMemo(() => {
-    const result: Record<Status, Task[]> = { todo: [], doing: [], done: [] };
-    allTasks.forEach((task) => result[task.status ?? 'todo'].push(task));
+    const result: Record<string, Task[]> = {};
+    columns.forEach((column) => {
+      result[column.id] = [];
+    });
+    allTasks.forEach((task) => {
+      const column = columnForTask(task, columns) ?? columns[0];
+      if (column) result[column.id]?.push(task);
+    });
     return result;
-  }, [allTasks]);
+  }, [allTasks, columns]);
 
   const activeTask = useMemo(
     () => allTasks.find((task) => task.id === activeId) ?? null,
@@ -71,12 +105,24 @@ const KanbanBoard: React.FC = () => {
     const dragged = allTasks.find((task) => task.id === draggedId);
     if (!dragged) return;
 
-    const targetStatus = resolveTargetStatus(String(over.id), allTasks);
-    if (!targetStatus || isNoOpMove(dragged.status, targetStatus)) return;
+    const targetColumn = resolveTargetColumn(String(over.id), allTasks, columns);
+    if (!targetColumn) return;
+
+    // Same *stage* is not enough to call it a no-op: two columns can share a
+    // stage, so compare the column the card is actually sitting in.
+    const currentColumn = columnForTask(dragged, columns);
+    if (currentColumn?.id === targetColumn.id) return;
 
     // Move the dragged card, plus any other selected cards.
     const idsToMove = selectedIds.includes(draggedId) ? selectedIds : [draggedId];
-    const updates = buildMoveUpdates(allTasks, idsToMove, targetStatus);
+    const updates = buildMoveUpdates(
+      allTasks,
+      idsToMove,
+      targetColumn.stage,
+      // The fallback columns are identified by status rather than a real UUID,
+      // so those moves stay status-only and the backend keeps its old shape.
+      hasRealColumns ? targetColumn.id : undefined
+    );
 
     if (updates.length === 0) return;
 
@@ -84,13 +130,13 @@ const KanbanBoard: React.FC = () => {
       onError: () => pushToast('Could not move the task. It was put back.', 'error'),
       // Only celebrate once the server has actually accepted the move.
       onSuccess: () => {
-        if (targetStatus === 'done') burst();
+        if (targetColumn.stage === 'done') burst();
       },
     });
 
     setSelectedIds([]);
     if (updates.length > 1) {
-      pushToast(`Moved ${updates.length} tasks to ${targetStatus}`, 'success');
+      pushToast(`Moved ${updates.length} tasks to ${targetColumn.name}`, 'success');
     }
   };
 
@@ -130,6 +176,15 @@ const KanbanBoard: React.FC = () => {
                 Clear ({selectedIds.length})
               </button>
             )}
+            {boardId && (
+              <button
+                onClick={() => setShowColumns(true)}
+                data-tour="manage-columns"
+                className="btn-ghost"
+              >
+                Columns
+              </button>
+            )}
             <button onClick={() => openTaskForm(null)} className="btn-accent brush-stroke">
               + New task
             </button>
@@ -142,19 +197,26 @@ const KanbanBoard: React.FC = () => {
           {isPending && ' Saving…'}
         </p>
 
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-          {COLUMNS.map((column) => (
+        <div className={gridClass}>
+          {columns.map((column) => (
             <KanbanColumn
-              key={column.status}
-              status={column.status}
-              title={column.title}
-              tasks={grouped[column.status]}
+              key={column.id}
+              column={column}
+              tasks={grouped[column.id] ?? []}
               selectedIds={selectedIds}
               onToggleSelect={toggleSelect}
               onEdit={(task) => openTaskForm(task.id)}
             />
           ))}
         </div>
+
+        {showColumns && boardId && hasRealColumns && (
+          <ColumnManager
+            boardId={boardId}
+            columns={boardColumns!}
+            onClose={() => setShowColumns(false)}
+          />
+        )}
       </div>
 
       {/* Card that follows the cursor while dragging. */}

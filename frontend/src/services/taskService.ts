@@ -69,17 +69,24 @@ export const taskService = {
     return response.data;
   },
 
-  // Move a single task to another column (Kanban drag & drop)
+  // Move a single task to another column (Kanban drag & drop).
+  // `columnId` is optional: sending it means the backend picks the status from
+  // that column's stage, so the card and its status can never disagree.
   updateTaskStatus: async (
     token: string,
     id: string,
-    status: StatusChange['status']
+    status: StatusChange['status'],
+    columnId?: string | null
   ): Promise<Task> => {
-    const response = await axios.patch(`${API_URL}/api/tasks/${id}/status`, { status }, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    const response = await axios.patch(
+      `${API_URL}/api/tasks/${id}/status`,
+      { status, column_id: columnId ?? null },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
     return response.data;
   },
 

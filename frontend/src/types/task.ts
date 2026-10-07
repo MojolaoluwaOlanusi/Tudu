@@ -11,6 +11,9 @@ export interface Task {
   priority?: Priority;
   due_date?: string;
   status: Status;
+  /** Board/column placement. Null for tasks that predate custom columns. */
+  board_id?: string | null;
+  column_id?: string | null;
   created_at: string;
   updated_at: string;
   /** Sub-task progress, supplied by the backend. */
@@ -42,10 +45,17 @@ export interface TaskFilters {
   search?: string;
 }
 
-/** A single "move this card to that column" instruction. */
+/**
+ * A single "move this card to that column" instruction.
+ *
+ * `column_id` is optional so the status dropdown and older cached payloads
+ * keep working; when present the backend derives `status` from the column's
+ * stage, so the two can never drift apart.
+ */
 export interface StatusChange {
   id: string;
   status: Status;
+  column_id?: string | null;
 }
 
 export interface Subtask {

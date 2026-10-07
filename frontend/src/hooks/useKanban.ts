@@ -7,6 +7,7 @@ import {
   restoreTaskCaches,
   snapshotTaskCaches,
   type TaskCacheSnapshot,
+  type TaskMovePatch,
 } from '../lib/taskCache';
 import { Task, StatusChange } from '../types/task';
 
@@ -44,7 +45,8 @@ export const useMoveTasks = () => {
         const updated = await taskService.updateTaskStatus(
           token!,
           change.id,
-          change.status
+          change.status,
+          change.column_id
         );
         return [updated];
       }
@@ -56,9 +58,12 @@ export const useMoveTasks = () => {
       await queryClient.cancelQueries({ queryKey: queryKeys.tasks.all });
       const snapshot = snapshotTaskCaches(queryClient);
 
-      const changesById = changes.reduce<Record<string, Task['status']>>(
+      const changesById = changes.reduce<Record<string, TaskMovePatch>>(
         (acc, change) => {
-          acc[change.id] = change.status;
+          acc[change.id] =
+            change.column_id != null
+              ? { status: change.status, column_id: change.column_id }
+              : change.status;
           return acc;
         },
         {}
