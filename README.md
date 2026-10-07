@@ -13,7 +13,9 @@ A senior-level, feature-rich todo application with a friendly, brush-stroke aest
 - **Sub-tasks**: Checklists within tasks with progress tracking
 
 ### Advanced Features
-- **Kanban Board**: Drag-and-drop task management (To-do, Doing, Done)
+- **Kanban Board**: Drag-and-drop task management with customizable boards and
+  columns — add, rename, recolour, re-stage, WIP-limit and reorder columns, and
+  manage multiple boards from the header selector (see [Custom Boards & Columns](#custom-boards--columns))
 - **Real-time Sync**: Socket.io for instant updates across devices
 - **Collaboration**: Share lists with other users via email
 - **Activity Log**: Track all task actions with timestamps
@@ -304,6 +306,22 @@ the first time they sign in.
 - Reaching the final step marks it complete and it stops being offered.
 - The `?` button in the header always replays the tour, so opting out is never
   a dead end.
+
+## Custom Boards & Columns
+
+Every account owns one or more **boards**, and each board owns its **columns**.
+A column maps to one of the three lifecycle stages (`todo`, `doing`, `done`),
+so `tasks.status` always mirrors the column a card sits in — everything that
+reads `status` (filters, analytics, the activity log) keeps working unchanged.
+
+- The header shows a board selector once you own more than one board; new
+  boards are seeded with the classic To-do / Doing / Done columns.
+- The **Columns** button on the board opens the column manager: add, rename,
+  recolour, re-stage, set a WIP limit on, and reorder columns.
+- Deleting a column never destroys cards — they are rehomed to a surviving
+  column of the same stage.
+- Column headers show a live card count (`2/3` against a WIP limit) and a
+  "WIP limit reached" warning.
 
 ## Deployment
 
