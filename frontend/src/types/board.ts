@@ -41,6 +41,55 @@ export interface BoardColumn {
   over_wip_limit?: boolean;
 }
 
+/** Phase 1.2 - team boards & permissions. */
+export type TeamRole = 'admin' | 'member' | 'viewer';
+
+export const TEAM_ROLES: TeamRole[] = ['admin', 'member', 'viewer'];
+
+export interface Workspace {
+  id: string;
+  owner_id: string;
+  name: string;
+  created_at: string;
+  updated_at: string;
+  /** The caller's own role (or 'admin' for the owner), if any. */
+  my_role?: TeamRole | null;
+  member_count?: number;
+}
+
+export interface WorkspaceMember {
+  workspace_id: string;
+  user_id: string;
+  role: TeamRole;
+  created_at: string;
+  name?: string | null;
+  email?: string;
+  avatar_url?: string | null;
+}
+
+export interface BoardMember {
+  board_id: string;
+  user_id: string;
+  role: TeamRole;
+  created_at: string;
+  name?: string | null;
+  email?: string;
+  avatar_url?: string | null;
+}
+
+export interface CreateWorkspaceInput {
+  name?: string;
+}
+
+export interface UpdateWorkspaceInput {
+  name?: string;
+}
+
+export interface SetMemberRoleInput {
+  role?: TeamRole;
+  email?: string;
+}
+
 export interface CreateColumnInput {
   name?: string;
   stage?: Stage;

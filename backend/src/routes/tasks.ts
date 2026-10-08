@@ -26,10 +26,13 @@ router.post('/parse', taskController.parseTaskText);
 // Create new task
 router.post('/', taskController.createTask);
 
+// Assign a task to a user (for team boards)
+router.put('/:id/assign', taskController.assignTask);
+
 // Update task
 router.put('/:id', taskController.updateTask);
 
-// Move a single task to another column (drag & drop)
+// Update task status
 router.patch('/:id/status', taskController.updateTaskStatus);
 
 // Delete task

@@ -1,4 +1,4 @@
-import express, { Application, Request } from 'express';
+﻿import express, { Application, Request } from 'express';
 import net from 'net';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -15,6 +15,7 @@ import aiRoutes from './routes/ai';
 import pomodoroRoutes from './routes/pomodoro';
 import analyticsRoutes from './routes/analytics';
 import { boardsRouter, columnsRouter } from './routes/boards';
+import { workspacesRouter } from './routes/workspaces';
 
 dotenv.config();
 
@@ -119,6 +120,7 @@ app.post('/auth/register', credentialLimiter);
 app.use('/auth', authRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/share', shareRoutes);
+app.use('/api/workspaces', workspacesRouter);
 app.use('/api/shared-lists', sharedListsRouter);
 app.use('/api/users', userRoutes);
 app.use('/api/activity', activityRoutes);

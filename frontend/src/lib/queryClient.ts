@@ -43,6 +43,9 @@ export const queryKeys = {
     detail: (id: string) => ['boards', 'detail', id] as const,
     columns: (boardId: string) => ['boards', 'columns', boardId] as const,
   },
+  workspaces: {
+    all: ['workspaces'] as const,
+  },
   shares: {
     all: ['shares'] as const,
     mine: ['shares', 'mine'] as const,

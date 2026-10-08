@@ -10,6 +10,11 @@ import {
   COLUMN_COLORS,
   STAGES,
   Stage,
+  TeamRole,
+  TEAM_ROLES,
+  Workspace,
+  WorkspaceMember,
+  BoardMember,
 } from '../types/board';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -50,24 +55,73 @@ const parseWipLimit = (
   return { ok: true, value: n };
 };
 
-const boardBelongsToUser = async (boardId: string, userId: string): Promise<boolean> => {
-  const result = await pool.query('SELECT 1 FROM boards WHERE id = $1 AND user_id = $2', [
+const isRole = (value: unknown): value is TeamRole =>
+  typeof value === 'string' && (TEAM_ROLES as string[]).includes(value);
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/** viewer < member < admin, so a single comparison decides every gate. */
+const roleRank: Record<TeamRole, number> = { viewer: 0, member: 1, admin: 2 };
+
+const atLeast = (role: TeamRole | null, needed: TeamRole): boolean =>
+  role !== null && roleRank[role] >= roleRank[needed];
+
+/**
+ * A caller's effective role on a board.
+ *
+ * The owner is always admin. Otherwise a board-level membership row wins;
+ * only when there is none do we fall back to the workspace row (if the board
+ * lives in a workspace). Returns null when the caller has no relationship.
+ */
+const boardRoleForUser = async (boardId: string, userId: string): Promise<TeamRole | null> => {
+  const board = await pool.query('SELECT user_id, workspace_id FROM boards WHERE id = $1', [
     boardId,
-    userId,
   ]);
-  return result.rows.length > 0;
+  if (board.rows.length === 0) return null;
+  if (board.rows[0].user_id === userId) return 'admin';
+
+  const direct = await pool.query(
+    'SELECT role FROM board_members WHERE board_id = $1 AND user_id = $2',
+    [boardId, userId]
+  );
+  if (direct.rows.length > 0) return direct.rows[0].role as TeamRole;
+
+  if (board.rows[0].workspace_id) {
+    const viaWorkspace = await pool.query(
+      'SELECT role FROM workspace_members WHERE workspace_id = $1 AND user_id = $2',
+      [board.rows[0].workspace_id, userId]
+    );
+    if (viaWorkspace.rows.length > 0) return viaWorkspace.rows[0].role as TeamRole;
+  }
+  return null;
 };
 
-/** Resolves a column through its board, so ownership is checked in one hop. */
-const columnBelongsToUser = async (columnId: string, userId: string): Promise<boolean> => {
-  const result = await pool.query(
-    `SELECT 1 FROM board_columns bc
-     JOIN boards b ON b.id = bc.board_id
-     WHERE bc.id = $1 AND b.user_id = $2`,
-    [columnId, userId]
+const workspaceRoleForUser = async (
+  workspaceId: string,
+  userId: string
+): Promise<TeamRole | null> => {
+  const owner = await pool.query('SELECT owner_id FROM workspaces WHERE id = $1', [workspaceId]);
+  if (owner.rows.length === 0) return null;
+  if (owner.rows[0].owner_id === userId) return 'admin';
+  const member = await pool.query(
+    'SELECT role FROM workspace_members WHERE workspace_id = $1 AND user_id = $2',
+    [workspaceId, userId]
   );
-  return result.rows.length > 0;
+  return member.rows.length > 0 ? (member.rows[0].role as TeamRole) : null;
 };
+
+const boardBelongsToUser = async (boardId: string, userId: string): Promise<boolean> =>
+  (await boardRoleForUser(boardId, userId)) !== null;
+
+/** Role on the board a column belongs to (null when unrelated). */
+const columnRoleForUser = async (columnId: string, userId: string): Promise<TeamRole | null> => {
+  const result = await pool.query('SELECT board_id FROM board_columns WHERE id = $1', [columnId]);
+  if (result.rows.length === 0) return null;
+  return boardRoleForUser(result.rows[0].board_id, userId);
+};
+
+const columnBelongsToUser = async (columnId: string, userId: string): Promise<boolean> =>
+  (await columnRoleForUser(columnId, userId)) !== null;
 
 /** The columns of a board, with a live card count and WIP flag on each. */
 const listColumns = async (boardId: string): Promise<BoardColumn[]> => {
