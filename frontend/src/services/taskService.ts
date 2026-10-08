@@ -1,4 +1,17 @@
 import axios from 'axios';
+import {
+  Task,
+  CreateTaskInput,
+  UpdateTaskInput,
+  TaskFilters,
+  StatusChange,
+  AssignTaskInput,
+} from '../types/task';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
+const auth = (token: string) => ({ Authorization: `Bearer ${token}` });
+import axios from 'axios';
 import { Task, CreateTaskInput, UpdateTaskInput, TaskFilters, StatusChange } from '../types/task';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -84,6 +97,17 @@ export const taskService = {
       {
         headers: {
           Authorization: `Bearer ${token}`,
+
+  // Assign a task to a user (for team boards)
+  assignTask: async (token: string, id: string, input: AssignTaskInput): Promise<{ message: string; task: { id: string; assignee_id: string } }> => {
+    const res = await axios.put(
+      `${API_URL}/api/tasks/${id}/assign`,
+      { assigneeId: input.assigneeId },
+      { headers: auth(token) }
+    );
+    return res.data;
+  },
+
         },
       }
     );

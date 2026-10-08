@@ -10,13 +10,10 @@ import { usePomodoroStore } from '../../store/pomodoroStore';
 
 interface TaskCardProps {
   task: Task;
-  /** Omit a handler to hide that control (e.g. on a shared list). */
   onEdit?: (task: Task) => void;
   onDelete?: (id: string) => void;
   onStatusChange?: (id: string, status: Task['status']) => void;
-  /** True when this task has been shared with a collaborator. */
   isShared?: boolean;
-  /** Show sub-tasks but do not allow changing them. */
   readOnlySubtasks?: boolean;
 }
 
@@ -44,8 +41,6 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onEdit, onDelete, onStatusCha
   const subtaskPercent =
     subtaskTotal === 0 ? 0 : Math.round((subtaskDone / subtaskTotal) * 100);
 
-  // Re-keying on the status replays the checkmark stroke each time a task
-  // reaches done, rather than only animating on first mount.
   const [celebrated, setCelebrated] = useState(task.status === 'done');
   useEffect(() => {
     if (task.status === 'done' && !celebrated) {
@@ -67,71 +62,18 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onEdit, onDelete, onStatusCha
               className="mt-0.5"
             />
           )}
-          <h3
-            className={`min-w-0 flex-1 font-semibold transition-colors ${
-              task.status === 'done' ? 'text-ink-muted line-through' : 'text-ink'
-            }`}
-          >
-            {task.title}
-          </h3>
-        </div>
-        <div className="flex shrink-0 gap-1">
-          {onEdit && (
-            <button
-              onClick={() => onEdit(task)}
-              className="rounded-lg p-1.5 text-ink-muted transition-colors hover:bg-accent-soft hover:text-accent-strong"
-              title="Edit"
-              aria-label="Edit task"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-              </svg>
-            </button>
-          )}
-          {onDelete && (
-            <button
-              onClick={() => onDelete(task.id)}
-              className="rounded-lg p-1.5 text-ink-muted transition-colors hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/30 dark:hover:text-red-300"
-              title="Delete"
-              aria-label="Delete task"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-              </svg>
-            </button>
-          )}
-        </div>
-      </div>
 
-      {task.description && (
-        <p className="mb-3 text-sm text-ink-muted">{task.description}</p>
-      )}
-
-      <div className="flex flex-wrap gap-2 mb-3">
-        {isShared && (
-          <span className="rounded-full bg-accent-soft px-2 py-1 text-[10px] font-semibold uppercase text-accent-strong">
-            Shared
-          </span>
-        )}
-        {task.category && (
-          <span className={`px-2 py-1 rounded-full text-xs font-medium ${categoryColors[task.category]}`}>
-            {task.category}
-          </span>
-        )}
-        {task.priority && (
-          <span className={`px-2 py-1 rounded-full text-xs font-medium ${priorityColors[task.priority]}`}>
-            {task.priority}
-          </span>
-        )}
-        {task.due_date && (
-          <span className={`rounded-full px-2 py-1 text-xs font-medium ${isOverdue ? 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-200' : 'bg-surface-2 text-ink-muted'}`}>
-            {isOverdue ? 'Overdue: ' : ''}{format(new Date(task.due_date), 'MMM d, yyyy, h:mm a')}
+      <div className="flex items-center gap-2">
+        {task.assignee_id && (
+          <span className="flex items-center gap-1.5 text-xs font-medium text-ink">
+            <svg className="h-4 w-4 text-ink-muted" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+            Assigned to {task.assignee_id.length > 6 ? task.assignee_id.slice(0, 6) : task.assignee_id}
           </span>
         )}
       </div>
 
-      {/* Sub-tasks: collapsible checklist with progress. The toggle is always
-          visible so a brand new task can get its first sub-task. */}
       <div className="mb-3 border-t border-hairline pt-3">
         <button
           type="button"
@@ -141,9 +83,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onEdit, onDelete, onStatusCha
           className="flex w-full items-center gap-2 text-left"
         >
           <svg
-            className={`h-3.5 w-3.5 shrink-0 text-ink-muted transition-transform ${
-              showSubtasks ? 'rotate-90' : ''
-            }`}
+            className={`h-3.5 w-3.5 shrink-0 text-ink-muted transition-transform ${showSubtasks ? 'rotate-90' : ''}`}
             fill="none"
             stroke="currentColor"
             strokeWidth={2.5}
@@ -154,7 +94,6 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onEdit, onDelete, onStatusCha
             <path d="M9 5l7 7-7 7" />
           </svg>
           <span className="text-xs font-semibold text-ink">Sub-tasks</span>
-
           {subtaskTotal > 0 ? (
             <>
               <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-surface-2">
@@ -177,7 +116,6 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onEdit, onDelete, onStatusCha
         )}
       </div>
 
-      {/* Focus session controls for this task */}
       {!readOnlySubtasks && (
         <div className="mb-3 flex flex-wrap items-center gap-2">
           <StartPomodoroButton taskId={task.id} />
@@ -185,7 +123,6 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onEdit, onDelete, onStatusCha
         </div>
       )}
 
-      {/* Activity history for this task */}
       <div className="mb-3">
         <button
           type="button"
@@ -237,3 +174,58 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onEdit, onDelete, onStatusCha
 };
 
 export default TaskCard;
+          <h3
+            className={`min-w-0 flex-1 font-semibold transition-colors ${task.status === 'done' ? 'text-ink-muted line-through' : 'text-ink'}`}
+          >
+            {task.title}
+          </h3>
+        </div>
+        <div className="flex shrink-0 gap-1">
+          {onEdit && (
+            <button
+              onClick={() => onEdit(task)}
+              className="rounded-lg p-1.5 text-ink-muted transition-colors hover:bg-accent-soft hover:text-accent-strong"
+              title="Edit"
+              aria-label="Edit task"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+            </button>
+          )}
+          {onDelete && (
+            <button
+              onClick={() => onDelete(task.id)}
+              className="rounded-lg p-1.5 text-ink-muted transition-colors hover:bg-red-100 hover:text-red-600"
+              title="Delete"
+              aria-label="Delete task"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </button>
+          )}
+        </div>
+      </div>
+
+      {task.description && (
+        <p className="mb-3 text-sm text-ink-muted">{task.description}</p>
+      )}
+
+      <div className="flex items-center justify-between gap-2">
+        {task.category && (
+          <span className={`px-2 py-1 rounded-full text-xs font-medium ${categoryColors[task.category]}`}>
+            {task.category}
+          </span>
+        )}
+        {task.priority && (
+          <span className={`px-2 py-1 rounded-full text-xs font-medium ${priorityColors[task.priority]}`}>
+            {task.priority}
+          </span>
+        )}
+        {task.due_date && (
+          <span className={`rounded-full px-2 py-1 text-xs font-medium ${isOverdue ? 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-200' : 'bg-surface-2 text-ink-muted'}`}>
+            {isOverdue ? 'Overdue: ' : ''}{format(new Date(task.due_date), 'MMM d, yyyy, h:mm a')}
+          </span>
+        )}
+      </div>

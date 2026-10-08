@@ -7,6 +7,7 @@ import SyncIndicator from '../common/SyncIndicator';
 import BoardSelector from '../common/BoardSelector';
 import TourButton from '../onboarding/TourButton';
 import PomodoroTimerHeader from '../pomodoro/PomodoroTimerHeader';
+import WorkspaceSwitcher from '../common/WorkspaceSwitcher';
 
 const navClass = ({ isActive }: { isActive: boolean }) =>
   `rounded-full px-3 py-1.5 text-xs font-semibold transition-colors sm:px-4 sm:text-sm ${
@@ -62,6 +63,7 @@ const Header: React.FC = () => {
         {/* Right-side controls */}
         <div className="flex min-w-0 max-w-full flex-wrap items-center justify-end gap-2 sm:flex-nowrap sm:gap-3">
           {user && <SyncIndicator />}
+          {user && <WorkspaceSwitcher />}
           {user && <BoardSelector />}
           {user && <PomodoroTimerHeader />}
           <ThemeToggle />

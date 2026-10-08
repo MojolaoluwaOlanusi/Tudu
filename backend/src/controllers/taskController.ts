@@ -106,6 +106,120 @@ export const getTaskById = async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Error fetching task:', error);
     res.status(500).json({ error: 'Failed to fetch task' });
+
+
+/**
+ * Workflow: assign a task to a user (for team boards).
+ * POST /api/tasks/:id/assign
+ */
+export const assignTask = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+    const { id } = req.params;
+    const { assigneeId }: { assigneeId?: unknown } = req.body ?? {};
+
+    if (!assigneeId || typeof assigneeId !== 'string') {
+      return res.status(400).json({ error: 'assigneeId is required' });
+    }
+
+    const task = await pool.query(
+      `SELECT id, user_id, title, board_id FROM tasks WHERE id = $1`,
+      [id]
+    );
+    if (task.rows.length === 0) return res.status(404).json({ error: 'Task not found' });
+
+    const board = await pool.query(
+      `SELECT b.workspace_id FROM boards b WHERE b.id = $1 AND b.user_id = $2`,
+      [id, userId]
+    );
+    if (board.rows.length === 0) return res.status(403).json({ error: 'Task does not belong to your boards' });
+
+    const workspace = await pool.query(
+      `SELECT id FROM workspaces WHERE id = $1`,
+      [board.rows[0].workspace_id]
+    );
+    if (workspace.rows.length === 0) {
+      return res.status(404).json({ error: 'Board workspace not found' });
+    }
+
+    const member = await pool.query(
+      `SELECT role FROM workspace_members WHERE workspace_id = $1 AND user_id = $2`,
+      [workspace.rows[0].id, assigneeId]
+    );
+    if (member.rows.length === 0) {
+      return res.status(403).json({ error: 'Assignee is not a member of this workspace' });
+    }
+
+    await pool.query(
+      'UPDATE tasks SET assignee_id = $1 WHERE id = $2 AND user_id = $3',
+      [assigneeId, id, userId]
+    );
+
+    res.json({ message: 'Task assigned', task: { id, assignee_id: assigneeId } });
+  } catch (error) {
+    console.error('Error assigning task:', error);
+    res.status(500).json({ error: 'Failed to assign task' });
+  }
+};
+
+/**
+ * Workflow: assign a task to a user (for team boards).
+ * POST /api/tasks/:id/assign
+ */
+export const assignTask = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+    const { id } = req.params;
+    const { assigneeId }: { assigneeId?: unknown } = req.body ?? {};
+
+    if (!assigneeId || typeof assigneeId !== 'string') {
+      return res.status(400).json({ error: 'assigneeId is required' });
+    }
+
+    const task = await pool.query(
+      `SELECT id, user_id, title, board_id FROM tasks WHERE id = $1`,
+      [id]
+    );
+    if (task.rows.length === 0) return res.status(404).json({ error: 'Task not found' });
+
+    const board = await pool.query(
+      `SELECT b.workspace_id FROM boards b WHERE b.id = $1 AND b.user_id = $2`,
+      [id, userId]
+    );
+    if (board.rows.length === 0) return res.status(403).json({ error: 'Task does not belong to your boards' });
+
+    const workspace = await pool.query(
+      `SELECT id FROM workspaces WHERE id = $1`,
+      [board.rows[0].workspace_id]
+    );
+    if (workspace.rows.length === 0) {
+      return res.status(404).json({ error: 'Board workspace not found' });
+    }
+
+    const member = await pool.query(
+      `SELECT role FROM workspace_members WHERE workspace_id = $1 AND user_id = $2`,
+      [workspace.rows[0].id, assigneeId]
+    );
+    if (member.rows.length === 0) {
+      return res.status(403).json({ error: 'Assignee is not a member of this workspace' });
+    }
+
+    await pool.query(
+      'UPDATE tasks SET assignee_id = $1 WHERE id = $2 AND user_id = $3',
+      [assigneeId, id, userId]
+    );
+
+    res.json({ message: 'Task assigned', task: { id, assignee_id: assigneeId } });
+  } catch (error) {
+    console.error('Error assigning task:', error);
+    res.status(500).json({ error: 'Failed to assign task' });
+  }
+};
+
   }
 };
 
