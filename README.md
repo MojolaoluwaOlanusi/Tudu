@@ -18,6 +18,9 @@ A senior-level, feature-rich todo application with a friendly, brush-stroke aest
   manage multiple boards from the header selector (see [Custom Boards & Columns](#custom-boards--columns))
 - **Real-time Sync**: Socket.io for instant updates across devices
 - **Collaboration**: Share lists with other users via email
+
+- **Team Boards & Role-Based Permissions**: Workspaces, role-gated boards/members,
+  and task assignment. See [Team Boards & Role-Based Permissions](#team-boards--role-based-permissions)
 - **Activity Log**: Track all task actions with timestamps
 - **Natural Language Input**: Type "Buy milk tomorrow at 9am #personal" to auto-parse
 - **AI Task Breakdown**: Break complex tasks into sub-tasks using a free AI provider (Gemini, Groq or local Ollama)
@@ -360,6 +363,116 @@ reads `status` (filters, analytics, the activity log) keeps working unchanged.
    - `DATABASE_URL` - Your PostgreSQL connection string
    - `NODE_ENV` - Set to `production`
 
+## Team Boards & Role-Based Permissions
+
+Phase 1.2 introduces multi-user collaboration with workspaces, role-based
+permissions, board members, and task assignment.
+
+### Concepts
+
+- **Workspace**: A group of members sharing boards. Each workspace has a set of
+  role-gated boards.
+- **Board**: A Kanban-style board with customizable columns (see
+  [Custom Boards & Columns](#custom-boards--columns)).
+- **TeamRole**: One of `admin`, `editor`, `viewer`, or `guest`. Only `admin` can
+  invite, remove, or change members.
+- **Task Assignment**: Tasks carry an `assignee_id`; only the assignee and
+  admins can see or act on a task in another member's workspace.
+
+### New Endpoints
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/api/workspaces` | List workspaces for the authenticated user |
+| `POST` | `/api/workspaces` | Create a new workspace |
+| `PATCH` | `/api/workspaces/:id` | Update workspace name |
+| `DELETE` | `/api/workspaces/:id` | Delete a workspace |
+| `GET` | `/api/workspaces/:id/boards` | List boards in a workspace |
+| `GET` | `/api/workspaces/:id/members` | List members of a workspace |
+| `POST` | `/api/workspaces/:id/invite` | Invite a user by email |
+| `PATCH` | `/api/workspaces/:id/members/:email/role` | Set member role |
+| `DELETE` | `/api/workspaces/:id/members/:email` | Remove member |
+| `GET` | `/api/tasks/assignee/:id` | Get tasks assigned to a user |
+| `PUT` | `/api/tasks/:id/assign` | Change task assignee |
+
+### Frontend Hooks
+
+- `useWorkspaces` – fetch workspaces
+- `useActiveWorkspaceId` – current workspace id
+- `useCreateWorkspace` – create a new workspace
+- `useInviteToWorkspace` – invite a member
+- `useSetMemberRole` – change a member's role
+- `useRemoveMember` – remove a member
+
+### Frontend Components
+
+- `WorkspaceSwitcher` – header dropdown to switch workspaces
+- `MemberBadge` – shows a member avatar/initials
+- `MembersPanel` – panel to invite/view/remove members
+- `BoardSelector` – board selector (in header)
+
+### Component Structure
+
+- `frontend/src/components/common/WorkspaceSwitcher.tsx`
+- `frontend/src/components/common/MemberBadge.tsx`
+- `frontend/src/components/shared/MembersPanel.tsx`
+- `frontend/src/store/workspaceStore.ts`
+- `frontend/src/hooks/useBoards.ts`
+## Team Boards & Role-Based Permissions
+
+Phase 1.2 introduces multi-user collaboration with workspaces, role-based
+permissions, board members, and task assignment.
+
+### Concepts
+
+- **Workspace**: A group of members sharing boards. Each workspace has a set of
+  role-gated boards.
+- **Board**: A Kanban-style board with customizable columns (see
+  [Custom Boards & Columns](#custom-boards--columns)).
+- **TeamRole**: One of `admin`, `editor`, `viewer`, or `guest`. Only `admin` can
+  invite, remove, or change members.
+- **Task Assignment**: Tasks carry an `assignee_id`; only the assignee and
+  admins can see or act on a task in another member's workspace.
+
+### New Endpoints
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/api/workspaces` | List workspaces for the authenticated user |
+| `POST` | `/api/workspaces` | Create a new workspace |
+| `PATCH` | `/api/workspaces/:id` | Update workspace name |
+| `DELETE` | `/api/workspaces/:id` | Delete a workspace |
+| `GET` | `/api/workspaces/:id/boards` | List boards in a workspace |
+| `GET` | `/api/workspaces/:id/members` | List members of a workspace |
+| `POST` | `/api/workspaces/:id/invite` | Invite a user by email |
+| `PATCH` | `/api/workspaces/:id/members/:email/role` | Set member role |
+| `DELETE` | `/api/workspaces/:id/members/:email` | Remove member |
+| `GET` | `/api/tasks/assignee/:id` | Get tasks assigned to a user |
+| `PUT` | `/api/tasks/:id/assign` | Change task assignee |
+
+### Frontend Hooks
+
+- `useWorkspaces` – fetch workspaces
+- `useActiveWorkspaceId` – current workspace id
+- `useCreateWorkspace` – create a new workspace
+- `useInviteToWorkspace` – invite a member
+- `useSetMemberRole` – change a member's role
+- `useRemoveMember` – remove a member
+
+### Frontend Components
+
+- `WorkspaceSwitcher` – header dropdown to switch workspaces
+- `MemberBadge` – shows a member avatar/initials
+- `MembersPanel` – panel to invite/view/remove members
+- `BoardSelector` – board selector (in header)
+
+### Component Structure
+
+- `frontend/src/components/common/WorkspaceSwitcher.tsx`
+- `frontend/src/components/common/MemberBadge.tsx`
+- `frontend/src/components/shared/MembersPanel.tsx`
+- `frontend/src/store/workspaceStore.ts`
+- `frontend/src/hooks/useBoards.ts`
 ## Contributing
 
 1. Fork the repository
