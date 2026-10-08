@@ -143,3 +143,55 @@ CREATE INDEX IF NOT EXISTS idx_board_columns_position ON board_columns(board_id,
 CREATE INDEX IF NOT EXISTS idx_tasks_board_id ON tasks(board_id);
 CREATE INDEX IF NOT EXISTS idx_tasks_column_id ON tasks(column_id);
 
+-- ---------------------------------------------------------------------------
+-- Phase 1.2 - Team boards & permissions
+--
+-- Owns nothing new on tasks: board/column membership already exists, so a
+-- *team* board is just a personal board whose members list has grown past the
+-- owner. `boards.user_id` stays the owner for deletion and orphan cleanup.
+--
+-- Roles are ordered viewer < member < admin. A board-level row always wins
+-- over the workspace row: being a workspace viewer must not silently widen
+-- what you can do on a board that explicitly demoted you.
+-- ---------------------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS workspaces (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  owner_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  name VARCHAR(255) NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS workspace_members (
+  workspace_id UUID REFERENCES workspaces(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  role VARCHAR(20) NOT NULL DEFAULT 'member'
+    CHECK (role IN ('admin', 'member', 'viewer')),
+  created_at TIMESTAMP DEFAULT NOW(),
+  PRIMARY KEY (workspace_id, user_id)
+);
+
+CREATE TABLE IF NOT EXISTS board_members (
+  board_id UUID REFERENCES boards(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  role VARCHAR(20) NOT NULL DEFAULT 'member'
+    CHECK (role IN ('admin', 'member', 'viewer')),
+  created_at TIMESTAMP DEFAULT NOW(),
+  PRIMARY KEY (board_id, user_id)
+);
+
+-- Boards can live in a workspace (team boards) or stand alone (personal).
+ALTER TABLE boards
+  ADD COLUMN IF NOT EXISTS workspace_id UUID REFERENCES workspaces(id) ON DELETE SET NULL;
+
+-- Assignees join to users, so deleting an account unassigns rather than
+-- destroying the task. Metadata for whoever views the card.
+ALTER TABLE tasks
+  ADD COLUMN IF NOT EXISTS assignee_id UUID REFERENCES users(id) ON DELETE SET NULL;
+
+CREATE INDEX IF NOT EXISTS idx_workspaces_owner_id ON workspaces(owner_id);
+CREATE INDEX IF NOT EXISTS idx_workspace_members_user_id ON workspace_members(user_id);
+CREATE INDEX IF NOT EXISTS idx_board_members_user_id ON board_members(user_id);
+CREATE INDEX IF NOT EXISTS idx_tasks_assignee_id ON tasks(assignee_id);
+
