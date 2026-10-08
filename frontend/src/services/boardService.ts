@@ -14,12 +14,6 @@ import {
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const auth = (token: string) => ({ Authorization: `Bearer ${token}` });
-import axios from 'axios';
-import { Board, BoardColumn, CreateColumnInput, UpdateColumnInput } from '../types/board';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-
-const auth = (token: string) => ({ Authorization: `Bearer ${token}` });
 
 export const boardService = {
   /** Lists the user's boards, creating the default one on first call. */
@@ -82,7 +76,6 @@ export const boardService = {
     );
     return res.data;
   },
-
 
   createBoard: async (token: string, name: string): Promise<Board> => {
     const res = await axios.post(`${API_URL}/api/boards`, { name }, { headers: auth(token) });

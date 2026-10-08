@@ -11,10 +11,6 @@ import {
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const auth = (token: string) => ({ Authorization: `Bearer ${token}` });
-import axios from 'axios';
-import { Task, CreateTaskInput, UpdateTaskInput, TaskFilters, StatusChange } from '../types/task';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 export const taskService = {
   // Get all tasks with optional filters
@@ -97,6 +93,11 @@ export const taskService = {
       {
         headers: {
           Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    return response.data;
+  },
 
   // Assign a task to a user (for team boards)
   assignTask: async (token: string, id: string, input: AssignTaskInput): Promise<{ message: string; task: { id: string; assignee_id: string } }> => {
@@ -106,12 +107,6 @@ export const taskService = {
       { headers: auth(token) }
     );
     return res.data;
-  },
-
-        },
-      }
-    );
-    return response.data;
   },
 
   // Move many tasks at once (bulk drag & drop)

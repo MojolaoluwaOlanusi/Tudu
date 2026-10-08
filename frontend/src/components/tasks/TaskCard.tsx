@@ -63,6 +63,62 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onEdit, onDelete, onStatusCha
             />
           )}
 
+          <h3
+            className={`min-w-0 flex-1 font-semibold transition-colors ${task.status === 'done' ? 'text-ink-muted line-through' : 'text-ink'}`}
+          >
+            {task.title}
+          </h3>
+        </div>
+        <div className="flex shrink-0 gap-1">
+          {onEdit && (
+            <button
+              onClick={() => onEdit(task)}
+              className="rounded-lg p-1.5 text-ink-muted transition-colors hover:bg-accent-soft hover:text-accent-strong"
+              title="Edit"
+              aria-label="Edit task"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+            </button>
+          )}
+          {onDelete && (
+            <button
+              onClick={() => onDelete(task.id)}
+              className="rounded-lg p-1.5 text-ink-muted transition-colors hover:bg-red-100 hover:text-red-600"
+              title="Delete"
+              aria-label="Delete task"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </button>
+          )}
+        </div>
+      </div>
+
+      {task.description && (
+        <p className="mb-3 text-sm text-ink-muted">{task.description}</p>
+      )}
+
+      <div className="flex items-center justify-between gap-2">
+        {task.category && (
+          <span className={`px-2 py-1 rounded-full text-xs font-medium ${categoryColors[task.category]}`}>
+            {task.category}
+          </span>
+        )}
+        {task.priority && (
+          <span className={`px-2 py-1 rounded-full text-xs font-medium ${priorityColors[task.priority]}`}>
+            {task.priority}
+          </span>
+        )}
+        {task.due_date && (
+          <span className={`rounded-full px-2 py-1 text-xs font-medium ${isOverdue ? 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-200' : 'bg-surface-2 text-ink-muted'}`}>
+            {isOverdue ? 'Overdue: ' : ''}{format(new Date(task.due_date), 'MMM d, yyyy, h:mm a')}
+          </span>
+        )}
+      </div>
+
       <div className="flex items-center gap-2">
         {task.assignee_id && (
           <span className="flex items-center gap-1.5 text-xs font-medium text-ink">
@@ -174,58 +230,3 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onEdit, onDelete, onStatusCha
 };
 
 export default TaskCard;
-          <h3
-            className={`min-w-0 flex-1 font-semibold transition-colors ${task.status === 'done' ? 'text-ink-muted line-through' : 'text-ink'}`}
-          >
-            {task.title}
-          </h3>
-        </div>
-        <div className="flex shrink-0 gap-1">
-          {onEdit && (
-            <button
-              onClick={() => onEdit(task)}
-              className="rounded-lg p-1.5 text-ink-muted transition-colors hover:bg-accent-soft hover:text-accent-strong"
-              title="Edit"
-              aria-label="Edit task"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-              </svg>
-            </button>
-          )}
-          {onDelete && (
-            <button
-              onClick={() => onDelete(task.id)}
-              className="rounded-lg p-1.5 text-ink-muted transition-colors hover:bg-red-100 hover:text-red-600"
-              title="Delete"
-              aria-label="Delete task"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-              </svg>
-            </button>
-          )}
-        </div>
-      </div>
-
-      {task.description && (
-        <p className="mb-3 text-sm text-ink-muted">{task.description}</p>
-      )}
-
-      <div className="flex items-center justify-between gap-2">
-        {task.category && (
-          <span className={`px-2 py-1 rounded-full text-xs font-medium ${categoryColors[task.category]}`}>
-            {task.category}
-          </span>
-        )}
-        {task.priority && (
-          <span className={`px-2 py-1 rounded-full text-xs font-medium ${priorityColors[task.priority]}`}>
-            {task.priority}
-          </span>
-        )}
-        {task.due_date && (
-          <span className={`rounded-full px-2 py-1 text-xs font-medium ${isOverdue ? 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-200' : 'bg-surface-2 text-ink-muted'}`}>
-            {isOverdue ? 'Overdue: ' : ''}{format(new Date(task.due_date), 'MMM d, yyyy, h:mm a')}
-          </span>
-        )}
-      </div>

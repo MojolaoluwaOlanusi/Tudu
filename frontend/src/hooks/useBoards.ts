@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { boardService, workspaceService } from '../services/boardService';
+import { boardService } from '../services/boardService';
 import { useAuthStore } from '../store/authStore';
 import { useBoardStore } from '../store/boardStore';
 import { useWorkspaceStore } from '../store/workspaceStore';
@@ -9,6 +9,9 @@ import {
   BoardColumn,
   CreateColumnInput,
   UpdateColumnInput,
+  Workspace,
+  WorkspaceMember,
+  TeamRole,
 } from '../types/board';
 
 /** Every board the signed-in user owns. Creates the default one on first call. */
@@ -107,6 +110,14 @@ export const useDeleteColumn = () => {
 };
 
 export const useReorderColumns = () => {
+  const { token } = useAuthStore();
+  const invalidate = useInvalidateBoard();
+  return useMutation<BoardColumn[], unknown, string[]>({
+    mutationFn: (columnIds) => boardService.reorderColumns(token!, columnIds),
+    onSuccess: invalidate,
+  });
+};
+
 /* ------------------------- Workspaces ------------------------- */
 
 /** Every workspace the signed-in user belongs to. */
@@ -114,7 +125,7 @@ export const useWorkspaces = () => {
   const { token } = useAuthStore();
   return useQuery({
     queryKey: queryKeys.workspaces.all,
-    queryFn: () => workspaceService.getWorkspaces(token!),
+    queryFn: () => boardService.getWorkspaces(token!),
     enabled: !!token,
     staleTime: 60_000,
   });
@@ -130,21 +141,11 @@ export const useActiveWorkspaceId = (): string | null => {
   return (match ?? workspaces[0]).id;
 };
 
-export const useWorkspacesQuery = () => {
-  const { token } = useAuthStore();
-  return useQuery({
-    queryKey: queryKeys.workspaces.all,
-    queryFn: () => workspaceService.getWorkspaces(token!),
-    enabled: !!token,
-    staleTime: 60_000,
-  });
-};
-
 export const useCreateWorkspace = () => {
   const { token } = useAuthStore();
   const invalidate = useInvalidateWorkspace();
   return useMutation<Workspace, unknown, string>({
-    mutationFn: (name) => workspaceService.createWorkspace(token!, name),
+    mutationFn: (name) => boardService.createWorkspace(token!, name),
     onSuccess: invalidate,
   });
 };
@@ -154,7 +155,7 @@ export const useInviteToWorkspace = () => {
   const invalidate = useInvalidateWorkspace();
   return useMutation<WorkspaceMember, unknown, { workspaceId: string; email: string; role: TeamRole }>({
     mutationFn: ({ workspaceId, email, role }) =>
-      workspaceService.inviteToWorkspace(token!, workspaceId, email, role),
+      boardService.inviteToWorkspace(token!, workspaceId, email, role),
     onSuccess: invalidate,
   });
 };
@@ -164,7 +165,7 @@ export const useSetMemberRole = () => {
   const invalidate = useInvalidateWorkspace();
   return useMutation<{ message: string }, unknown, { workspaceId: string; memberId: string; role: TeamRole }>({
     mutationFn: ({ workspaceId, memberId, role }) =>
-      workspaceService.setMemberRole(token!, workspaceId, memberId, role),
+      boardService.setMemberRole(token!, workspaceId, memberId, role),
     onSuccess: invalidate,
   });
 };
@@ -174,7 +175,7 @@ export const useRemoveMember = () => {
   const invalidate = useInvalidateWorkspace();
   return useMutation<{ message: string }, unknown, { workspaceId: string; memberId: string }>({
     mutationFn: ({ workspaceId, memberId }) =>
-      workspaceService.removeMember(token!, workspaceId, memberId),
+      boardService.removeMember(token!, workspaceId, memberId),
     onSuccess: invalidate,
   });
 };
@@ -184,20 +185,5 @@ const useInvalidateWorkspace = () => {
   return () => {
     queryClient.invalidateQueries({ queryKey: queryKeys.workspaces.all });
     queryClient.invalidateQueries({ queryKey: queryKeys.boards.all });
-  };
-};
-  const { token } = useAuthStore();
-  const invalidate = useInvalidateBoard();
-  return useMutation<BoardColumn[], unknown, string[]>({
-    mutationFn: (columnIds) => boardService.reorderColumns(token!, columnIds),
-    onSuccess: invalidate,
-  });
-};
-
-export const useInvalidateBoard = () => {
-  const queryClient = useQueryClient();
-  return () => {
-    queryClient.invalidateQueries({ queryKey: queryKeys.boards.all });
-    queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all });
   };
 };

@@ -3,7 +3,7 @@ import { TeamRole, TEAM_ROLES } from '../../types/board';
 import { useAuthStore } from '../../store/authStore';
 import { useWorkspaceStore } from '../../store/workspaceStore';
 import { useWorkspaces } from '../../hooks/useBoards';
-import MemberBadge from './MemberBadge';
+import MemberBadge from '../common/MemberBadge';
 
 interface MembersPanelProps {
   workspaceId: string | null;
@@ -11,8 +11,8 @@ interface MembersPanelProps {
 
 const MembersPanel: React.FC<MembersPanelProps> = ({ workspaceId }) => {
   const { token } = useAuthStore();
-  const activeWorkspaceId = useWorkspaceStore((s) => s.activeWorkspace);
-  const activeBoardId = useWorkspaceStore((s) => s.activeBoard);
+  const activeWorkspaceId = useWorkspaceStore((s) => s.activeWorkspaceId);
+  const activeBoardId = useWorkspaceStore((s) => s.activeBoardId);
 
   // Use the selected workspace if provided, otherwise fall back to active workspace
   const targetWorkspaceId = workspaceId ?? activeWorkspaceId ?? null;

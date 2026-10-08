@@ -60,13 +60,26 @@ export interface Subtask {
 }
 
 export interface CreateSubtaskInput {
+  title: string;
+  completed?: boolean;
+}
+
+export interface UpdateSubtaskInput {
+  title?: string;
+  completed?: boolean;
+}
+
+export interface UpdateTaskInput {
+  title?: string;
+  description?: string;
+  category?: Category;
+  priority?: Priority;
+  due_date?: string;
+  status?: Status;
+}
 
 export interface AssignTaskInput {
   assigneeId: string;
-}
-
-  title: string;
-  completed?: boolean;
 }
 
 export interface UpdateSubtaskInput {

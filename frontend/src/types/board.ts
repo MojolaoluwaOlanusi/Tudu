@@ -38,6 +38,8 @@ export interface BoardColumn {
   created_at: string;
   updated_at: string;
   task_count?: number;
+  over_wip_limit?: boolean;
+}
 
 /** Phase 1.2 - team boards & permissions. */
 export type TeamRole = 'admin' | 'member' | 'viewer';
@@ -51,18 +53,6 @@ export interface Workspace {
   created_at: string;
   updated_at: string;
   /** The caller's own role (or 'admin' for the owner), if any. */
-export interface Workspace {
-  id: string;
-  owner_id: string;
-  name: string;
-  created_at: string;
-  updated_at: string;
-  /** The caller's own role (or 'admin' for the owner), if any. */
-  my_role?: TeamRole | null;
-  member_count?: number;
-}
-
-export interface WorkspaceMember {
   my_role?: TeamRole | null;
   member_count?: number;
 }
@@ -98,10 +88,6 @@ export interface UpdateWorkspaceInput {
 export interface SetMemberRoleInput {
   role?: TeamRole;
   email?: string;
-}
-
-
-  over_wip_limit?: boolean;
 }
 
 export interface CreateColumnInput {
