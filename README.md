@@ -14,7 +14,7 @@ A senior-level, feature-rich todo application with a friendly, brush-stroke aest
 
 ### Advanced Features
 - **Kanban Board**: Drag-and-drop task management with customizable boards and
-  columns — add, rename, recolour, re-stage, WIP-limit and reorder columns, and
+  columns â€” add, rename, recolour, re-stage, WIP-limit and reorder columns, and
   manage multiple boards from the header selector (see [Custom Boards & Columns](#custom-boards--columns))
 - **Real-time Sync**: Socket.io for instant updates across devices
 - **Collaboration**: Share lists with other users via email
@@ -52,7 +52,7 @@ sweeping underneath. Both brand marks are the original raster artwork:
 
 The dark theme uses a separate pre-recoloured asset rather than a CSS filter.
 `invert(1)` flips every colour channel, so applying it to the wordmark would
-turn the green checkstroke magenta as well as lightening the lettering — the
+turn the green checkstroke magenta as well as lightening the lettering â€” the
 brand colour would not survive. `wordmark-dark.png` is the same artwork with the
 lettering recoloured to near-white (`#f2f4f3`) and the checkstroke kept at the
 brand green (`#22c55e`), with the original alpha channel untouched so the
@@ -111,48 +111,48 @@ bare blur and stays readable over whatever is behind it.
 
 ```
 tudu/
-├── backend/
-│   ├── src/
-│   │   ├── config/          # Database, passport, socket config
-│   │   ├── controllers/     # Route handlers
-│   │   ├── middleware/      # Auth, error handling, validation
-│   │   ├── models/          # Database models
-│   │   ├── routes/          # API routes
-│   │   ├── services/        # Business logic (AI providers, NLP, activity)
-│   │   ├── utils/           # Helper functions
-│   │   ├── app.ts           # Express app configuration
-│   │   └── server.ts        # Server entry point with Socket.io
-│   ├── migrations/          # SQL migration files
-│   ├── .env.example         # Environment variables template
-│   ├── package.json
-│   ├── tsconfig.json
-│   └── README.md
-├── frontend/
-│   ├── src/
-│   │   ├── components/      # React components
-│   │   │   ├── auth/        # Authentication components
-│   │   │   ├── tasks/       # Task-related components
-│   │   │   ├── kanban/      # Kanban board components
-│   │   │   ├── pomodoro/    # Pomodoro timer components
-│   │   │   ├── analytics/   # Analytics dashboard components
-│   │   │   ├── collaboration/ # Sharing components
-│   │   │   ├── common/      # Reusable UI components
-│   │   │   └── layout/      # Layout components
-│   │   ├── hooks/           # Custom React hooks
-│   │   ├── store/           # Zustand stores
-│   │   ├── services/        # API and socket services
-│   │   ├── types/           # TypeScript type definitions
-│   │   ├── utils/           # Helper functions
-│   │   ├── App.tsx
-│   │   ├── main.tsx
-│   │   └── index.css
-│   ├── public/              # Static assets (wordmark, app icon)
-│   ├── .env.example
-│   ├── package.json
-│   ├── tailwind.config.js
-│   ├── tsconfig.json
-│   └── vite.config.ts
-└── README.md
+|-- backend/
+|   |-- src/
+|   |   |-- config/          # Database, passport, socket config
+|   |   |-- controllers/     # Route handlers
+|   |   |-- middleware/      # Auth, error handling, validation
+|   |   |-- models/          # Database models
+|   |   |-- routes/          # API routes
+|   |   |-- services/        # Business logic (AI providers, NLP, activity)
+|   |   |-- utils/           # Helper functions
+|   |   |-- app.ts           # Express app configuration
+|   |   +-- server.ts        # Server entry point with Socket.io
+|   |-- migrations/          # SQL migration files
+|   |-- .env.example         # Environment variables template
+|   |-- package.json
+|   |-- tsconfig.json
+|   +-- README.md
+|-- frontend/
+|   |-- src/
+|   |   |-- components/      # React components
+|   |   |   |-- auth/        # Authentication components
+|   |   |   |-- tasks/       # Task-related components
+|   |   |   |-- kanban/      # Kanban board components
+|   |   |   |-- pomodoro/    # Pomodoro timer components
+|   |   |   |-- analytics/   # Analytics dashboard components
+|   |   |   |-- collaboration/ # Sharing components
+|   |   |   |-- common/      # Reusable UI components
+|   |   |   +-- layout/      # Layout components
+|   |   |-- hooks/           # Custom React hooks
+|   |   |-- store/           # Zustand stores
+|   |   |-- services/        # API and socket services
+|   |   |-- types/           # TypeScript type definitions
+|   |   |-- utils/           # Helper functions
+|   |   |-- App.tsx
+|   |   |-- main.tsx
+|   |   +-- index.css
+|   |-- public/              # Static assets (wordmark, app icon)
+|   |-- .env.example
+|   |-- package.json
+|   |-- tailwind.config.js
+|   |-- tsconfig.json
+|   +-- vite.config.ts
++-- README.md
 ```
 
 ## Getting Started
@@ -314,14 +314,14 @@ the first time they sign in.
 
 Every account owns one or more **boards**, and each board owns its **columns**.
 A column maps to one of the three lifecycle stages (`todo`, `doing`, `done`),
-so `tasks.status` always mirrors the column a card sits in — everything that
+so `tasks.status` always mirrors the column a card sits in â€” everything that
 reads `status` (filters, analytics, the activity log) keeps working unchanged.
 
 - The header shows a board selector once you own more than one board; new
   boards are seeded with the classic To-do / Doing / Done columns.
 - The **Columns** button on the board opens the column manager: add, rename,
   recolour, re-stage, set a WIP limit on, and reorder columns.
-- Deleting a column never destroys cards — they are rehomed to a surviving
+- Deleting a column never destroys cards â€” they are rehomed to a surviving
   column of the same stage.
 - Column headers show a live card count (`2/3` against a WIP limit) and a
   "WIP limit reached" warning.
@@ -397,19 +397,19 @@ permissions, board members, and task assignment.
 
 ### Frontend Hooks
 
-- `useWorkspaces` � fetch workspaces
-- `useActiveWorkspaceId` � current workspace id
-- `useCreateWorkspace` � create a new workspace
-- `useInviteToWorkspace` � invite a member
-- `useSetMemberRole` � change a member's role
-- `useRemoveMember` � remove a member
+- `useWorkspaces` – fetch workspaces
+- `useActiveWorkspaceId` – current workspace id
+- `useCreateWorkspace` – create a new workspace
+- `useInviteToWorkspace` – invite a member
+- `useSetMemberRole` – change a member's role
+- `useRemoveMember` – remove a member
 
 ### Frontend Components
 
-- `WorkspaceSwitcher` � header dropdown to switch workspaces
-- `MemberBadge` � shows a member avatar/initials
-- `MembersPanel` � panel to invite/view/remove members
-- `BoardSelector` � board selector (in header)
+- `WorkspaceSwitcher` – header dropdown to switch workspaces
+- `MemberBadge` – shows a member avatar/initials
+- `MembersPanel` – panel to invite/view/remove members
+- `BoardSelector` – board selector (in header)
 
 ### Component Structure
 
@@ -452,19 +452,19 @@ permissions, board members, and task assignment.
 
 ### Frontend Hooks
 
-- `useWorkspaces` � fetch workspaces
-- `useActiveWorkspaceId` � current workspace id
-- `useCreateWorkspace` � create a new workspace
-- `useInviteToWorkspace` � invite a member
-- `useSetMemberRole` � change a member's role
-- `useRemoveMember` � remove a member
+- `useWorkspaces` – fetch workspaces
+- `useActiveWorkspaceId` – current workspace id
+- `useCreateWorkspace` – create a new workspace
+- `useInviteToWorkspace` – invite a member
+- `useSetMemberRole` – change a member's role
+- `useRemoveMember` – remove a member
 
 ### Frontend Components
 
-- `WorkspaceSwitcher` � header dropdown to switch workspaces
-- `MemberBadge` � shows a member avatar/initials
-- `MembersPanel` � panel to invite/view/remove members
-- `BoardSelector` � board selector (in header)
+- `WorkspaceSwitcher` – header dropdown to switch workspaces
+- `MemberBadge` – shows a member avatar/initials
+- `MembersPanel` – panel to invite/view/remove members
+- `BoardSelector` – board selector (in header)
 
 ### Component Structure
 
