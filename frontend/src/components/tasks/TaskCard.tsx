@@ -101,7 +101,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onEdit, onDelete, onStatusCha
         <p className="mb-3 text-sm text-ink-muted">{task.description}</p>
       )}
 
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex flex-wrap gap-2 mb-3">
         {task.category && (
           <span className={`px-2 py-1 rounded-full text-xs font-medium ${categoryColors[task.category]}`}>
             {task.category}
