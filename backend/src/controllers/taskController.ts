@@ -10,7 +10,13 @@ import {
 } from '../services/realtimeService';
 import { CreateTaskInput, UpdateTaskInput, TaskFilters, Status } from '../types/task';
 import { SOCKET_EVENTS } from '../types/socket';
-import { getBoardRole, resolveColumn, roleAtLeast } from '../services/boardAccess';
+import {
+  getBoardRole,
+  resolveColumn,
+  roleAtLeast,
+  taskEditableSql,
+  taskVisibleSql,
+} from '../services/boardAccess';
 
 /** LEFT JOIN that adds subtask totals to every task row. */
 const TASK_SUBTASK_COUNTS_JOIN = `
@@ -41,13 +47,17 @@ export const getAllTasks = async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    const { status, category, priority, search } = req.query as TaskFilters;
+    const { status, category, priority, search, scope } = req.query as TaskFilters;
+
+    // `scope=all` adds tasks on boards shared with me (the Kanban asks for
+    // this). The default stays "tasks I created", so the List view is unchanged.
+    const visibility = scope === 'all' ? taskVisibleSql('$1') : 't.user_id = $1';
 
     let query = `
       SELECT t.*, ${TASK_SUBTASK_COUNTS_SELECT}
       FROM tasks t
       ${TASK_SUBTASK_COUNTS_JOIN}
-      WHERE t.user_id = $1
+      WHERE ${visibility}
     `;
     const params: any[] = [userId];
     let paramCount = 1;
@@ -95,7 +105,7 @@ export const getTaskById = async (req: Request, res: Response) => {
       `SELECT t.*, ${TASK_SUBTASK_COUNTS_SELECT}
        FROM tasks t
        ${TASK_SUBTASK_COUNTS_JOIN}
-       WHERE t.id = $1 AND t.user_id = $2`,
+       WHERE t.id = $1 AND ${taskVisibleSql('$2')}`,
       [id, userId]
     );
 
@@ -243,7 +253,7 @@ export const updateTask = async (req: Request, res: Response) => {
 
     // Read the current values so we can describe what actually changed.
     const previous = await pool.query(
-      'SELECT title, status FROM tasks WHERE id = $1 AND user_id = $2',
+      `SELECT title, status FROM tasks t WHERE t.id = $1 AND ${taskEditableSql('$2')}`,
       [id, userId]
     );
     const before = previous.rows[0];
@@ -305,7 +315,7 @@ export const updateTask = async (req: Request, res: Response) => {
     const query = `
       UPDATE tasks 
       SET ${updates.join(', ')}
-      WHERE id = $${paramCount - 1} AND user_id = $${paramCount}
+      WHERE tasks.id = $${paramCount - 1} AND ${taskEditableSql(`$${paramCount}`, 'tasks')}
       RETURNING *, ${TASK_SUBTASK_COUNTS_RETURNING}
     `;
 
@@ -318,7 +328,7 @@ export const updateTask = async (req: Request, res: Response) => {
     const updated = result.rows[0];
 
     // Owners editing their own task must still reach their collaborators.
-    await notifyCollaborators(id, userId, 'shared-task-updated', { task: updated });
+    await notifyCollaborators(id, updated.user_id, 'shared-task-updated', { task: updated });
 
     const changedFields = [
       'title',
@@ -382,14 +392,8 @@ async function logStatusChange(
  * caller does not own it.
  */
 const columnStageForUser = async (columnId: string, userId: string): Promise<Status | null> => {
-  const result = await pool.query(
-    `SELECT bc.stage
-     FROM board_columns bc
-     JOIN boards b ON b.id = bc.board_id
-     WHERE bc.id = $1 AND b.user_id = $2`,
-    [columnId, userId]
-  );
-  return result.rows.length > 0 ? (result.rows[0].stage as Status) : null;
+  const column = await resolveColumn(userId, columnId, 'member');
+  return column ? (column.stage as Status) : null;
 };
 
 /**
@@ -459,7 +463,7 @@ export const updateTaskStatus = async (req: Request, res: Response) => {
     }
 
     const before = await pool.query(
-      'SELECT id, title, status FROM tasks WHERE id = $1 AND user_id = $2',
+      `SELECT t.id, t.title, t.status FROM tasks t WHERE t.id = $1 AND ${taskEditableSql('$2')}`,
       [id, userId]
     );
 
@@ -472,7 +476,7 @@ export const updateTaskStatus = async (req: Request, res: Response) => {
        SET status = $1::text,
        ${MOVE_COLUMN_SQL},
            updated_at = NOW()
-       WHERE t.id = $3 AND t.user_id = $4
+       WHERE t.id = $3 AND ${taskEditableSql('$4')}
        RETURNING *`,
       [targetStatus, targetColumn, id, userId]
     );
@@ -482,7 +486,7 @@ export const updateTaskStatus = async (req: Request, res: Response) => {
     await logStatusChange(userId, task.id, task.title, before.rows[0].status, targetStatus as string);
 
     // A drag on a shared board must reach collaborators, same as an edit.
-    await notifyCollaborators(id, userId, 'shared-task-updated', { task });
+    await notifyCollaborators(id, task.user_id, 'shared-task-updated', { task });
 
     await broadcastTask(SOCKET_EVENTS.taskMove, userId, task);
 
@@ -559,7 +563,7 @@ export const batchUpdateTaskStatus = async (req: Request, res: Response) => {
     }
 
     const before = await pool.query(
-      'SELECT id, status FROM tasks WHERE id = ANY($1::uuid[]) AND user_id = $2',
+      `SELECT t.id, t.status FROM tasks t WHERE t.id = ANY($1::uuid[]) AND ${taskEditableSql('$2')}`,
       [ids, userId]
     );
 
@@ -581,7 +585,7 @@ export const batchUpdateTaskStatus = async (req: Request, res: Response) => {
            END,
            updated_at = NOW()
        FROM unnest($1::uuid[], $2::text[], $3::uuid[]) AS v(id, status, column_id)
-       WHERE t.id = v.id AND t.user_id = $4
+       WHERE t.id = v.id AND ${taskEditableSql('$4')}
        RETURNING t.*`,
       [ids, statuses, columnIds, userId]
     );
@@ -601,7 +605,7 @@ export const batchUpdateTaskStatus = async (req: Request, res: Response) => {
         previous.get(task.id) as string,
         task.status
       );
-      await notifyCollaborators(task.id, userId, 'shared-task-updated', { task });
+      await notifyCollaborators(task.id, task.user_id, 'shared-task-updated', { task });
       await broadcastTask(SOCKET_EVENTS.taskMove, userId, task);
     }
 
@@ -622,7 +626,7 @@ export const deleteTask = async (req: Request, res: Response) => {
     }
 
     const result = await pool.query(
-      'DELETE FROM tasks WHERE id = $1 AND user_id = $2 RETURNING *',
+      `DELETE FROM tasks WHERE id = $1 AND ${taskEditableSql('$2', 'tasks')} RETURNING *`,
       [id, userId]
     );
 
@@ -630,8 +634,8 @@ export const deleteTask = async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Task not found' });
     }
 
-    await notifyCollaborators(id, userId, 'shared-task-deleted', { taskId: id });
-    await broadcastTaskDeleted(id, result.rows[0].user_id, userId);
+    await notifyCollaborators(id, result.rows[0].user_id, 'shared-task-deleted', { taskId: id });
+    await broadcastTaskDeleted(id, result.rows[0].user_id, userId, result.rows[0].board_id);
 
     // task_id is deliberately null: activity_log cascades with the task, so
     // the entry keeps the title in its details instead of disappearing.

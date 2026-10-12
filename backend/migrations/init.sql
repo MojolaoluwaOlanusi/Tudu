@@ -174,7 +174,7 @@ BEGIN
   -- 2. No board yet: use the owner's first board (the one ensureDefaultBoard returns).
   IF NEW.board_id IS NULL THEN
     SELECT id INTO NEW.board_id FROM boards
-     WHERE user_id = NEW.user_id
+     WHERE user_id = NEW.user_id AND workspace_id IS NULL
      ORDER BY position ASC, created_at ASC
      LIMIT 1;
   END IF;
@@ -216,6 +216,7 @@ UPDATE tasks t SET board_id = bc.board_id
 UPDATE tasks t SET board_id = b.id
   FROM (SELECT DISTINCT ON (user_id) id, user_id
           FROM boards
+         WHERE workspace_id IS NULL
          ORDER BY user_id, position ASC, created_at ASC) b
  WHERE t.board_id IS NULL AND t.user_id = b.user_id;
 
@@ -229,3 +230,50 @@ UPDATE tasks SET status = status
                         WHERE bc.id = tasks.column_id
                           AND bc.board_id = tasks.board_id
                           AND bc.stage = COALESCE(tasks.status, 'todo')));
+
+-- =====================================================================
+-- Phase 1.2 - team boards and permissions.
+-- A board is either personal (workspace_id IS NULL, only its creator has access)
+-- or belongs to one workspace (every accepted member gets their workspace role).
+-- =====================================================================
+CREATE TABLE IF NOT EXISTS workspaces (
+  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name       VARCHAR(255) NOT NULL,
+  owner_id   UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Same invitation lifecycle as shared_lists: pending -> accepted (a decline deletes the row).
+CREATE TABLE IF NOT EXISTS workspace_members (
+  workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+  user_id      UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  role         VARCHAR(20) NOT NULL DEFAULT 'member'
+               CHECK (role IN ('admin', 'member', 'viewer')),
+  status       VARCHAR(20) NOT NULL DEFAULT 'pending'
+               CHECK (status IN ('pending', 'accepted')),
+  invited_by   UUID REFERENCES users(id) ON DELETE SET NULL,
+  created_at   TIMESTAMP DEFAULT NOW(),
+  PRIMARY KEY (workspace_id, user_id)
+);
+CREATE INDEX IF NOT EXISTS idx_workspace_members_user_id ON workspace_members(user_id);
+
+ALTER TABLE boards ADD COLUMN IF NOT EXISTS workspace_id UUID REFERENCES workspaces(id) ON DELETE CASCADE;
+CREATE INDEX IF NOT EXISTS idx_boards_workspace_id ON boards(workspace_id);
+
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS assignee_id UUID REFERENCES users(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS idx_tasks_assignee_id ON tasks(assignee_id);
+
+-- The user's role on a board: 'admin' | 'member' | 'viewer', or NULL for no access.
+-- A creator is admin only of PERSONAL boards; on a workspace board everyone
+-- (creator included) gets their workspace role, so leaving a workspace ends access.
+CREATE OR REPLACE FUNCTION get_board_role(p_user UUID, p_board UUID) RETURNS TEXT AS $$
+  SELECT COALESCE(
+    (SELECT 'admin'::text FROM boards
+      WHERE id = p_board AND user_id = p_user AND workspace_id IS NULL),
+    (SELECT wm.role::text
+       FROM boards b
+       JOIN workspace_members wm ON wm.workspace_id = b.workspace_id
+      WHERE b.id = p_board AND wm.user_id = p_user AND wm.status = 'accepted')
+  );
+$$ LANGUAGE sql STABLE;

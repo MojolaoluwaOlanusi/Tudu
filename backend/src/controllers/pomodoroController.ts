@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import pool from '../config/database';
+import { taskVisibleSql } from '../services/boardAccess';
 import { logActivity } from '../services/activityService';
 import { PomodoroSession, DEFAULT_FOCUS_MINUTES, MAX_SESSION_MINUTES } from '../types/pomodoro';
 
@@ -42,10 +43,10 @@ const resolveTaskId = async (
     return { taskId: null, error: 'taskId must be a valid UUID' };
   }
 
-  const result = await pool.query('SELECT 1 FROM tasks WHERE id = $1 AND user_id = $2', [
-    value,
-    userId,
-  ]);
+  const result = await pool.query(
+    `SELECT 1 FROM tasks t WHERE t.id = $1 AND ${taskVisibleSql('$2')}`,
+    [value, userId]
+  );
   if (result.rows.length === 0) {
     return { taskId: null, error: 'Task not found' };
   }

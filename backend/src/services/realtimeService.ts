@@ -28,6 +28,24 @@ export const collaboratorIds = async (
   }
 };
 
+/** Everyone who can see a team board (accepted workspace members). Empty for personal boards. */
+export const boardMemberIds = async (boardId: string | null | undefined): Promise<string[]> => {
+  if (!boardId) return [];
+  try {
+    const result = await pool.query(
+      `SELECT wm.user_id
+       FROM boards b
+       JOIN workspace_members wm ON wm.workspace_id = b.workspace_id AND wm.status = 'accepted'
+       WHERE b.id = $1`,
+      [boardId]
+    );
+    return result.rows.map((row) => row.user_id);
+  } catch (error) {
+    console.error('Error resolving board members:', error);
+    return [];
+  }
+};
+
 /**
  * Push a change to everyone this task is shared with, so a collaborator sees
  * edits made by the owner in real time (and vice versa).
@@ -55,15 +73,18 @@ export const broadcastTask = async (
   task: SocketTask
 ): Promise<void> => {
   const ids = await collaboratorIds(task.id, task.user_id);
-  emitToUsers([task.user_id, ...ids], event, { task, actorId });
+  const members = await boardMemberIds(task.board_id);
+  emitToUsers([task.user_id, ...ids, ...members], event, { task, actorId });
 };
 
 /** Announce a deletion to the owner and collaborators (task row is already gone). */
 export const broadcastTaskDeleted = async (
   taskId: string,
   ownerId: string,
-  actorId: string
+  actorId: string,
+  boardId?: string | null
 ): Promise<void> => {
   const ids = await collaboratorIds(taskId, ownerId);
-  emitToUsers([ownerId, ...ids], SOCKET_EVENTS.taskDelete, { taskId, actorId });
+  const members = await boardMemberIds(boardId);
+  emitToUsers([ownerId, ...ids, ...members], SOCKET_EVENTS.taskDelete, { taskId, actorId });
 };

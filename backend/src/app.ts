@@ -15,6 +15,7 @@ import aiRoutes from './routes/ai';
 import pomodoroRoutes from './routes/pomodoro';
 import analyticsRoutes from './routes/analytics';
 import { boardsRouter, columnsRouter } from './routes/boards';
+import workspaceRoutes from './routes/workspaces';
 
 dotenv.config();
 
@@ -127,5 +128,6 @@ app.use('/api/pomodoro', pomodoroRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/boards', boardsRouter);
 app.use('/api/columns', columnsRouter);
+app.use('/api/workspaces', workspaceRoutes);
 
 export default app;

@@ -2,16 +2,20 @@ import { Request, Response } from 'express';
 import pool from '../config/database';
 import { CreateSubtaskInput, UpdateSubtaskInput } from '../types/task';
 import { logActivity } from '../services/activityService';
+import { taskEditableSql, taskVisibleSql } from '../services/boardAccess';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const isValidUuid = (value: unknown): value is string =>
   typeof value === 'string' && UUID_RE.test(value);
 
-/** Guard so a user can never touch another user's task or its sub-tasks. */
+/**
+ * Guard so a user can only change the sub-tasks of a task they may edit: their
+ * own, or any task on a team board where they are a member or admin.
+ */
 const taskBelongsToUser = async (taskId: string, userId: string): Promise<boolean> => {
   const result = await pool.query(
-    'SELECT 1 FROM tasks WHERE id = $1 AND user_id = $2',
+    `SELECT 1 FROM tasks t WHERE t.id = $1 AND ${taskEditableSql('$2')}`,
     [taskId, userId]
   );
   return result.rows.length > 0;
@@ -25,6 +29,13 @@ const taskBelongsToUser = async (taskId: string, userId: string): Promise<boolea
  */
 const canViewTask = async (taskId: string, userId: string): Promise<boolean> => {
   if (await taskBelongsToUser(taskId, userId)) return true;
+
+  // Viewers on a team board can read sub-tasks but not change them.
+  const visible = await pool.query(
+    `SELECT 1 FROM tasks t WHERE t.id = $1 AND ${taskVisibleSql('$2')}`,
+    [taskId, userId]
+  );
+  if (visible.rows.length > 0) return true;
 
   const shared = await pool.query(
     `SELECT 1 FROM shared_lists
@@ -160,7 +171,7 @@ export const updateSubtask = async (req: Request, res: Response) => {
          AND task_id = $${paramCount - 1}
          AND EXISTS (
            SELECT 1 FROM tasks t
-           WHERE t.id = subtasks.task_id AND t.user_id = $${paramCount}
+           WHERE t.id = subtasks.task_id AND ${taskEditableSql(`$${paramCount}`)}
          )
        RETURNING ${SUBTASK_COLUMNS}`,
       values
@@ -204,7 +215,7 @@ export const deleteSubtask = async (req: Request, res: Response) => {
          AND task_id = $2
          AND EXISTS (
            SELECT 1 FROM tasks t
-           WHERE t.id = subtasks.task_id AND t.user_id = $3
+           WHERE t.id = subtasks.task_id AND ${taskEditableSql('$3')}
          )
        RETURNING id`,
       [subtaskId, taskId, userId]
