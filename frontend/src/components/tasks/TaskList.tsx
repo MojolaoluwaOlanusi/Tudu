@@ -18,6 +18,7 @@ import TaskCard from './TaskCard';
 import TaskForm from './TaskForm';
 import ShareModal from '../sharing/ShareModal';
 import { useMyShares, flattenShares } from '../../hooks/useSharing';
+import { useActiveBoardId } from '../../hooks/useBoards';
 import SearchBar from '../common/SearchBar';
 import FilterDropdown from '../common/FilterDropdown';
 import { useConfetti } from '../common/ConfettiProvider';
@@ -56,6 +57,7 @@ const TaskList: React.FC = () => {
     useTasks(activeFilters);
   const { data: overdueTasks } = useOverdueTasks();
   const createTask = useCreateTask();
+  const activeBoardId = useActiveBoardId();
   const updateTask = useUpdateTask();
   const deleteTask = useDeleteTask();
   const { data: myShares } = useMyShares();
@@ -92,7 +94,7 @@ const TaskList: React.FC = () => {
         await updateTask.mutateAsync({ id: editingTask.id, task: values });
         pushToast('Task updated', 'success');
       } else {
-        await createTask.mutateAsync(values);
+        await createTask.mutateAsync({ ...values, board_id: activeBoardId ?? undefined });
         pushToast('Task created', 'success');
       }
       closeTaskForm();

@@ -143,55 +143,89 @@ CREATE INDEX IF NOT EXISTS idx_board_columns_position ON board_columns(board_id,
 CREATE INDEX IF NOT EXISTS idx_tasks_board_id ON tasks(board_id);
 CREATE INDEX IF NOT EXISTS idx_tasks_column_id ON tasks(column_id);
 
--- ---------------------------------------------------------------------------
--- Phase 1.2 - Team boards & permissions
---
--- Owns nothing new on tasks: board/column membership already exists, so a
--- *team* board is just a personal board whose members list has grown past the
--- owner. `boards.user_id` stays the owner for deletion and orphan cleanup.
---
--- Roles are ordered viewer < member < admin. A board-level row always wins
--- over the workspace row: being a workspace viewer must not silently widen
--- what you can do on a board that explicitly demoted you.
--- ---------------------------------------------------------------------------
 
-CREATE TABLE IF NOT EXISTS workspaces (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  owner_id UUID REFERENCES users(id) ON DELETE CASCADE,
-  name VARCHAR(255) NOT NULL,
-  created_at TIMESTAMP DEFAULT NOW(),
-  updated_at TIMESTAMP DEFAULT NOW()
-);
+-- =====================================================================
+-- Phase 1.1b - board integrity.
+-- Every task belongs to exactly one board and sits in a column of that board
+-- whose stage equals tasks.status. A trigger enforces it for EVERY code path
+-- (createTask, updateTask, updateSharedTask, drag & drop, batch moves), so no
+-- controller has to remember to keep column_id in step with status.
+-- Idempotent like the rest of this file: safe to run on every `npm run migrate`.
+-- =====================================================================
+CREATE OR REPLACE FUNCTION tasks_sync_board_column() RETURNS trigger AS $$
+DECLARE
+  v_stage  TEXT;
+  v_board  UUID;
+  v_status TEXT;
+  v_column UUID;
+BEGIN
+  -- 1. An explicitly chosen column wins: it decides the board and the status.
+  IF NEW.column_id IS NOT NULL
+     AND (TG_OP = 'INSERT' OR NEW.column_id IS DISTINCT FROM OLD.column_id) THEN
+    SELECT stage, board_id INTO v_stage, v_board
+      FROM board_columns WHERE id = NEW.column_id;
+    IF v_stage IS NOT NULL THEN
+      NEW.status := v_stage;
+      NEW.board_id := v_board;
+      RETURN NEW;
+    END IF;
+  END IF;
 
-CREATE TABLE IF NOT EXISTS workspace_members (
-  workspace_id UUID REFERENCES workspaces(id) ON DELETE CASCADE,
-  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-  role VARCHAR(20) NOT NULL DEFAULT 'member'
-    CHECK (role IN ('admin', 'member', 'viewer')),
-  created_at TIMESTAMP DEFAULT NOW(),
-  PRIMARY KEY (workspace_id, user_id)
-);
+  -- 2. No board yet: use the owner's first board (the one ensureDefaultBoard returns).
+  IF NEW.board_id IS NULL THEN
+    SELECT id INTO NEW.board_id FROM boards
+     WHERE user_id = NEW.user_id
+     ORDER BY position ASC, created_at ASC
+     LIMIT 1;
+  END IF;
+  IF NEW.board_id IS NULL THEN
+    RETURN NEW;  -- the user has no board yet; ensureDefaultBoard adopts the task later
+  END IF;
 
-CREATE TABLE IF NOT EXISTS board_members (
-  board_id UUID REFERENCES boards(id) ON DELETE CASCADE,
-  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-  role VARCHAR(20) NOT NULL DEFAULT 'member'
-    CHECK (role IN ('admin', 'member', 'viewer')),
-  created_at TIMESTAMP DEFAULT NOW(),
-  PRIMARY KEY (board_id, user_id)
-);
+  -- 3. Status changed (or column missing / on another board): re-home the card
+  --    to the first column on its board that carries its status.
+  v_status := COALESCE(NEW.status, 'todo');
+  IF NEW.column_id IS NULL
+     OR NOT EXISTS (SELECT 1 FROM board_columns
+                     WHERE id = NEW.column_id
+                       AND board_id = NEW.board_id
+                       AND stage = v_status) THEN
+    SELECT id INTO v_column FROM board_columns
+     WHERE board_id = NEW.board_id AND stage = v_status
+     ORDER BY position ASC
+     LIMIT 1;
+    NEW.column_id := v_column;
+  END IF;
 
--- Boards can live in a workspace (team boards) or stand alone (personal).
-ALTER TABLE boards
-  ADD COLUMN IF NOT EXISTS workspace_id UUID REFERENCES workspaces(id) ON DELETE SET NULL;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
 
--- Assignees join to users, so deleting an account unassigns rather than
--- destroying the task. Metadata for whoever views the card.
-ALTER TABLE tasks
-  ADD COLUMN IF NOT EXISTS assignee_id UUID REFERENCES users(id) ON DELETE SET NULL;
+DROP TRIGGER IF EXISTS trg_tasks_sync_board_column ON tasks;
+CREATE TRIGGER trg_tasks_sync_board_column
+  BEFORE INSERT OR UPDATE ON tasks
+  FOR EACH ROW EXECUTE FUNCTION tasks_sync_board_column();
 
-CREATE INDEX IF NOT EXISTS idx_workspaces_owner_id ON workspaces(owner_id);
-CREATE INDEX IF NOT EXISTS idx_workspace_members_user_id ON workspace_members(user_id);
-CREATE INDEX IF NOT EXISTS idx_board_members_user_id ON board_members(user_id);
-CREATE INDEX IF NOT EXISTS idx_tasks_assignee_id ON tasks(assignee_id);
+-- Backfill (no-op once everything is consistent).
+-- 1) A card sitting in a column belongs to that column's board.
+UPDATE tasks t SET board_id = bc.board_id
+  FROM board_columns bc
+ WHERE t.column_id = bc.id AND t.board_id IS DISTINCT FROM bc.board_id;
 
+-- 2) A card with no board goes to its owner's first board.
+UPDATE tasks t SET board_id = b.id
+  FROM (SELECT DISTINCT ON (user_id) id, user_id
+          FROM boards
+         ORDER BY user_id, position ASC, created_at ASC) b
+ WHERE t.board_id IS NULL AND t.user_id = b.user_id;
+
+-- 3) Where column and status disagree, status wins (it is what the List view and
+--    analytics already show). `SET status = status` fires the trigger, which
+--    moves the card to the right column without touching updated_at.
+UPDATE tasks SET status = status
+ WHERE board_id IS NOT NULL
+   AND (column_id IS NULL
+        OR NOT EXISTS (SELECT 1 FROM board_columns bc
+                        WHERE bc.id = tasks.column_id
+                          AND bc.board_id = tasks.board_id
+                          AND bc.stage = COALESCE(tasks.status, 'todo')));

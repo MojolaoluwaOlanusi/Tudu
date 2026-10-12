@@ -10,6 +10,7 @@ import ProtectedRoute from './components/common/ProtectedRoute';
 import Header from './components/layout/Header';
 import TaskList from './components/tasks/TaskList';
 import KanbanBoard from './components/kanban/KanbanBoard';
+import BoardTaskForm from './components/kanban/BoardTaskForm';
 import SharedListsSidebar from './components/sharing/SharedListsSidebar';
 import ShareInvites from './components/sharing/ShareInvites';
 import SharedWithMeSection from './components/sharing/SharedWithMeSection';
@@ -66,6 +67,7 @@ const Board = () => (
   <Shell>
     <div data-tour="board">
       <KanbanBoard />
+      <BoardTaskForm />
     </div>
   </Shell>
 );

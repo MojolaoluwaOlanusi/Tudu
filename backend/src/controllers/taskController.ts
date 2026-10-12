@@ -10,6 +10,7 @@ import {
 } from '../services/realtimeService';
 import { CreateTaskInput, UpdateTaskInput, TaskFilters, Status } from '../types/task';
 import { SOCKET_EVENTS } from '../types/socket';
+import { getBoardRole, resolveColumn, roleAtLeast } from '../services/boardAccess';
 
 /** LEFT JOIN that adds subtask totals to every task row. */
 const TASK_SUBTASK_COUNTS_JOIN = `
@@ -109,62 +110,6 @@ export const getTaskById = async (req: Request, res: Response) => {
   }
 };
 
-/**
- * Workflow: assign a task to a user (for team boards).
- * POST /api/tasks/:id/assign
- */
-export const assignTask = async (req: Request, res: Response) => {
-  try {
-    const userId = req.user?.userId;
-    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
-
-    const { id } = req.params;
-    const { assigneeId }: { assigneeId?: unknown } = req.body ?? {};
-
-    if (!assigneeId || typeof assigneeId !== 'string') {
-      return res.status(400).json({ error: 'assigneeId is required' });
-    }
-
-    const task = await pool.query(
-      `SELECT id, user_id, title, board_id FROM tasks WHERE id = $1`,
-      [id]
-    );
-    if (task.rows.length === 0) return res.status(404).json({ error: 'Task not found' });
-
-    const board = await pool.query(
-      `SELECT b.workspace_id FROM boards b WHERE b.id = $1 AND b.user_id = $2`,
-      [task.rows[0].board_id, userId]
-    );
-    if (board.rows.length === 0) return res.status(403).json({ error: 'Task does not belong to your boards' });
-
-    const workspace = await pool.query(
-      `SELECT id FROM workspaces WHERE id = $1`,
-      [board.rows[0].workspace_id]
-    );
-    if (workspace.rows.length === 0) {
-      return res.status(404).json({ error: 'Board workspace not found' });
-    }
-
-    const member = await pool.query(
-      `SELECT role FROM workspace_members WHERE workspace_id = $1 AND user_id = $2`,
-      [workspace.rows[0].id, assigneeId]
-    );
-    if (member.rows.length === 0) {
-      return res.status(403).json({ error: 'Assignee is not a member of this workspace' });
-    }
-
-    await pool.query(
-      'UPDATE tasks SET assignee_id = $1 WHERE id = $2 AND user_id = $3',
-      [assigneeId, id, userId]
-    );
-
-    res.json({ message: 'Task assigned', task: { id, assignee_id: assigneeId } });
-  } catch (error) {
-    console.error('Error assigning task:', error);
-    res.status(500).json({ error: 'Failed to assign task' });
-  }
-};
-
 export const MAX_PARSE_LENGTH = 500;
 
 /**
@@ -221,7 +166,12 @@ export const createTask = async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    const { description, naturalLanguage } = req.body as Partial<CreateTaskInput> & {
+    const {
+      description,
+      naturalLanguage,
+      board_id: boardIdInput,
+      column_id: columnIdInput,
+    } = req.body as Partial<CreateTaskInput> & {
       naturalLanguage?: boolean;
     };
     let { title, category, priority, due_date } = req.body as CreateTaskInput;
@@ -240,11 +190,34 @@ export const createTask = async (req: Request, res: Response) => {
       due_date = due_date ?? parsed.dueDate ?? undefined;
     }
 
+    // Where the card lands. A column decides board and status; a bare board
+    // uses its first column for the status; neither leaves it to the database
+    // trigger, which picks the owner's first board.
+    let boardId: string | null = null;
+    let columnId: string | null = null;
+    if (columnIdInput) {
+      if (!isValidUuid(columnIdInput)) {
+        return res.status(400).json({ error: 'Invalid column id' });
+      }
+      const column = await resolveColumn(userId, columnIdInput, 'member');
+      if (!column) return res.status(404).json({ error: 'Column not found' });
+      columnId = columnIdInput;
+      boardId = column.board_id;
+    } else if (boardIdInput) {
+      if (!isValidUuid(boardIdInput)) {
+        return res.status(400).json({ error: 'Invalid board id' });
+      }
+      if (!roleAtLeast(await getBoardRole(userId, boardIdInput), 'member')) {
+        return res.status(404).json({ error: 'Board not found' });
+      }
+      boardId = boardIdInput;
+    }
+
     const result = await pool.query(
-      `INSERT INTO tasks (user_id, title, description, category, priority, due_date)
-       VALUES ($1, $2, $3, $4, $5, $6)
+      `INSERT INTO tasks (user_id, title, description, category, priority, due_date, board_id, column_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
        RETURNING *, ${TASK_SUBTASK_COUNTS_RETURNING}`,
-      [userId, title, description, category, priority, due_date]
+      [userId, title, description, category, priority, due_date, boardId, columnId]
     );
 
     const created = result.rows[0];
@@ -330,7 +303,7 @@ export const updateTask = async (req: Request, res: Response) => {
     values.push(userId);
 
     const query = `
-      UPDATE tasks
+      UPDATE tasks 
       SET ${updates.join(', ')}
       WHERE id = $${paramCount - 1} AND user_id = $${paramCount}
       RETURNING *, ${TASK_SUBTASK_COUNTS_RETURNING}
@@ -682,8 +655,8 @@ export const getOverdueTasks = async (req: Request, res: Response) => {
       `SELECT t.*, ${TASK_SUBTASK_COUNTS_SELECT}
        FROM tasks t
        ${TASK_SUBTASK_COUNTS_JOIN}
-       WHERE t.user_id = $1
-       AND t.due_date < NOW()
+       WHERE t.user_id = $1 
+       AND t.due_date < NOW() 
        AND t.status != 'done'
        ORDER BY t.due_date ASC`,
       [userId]

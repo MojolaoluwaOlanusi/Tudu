@@ -42,6 +42,10 @@ export interface CreateTaskInput {
   category?: Category;
   priority?: Priority;
   due_date?: string;
+  /** Put the task on this board (in its first column for the status). */
+  board_id?: string;
+  /** Put the task in this exact column; the column decides board and status. */
+  column_id?: string;
 }
 
 export interface UpdateTaskInput {
