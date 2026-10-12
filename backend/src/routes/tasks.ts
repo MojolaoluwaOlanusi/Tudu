@@ -2,6 +2,7 @@ import express from 'express';
 import { authenticate } from '../middleware/auth';
 import * as taskController from '../controllers/taskController';
 import * as subtaskController from '../controllers/subtaskController';
+import * as assignmentController from '../controllers/assignmentController';
 
 const router = express.Router();
 
@@ -31,6 +32,9 @@ router.put('/:id', taskController.updateTask);
 
 // Move a single task to another column (drag & drop)
 router.patch('/:id/status', taskController.updateTaskStatus);
+
+// Assign a task to a member of its (team) board
+router.patch('/:id/assignee', assignmentController.assignTask);
 
 // Delete task
 router.delete('/:id', taskController.deleteTask);

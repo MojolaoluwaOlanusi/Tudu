@@ -35,6 +35,11 @@ export interface Board {
   /** Number of columns, supplied by `GET /api/boards`. */
   column_count?: number;
   task_count?: number;
+  /** Set when the board belongs to a workspace (Phase 1.2). */
+  workspace_id?: string | null;
+  workspace_name?: string | null;
+  /** The caller's role on this board; only returned by GET /api/boards. */
+  role?: 'admin' | 'member' | 'viewer';
 }
 
 export interface BoardColumn {

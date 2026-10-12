@@ -17,12 +17,37 @@ export const getBoardRole = async (
   userId: string,
   boardId: string
 ): Promise<BoardRole | null> => {
-  const result = await pool.query('SELECT 1 FROM boards WHERE id = $1 AND user_id = $2', [
-    boardId,
-    userId,
-  ]);
-  return result.rows.length > 0 ? 'admin' : null;
+  const result = await pool.query('SELECT get_board_role($1, $2) AS role', [userId, boardId]);
+  return (result.rows[0]?.role as BoardRole | null) ?? null;
 };
+
+/** The user's role in a workspace (accepted members only), or null. */
+export const getWorkspaceRole = async (
+  userId: string,
+  workspaceId: string
+): Promise<BoardRole | null> => {
+  const result = await pool.query(
+    `SELECT role FROM workspace_members
+     WHERE workspace_id = $1 AND user_id = $2 AND status = 'accepted'`,
+    [workspaceId, userId]
+  );
+  return (result.rows[0]?.role as BoardRole | undefined) ?? null;
+};
+
+/**
+ * SQL conditions for task queries. `userParam` is the placeholder holding the
+ * caller's id (e.g. '$1'); `alias` is the tasks table alias in that query.
+ *
+ * A task with no board is private to its creator; a task on a board is
+ * governed by the caller's role on that board.
+ */
+export const taskVisibleSql = (userParam: string, alias = 't'): string =>
+  `((${alias}.board_id IS NULL AND ${alias}.user_id = ${userParam}) ` +
+  `OR get_board_role(${userParam}, ${alias}.board_id) IS NOT NULL)`;
+
+export const taskEditableSql = (userParam: string, alias = 't'): string =>
+  `((${alias}.board_id IS NULL AND ${alias}.user_id = ${userParam}) ` +
+  `OR get_board_role(${userParam}, ${alias}.board_id) IN ('admin', 'member'))`;
 
 /** A column's board and stage, if `userId` has at least `min` access to that board. */
 export const resolveColumn = async (

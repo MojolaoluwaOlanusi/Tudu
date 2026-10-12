@@ -1,6 +1,13 @@
 import { Request, Response } from 'express';
 import pool from '../config/database';
 import {
+  BoardRole,
+  getBoardRole,
+  getWorkspaceRole,
+  resolveColumn,
+  roleAtLeast,
+} from '../services/boardAccess';
+import {
   Board,
   BoardColumn,
   CreateBoardInput,
@@ -23,7 +30,7 @@ const isStage = (value: unknown): value is Stage =>
 const isColor = (value: unknown): value is string =>
   typeof value === 'string' && (COLUMN_COLORS as readonly string[]).includes(value);
 
-const BOARD_COLUMNS = 'id, user_id, name, position, created_at, updated_at';
+const BOARD_COLUMNS = 'id, user_id, name, position, workspace_id, created_at, updated_at';
 const COLUMN_FIELDS =
   'id, board_id, name, position, color, stage, wip_limit, created_at, updated_at';
 
@@ -50,24 +57,19 @@ const parseWipLimit = (
   return { ok: true, value: n };
 };
 
-const boardBelongsToUser = async (boardId: string, userId: string): Promise<boolean> => {
-  const result = await pool.query('SELECT 1 FROM boards WHERE id = $1 AND user_id = $2', [
-    boardId,
-    userId,
-  ]);
-  return result.rows.length > 0;
-};
+/**
+ * Does `userId` have at least `min` access to the board? Changing a board or
+ * its columns needs admin; reading it needs viewer.
+ */
+const boardBelongsToUser = async (
+  boardId: string,
+  userId: string,
+  min: BoardRole = 'admin'
+): Promise<boolean> => roleAtLeast(await getBoardRole(userId, boardId), min);
 
-/** Resolves a column through its board, so ownership is checked in one hop. */
-const columnBelongsToUser = async (columnId: string, userId: string): Promise<boolean> => {
-  const result = await pool.query(
-    `SELECT 1 FROM board_columns bc
-     JOIN boards b ON b.id = bc.board_id
-     WHERE bc.id = $1 AND b.user_id = $2`,
-    [columnId, userId]
-  );
-  return result.rows.length > 0;
-};
+/** Resolves a column through its board, so access is checked in one hop. */
+const columnBelongsToUser = async (columnId: string, userId: string): Promise<boolean> =>
+  (await resolveColumn(userId, columnId, 'admin')) !== null;
 
 /** The columns of a board, with a live card count and WIP flag on each. */
 const listColumns = async (boardId: string): Promise<BoardColumn[]> => {
@@ -90,7 +92,7 @@ const listColumns = async (boardId: string): Promise<BoardColumn[]> => {
   return result.rows;
 };
 
-const DEFAULT_COLUMNS: { name: string; stage: Stage; color: string }[] = [
+export const DEFAULT_COLUMNS: { name: string; stage: Stage; color: string }[] = [
   { name: 'To-do', stage: 'todo', color: 'gray' },
   { name: 'Doing', stage: 'doing', color: 'blue' },
   { name: 'Done', stage: 'done', color: 'green' },
@@ -107,7 +109,7 @@ const DEFAULT_COLUMNS: { name: string; stage: Stage; color: string }[] = [
 export const ensureDefaultBoard = async (userId: string): Promise<Board> => {
   const existing = await pool.query(
     `SELECT ${BOARD_COLUMNS} FROM boards
-     WHERE user_id = $1
+     WHERE user_id = $1 AND workspace_id IS NULL
      ORDER BY position ASC, created_at ASC
      LIMIT 1`,
     [userId]
@@ -151,7 +153,7 @@ export const ensureDefaultBoard = async (userId: string): Promise<Board> => {
   }
 };
 
-/** GET /api/boards */
+/** GET /api/boards - personal boards plus every board of the workspaces I belong to. */
 export const getBoards = async (req: Request, res: Response) => {
   try {
     const userId = req.user?.userId;
@@ -160,14 +162,24 @@ export const getBoards = async (req: Request, res: Response) => {
     await ensureDefaultBoard(userId);
 
     const result = await pool.query(
-      `SELECT ${BOARD_COLUMNS}, COALESCE(c.cnt, 0)::int AS column_count,
+      `SELECT b.id, b.user_id, b.name, b.position, b.workspace_id, b.created_at, b.updated_at,
+              w.name AS workspace_name,
+              get_board_role($1, b.id) AS role,
+              COALESCE(c.cnt, 0)::int AS column_count,
               (SELECT COUNT(*)::int FROM tasks t WHERE t.board_id = b.id) AS task_count
        FROM boards b
+       LEFT JOIN workspaces w ON w.id = b.workspace_id
        LEFT JOIN (
          SELECT board_id, COUNT(*) AS cnt FROM board_columns GROUP BY board_id
        ) c ON c.board_id = b.id
-       WHERE b.user_id = $1
-       ORDER BY b.position ASC, b.created_at ASC`,
+       WHERE (b.workspace_id IS NULL AND b.user_id = $1)
+          OR EXISTS (
+            SELECT 1 FROM workspace_members wm
+            WHERE wm.workspace_id = b.workspace_id
+              AND wm.user_id = $1 AND wm.status = 'accepted'
+          )
+       ORDER BY (b.workspace_id IS NOT NULL) ASC, w.name ASC NULLS FIRST,
+                b.position ASC, b.created_at ASC`,
       [userId]
     );
     res.json(result.rows);
@@ -177,33 +189,46 @@ export const getBoards = async (req: Request, res: Response) => {
   }
 };
 
-/** POST /api/boards */
+/** POST /api/boards - body: { name, workspace_id? } */
 export const createBoard = async (req: Request, res: Response) => {
   try {
     const userId = req.user?.userId;
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
-    const { name }: CreateBoardInput = req.body ?? {};
+    const { name, workspace_id }: CreateBoardInput & { workspace_id?: unknown } = req.body ?? {};
     const boardName = normaliseName(name, 'My board', 255);
     if (!boardName) return res.status(400).json({ error: 'Board name is required' });
+
+    let workspaceId: string | null = null;
+    if (workspace_id !== undefined && workspace_id !== null && workspace_id !== '') {
+      if (!isValidUuid(workspace_id)) {
+        return res.status(400).json({ error: 'Invalid workspace id' });
+      }
+      // Decision: admins and members can add boards to a workspace. For
+      // admin-only, change 'member' to 'admin' on the next line.
+      if (!roleAtLeast(await getWorkspaceRole(userId, workspace_id), 'member')) {
+        return res.status(404).json({ error: 'Workspace not found' });
+      }
+      workspaceId = workspace_id;
+    }
 
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
 
       const position = await client.query(
-        'SELECT COALESCE(MAX(position), -1) + 1 AS next FROM boards WHERE user_id = $1',
-        [userId]
+        `SELECT COALESCE(MAX(position), -1) + 1 AS next FROM boards
+         WHERE workspace_id IS NOT DISTINCT FROM $1::uuid
+           AND ($1::uuid IS NOT NULL OR user_id = $2)`,
+        [workspaceId, userId]
       );
       const created = await client.query(
-        `INSERT INTO boards (user_id, name, position)
-         VALUES ($1, $2, $3)
+        `INSERT INTO boards (user_id, name, position, workspace_id)
+         VALUES ($1, $2, $3, $4)
          RETURNING ${BOARD_COLUMNS}`,
-        [userId, boardName, position.rows[0].next]
+        [userId, boardName, position.rows[0].next, workspaceId]
       );
 
-      // A new board starts with the same three columns as the original board,
-      // so it is immediately usable with no setup step.
       for (let i = 0; i < DEFAULT_COLUMNS.length; i += 1) {
         const d = DEFAULT_COLUMNS[i];
         await client.query(
@@ -214,7 +239,7 @@ export const createBoard = async (req: Request, res: Response) => {
       }
 
       await client.query('COMMIT');
-      res.status(201).json(created.rows[0]);
+      res.status(201).json({ ...created.rows[0], role: workspaceId ? 'admin' : 'admin' });
     } catch (error) {
       await client.query('ROLLBACK');
       throw error;
@@ -234,7 +259,7 @@ export const getBoardById = async (req: Request, res: Response) => {
     const { id } = req.params;
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
     if (!isValidUuid(id)) return res.status(400).json({ error: 'Invalid board id' });
-    if (!(await boardBelongsToUser(id, userId))) {
+    if (!(await boardBelongsToUser(id, userId, 'viewer'))) {
       return res.status(404).json({ error: 'Board not found' });
     }
 
@@ -268,10 +293,14 @@ export const updateBoard = async (req: Request, res: Response) => {
 
     if (updates.length === 0) return res.status(400).json({ error: 'No fields to update' });
 
-    values.push(id, userId);
+    if (!(await boardBelongsToUser(id, userId, 'admin'))) {
+      return res.status(404).json({ error: 'Board not found' });
+    }
+
+    values.push(id);
     const result = await pool.query(
       `UPDATE boards SET ${updates.join(', ')}, updated_at = NOW()
-       WHERE id = $${values.length - 1} AND user_id = $${values.length}
+       WHERE id = $${values.length}
        RETURNING ${BOARD_COLUMNS}`,
       values
     );
@@ -287,8 +316,9 @@ export const updateBoard = async (req: Request, res: Response) => {
 /**
  * DELETE /api/boards/:id
  *
- * Refuses to delete a user's last board, so there is always somewhere for new
- * tasks to land. Columns and their cards cascade away with it.
+ * Board admins only. Refuses to delete the last board in its space (a user's
+ * personal boards, or one workspace) so there is always somewhere to put tasks,
+ * and refuses to delete a board that still has tasks unless `?confirm=true`.
  */
 export const deleteBoard = async (req: Request, res: Response) => {
   try {
@@ -297,19 +327,24 @@ export const deleteBoard = async (req: Request, res: Response) => {
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
     if (!isValidUuid(id)) return res.status(400).json({ error: 'Invalid board id' });
 
-    const count = await pool.query(
-      'SELECT COUNT(*)::int AS n FROM boards WHERE user_id = $1',
-      [userId]
+    const board = await pool.query('SELECT id, workspace_id FROM boards WHERE id = $1', [id]);
+    if (board.rows.length === 0 || !(await boardBelongsToUser(id, userId, 'admin'))) {
+      return res.status(404).json({ error: 'Board not found' });
+    }
+
+    const siblings = await pool.query(
+      `SELECT COUNT(*)::int AS n FROM boards
+       WHERE workspace_id IS NOT DISTINCT FROM $1::uuid
+         AND ($1::uuid IS NOT NULL OR user_id = $2)`,
+      [board.rows[0].workspace_id, userId]
     );
-    if (count.rows[0].n <= 1) {
+    if (siblings.rows[0].n <= 1) {
       return res.status(400).json({ error: 'You need at least one board' });
     }
 
-    // A board's tasks live on it, so deleting the board deletes them (and
-    // their subtasks and activity). Make that an explicit choice.
     const tasksOnBoard = await pool.query(
-      'SELECT COUNT(*)::int AS n FROM tasks WHERE board_id = $1 AND user_id = $2',
-      [id, userId]
+      'SELECT COUNT(*)::int AS n FROM tasks WHERE board_id = $1',
+      [id]
     );
     if (tasksOnBoard.rows[0].n > 0 && req.query.confirm !== 'true') {
       return res.status(409).json({
@@ -318,12 +353,7 @@ export const deleteBoard = async (req: Request, res: Response) => {
       });
     }
 
-    const result = await pool.query(
-      'DELETE FROM boards WHERE id = $1 AND user_id = $2 RETURNING id',
-      [id, userId]
-    );
-    if (result.rows.length === 0) return res.status(404).json({ error: 'Board not found' });
-
+    await pool.query('DELETE FROM boards WHERE id = $1', [id]);
     res.json({ message: 'Board deleted successfully' });
   } catch (error) {
     console.error('Error deleting board:', error);
@@ -346,7 +376,7 @@ export const getColumns = async (req: Request, res: Response) => {
 
     if (!isValidUuid(boardId)) return res.status(400).json({ error: 'Invalid board id' });
 
-    if (!(await boardBelongsToUser(boardId, userId))) {
+    if (!(await boardBelongsToUser(boardId, userId, 'viewer'))) {
       return res.status(404).json({ error: 'Board not found' });
     }
     res.json(await listColumns(boardId));
@@ -506,13 +536,15 @@ export const deleteColumn = async (req: Request, res: Response) => {
     if (!isValidUuid(id)) return res.status(400).json({ error: 'Invalid column id' });
 
     const existing = await pool.query(
-      `SELECT bc.id, bc.board_id, bc.stage
-       FROM board_columns bc
-       JOIN boards b ON b.id = bc.board_id
-       WHERE bc.id = $1 AND b.user_id = $2`,
-      [id, userId]
+      'SELECT id, board_id, stage FROM board_columns WHERE id = $1',
+      [id]
     );
-    if (existing.rows.length === 0) return res.status(404).json({ error: 'Column not found' });
+    if (
+      existing.rows.length === 0 ||
+      !(await boardBelongsToUser(existing.rows[0].board_id, userId, 'admin'))
+    ) {
+      return res.status(404).json({ error: 'Column not found' });
+    }
 
     const column = existing.rows[0];
 
@@ -597,11 +629,8 @@ export const reorderColumns = async (req: Request, res: Response) => {
     }
 
     const owned = await pool.query(
-      `SELECT bc.id, bc.board_id
-       FROM board_columns bc
-       JOIN boards b ON b.id = bc.board_id
-       WHERE bc.id = ANY($1::uuid[]) AND b.user_id = $2`,
-      [column_ids, userId]
+      'SELECT id, board_id FROM board_columns WHERE id = ANY($1::uuid[])',
+      [column_ids]
     );
     if (owned.rows.length !== column_ids.length) {
       return res.status(404).json({ error: 'One or more columns were not found' });
@@ -610,6 +639,9 @@ export const reorderColumns = async (req: Request, res: Response) => {
     const boardId = owned.rows[0].board_id;
     if (owned.rows.some((r: { board_id: string }) => r.board_id !== boardId)) {
       return res.status(400).json({ error: 'All columns must belong to the same board' });
+    }
+    if (!(await boardBelongsToUser(boardId, userId, 'admin'))) {
+      return res.status(404).json({ error: 'One or more columns were not found' });
     }
 
     const all = await pool.query(
