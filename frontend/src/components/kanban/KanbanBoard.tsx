@@ -66,7 +66,15 @@ const KanbanBoard: React.FC = () => {
         ? 'grid grid-cols-1 gap-4 md:grid-cols-4'
         : 'grid grid-cols-1 gap-4 md:grid-cols-3';
 
-  const allTasks = useMemo(() => tasks ?? [], [tasks]);
+  // Only this board's cards. Before the 1.1b backfill a card can have no board
+  // yet; those still show up (on whichever board is open) rather than vanish.
+  const allTasks = useMemo(
+    () =>
+      (tasks ?? []).filter(
+        (task) => !hasRealColumns || !boardId || !task.board_id || task.board_id === boardId
+      ),
+    [tasks, hasRealColumns, boardId]
+  );
 
   // Cards are grouped by the column they sit in rather than a fixed status
   // bucket, so two columns sharing a stage ("Doing" / "In review") stay apart.

@@ -14,8 +14,6 @@ export interface Task {
   /** Board/column placement. Null for tasks that predate custom columns. */
   board_id?: string | null;
   column_id?: string | null;
-  /** ID of the user this task is assigned to. */
-  assignee_id?: string | null;
   created_at: string;
   updated_at: string;
   /** Sub-task progress, supplied by the backend. */
@@ -29,6 +27,19 @@ export interface CreateTaskInput {
   category?: Category;
   priority?: Priority;
   due_date?: string;
+  /** Create the task on this board (its first column for the status). */
+  board_id?: string;
+  /** Create the task in this exact column. */
+  column_id?: string;
+}
+
+export interface UpdateTaskInput {
+  title?: string;
+  description?: string;
+  category?: Category;
+  priority?: Priority;
+  due_date?: string;
+  status?: Status;
 }
 
 export interface TaskFilters {
@@ -62,24 +73,6 @@ export interface Subtask {
 export interface CreateSubtaskInput {
   title: string;
   completed?: boolean;
-}
-
-export interface UpdateSubtaskInput {
-  title?: string;
-  completed?: boolean;
-}
-
-export interface UpdateTaskInput {
-  title?: string;
-  description?: string;
-  category?: Category;
-  priority?: Priority;
-  due_date?: string;
-  status?: Status;
-}
-
-export interface AssignTaskInput {
-  assigneeId: string;
 }
 
 export interface UpdateSubtaskInput {

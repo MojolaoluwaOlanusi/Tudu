@@ -1,15 +1,5 @@
 import axios from 'axios';
-import {
-  Board,
-  BoardColumn,
-  CreateColumnInput,
-  UpdateColumnInput,
-  Workspace,
-  WorkspaceMember,
-  TeamRole,
-  CreateWorkspaceInput,
-  SetMemberRoleInput,
-} from '../types/board';
+import { Board, BoardColumn, CreateColumnInput, UpdateColumnInput } from '../types/board';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -19,61 +9,6 @@ export const boardService = {
   /** Lists the user's boards, creating the default one on first call. */
   getBoards: async (token: string): Promise<Board[]> => {
     const res = await axios.get(`${API_URL}/api/boards`, { headers: auth(token) });
-    return res.data;
-  },
-
-  /** List the user's workspaces */
-  getWorkspaces: async (token: string): Promise<Workspace[]> => {
-    const res = await axios.get(`${API_URL}/api/workspaces`, { headers: auth(token) });
-    return res.data;
-  },
-
-  /** Create a new workspace (owner = admin) */
-  createWorkspace: async (token: string, name: string): Promise<Workspace> => {
-    const res = await axios.post(`${API_URL}/api/workspaces`, { name }, { headers: auth(token) });
-    return res.data;
-  },
-
-  /** Invite a member to a workspace */
-  inviteToWorkspace: async (
-    token: string,
-    workspaceId: string,
-    email: string,
-    role: TeamRole
-  ): Promise<WorkspaceMember> => {
-    const res = await axios.post(
-      `${API_URL}/api/workspaces/${workspaceId}/invite`,
-      { email, role },
-      { headers: auth(token) }
-    );
-    return res.data;
-  },
-
-  /** Update a member's role in a workspace */
-  setMemberRole: async (
-    token: string,
-    workspaceId: string,
-    memberId: string,
-    role: TeamRole
-  ): Promise<{ message: string }> => {
-    const res = await axios.patch(
-      `${API_URL}/api/workspaces/${workspaceId}/members/${memberId}/role`,
-      { role },
-      { headers: auth(token) }
-    );
-    return res.data;
-  },
-
-  /** Remove a member from a workspace */
-  removeMember: async (
-    token: string,
-    workspaceId: string,
-    memberId: string
-  ): Promise<{ message: string }> => {
-    const res = await axios.delete(
-      `${API_URL}/api/workspaces/${workspaceId}/members/${memberId}`,
-      { headers: auth(token) }
-    );
     return res.data;
   },
 
@@ -88,7 +23,12 @@ export const boardService = {
   },
 
   deleteBoard: async (token: string, id: string): Promise<void> => {
-    await axios.delete(`${API_URL}/api/boards/${id}`, { headers: auth(token) });
+    // The UI asks the user to confirm before calling this; `confirm=true` is
+    // what the server requires to delete a board that still has tasks.
+    await axios.delete(`${API_URL}/api/boards/${id}`, {
+      headers: auth(token),
+      params: { confirm: 'true' },
+    });
   },
 
   getColumns: async (token: string, boardId: string): Promise<BoardColumn[]> => {
