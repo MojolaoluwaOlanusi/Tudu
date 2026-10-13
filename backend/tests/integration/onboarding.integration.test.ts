@@ -14,11 +14,19 @@ describe('onboarding', () => {
     await destroyUser(user);
   });
 
-  it('GET /api/onboarding/templates returns the four built-ins', async () => {
+  it('GET /api/onboarding/templates returns every built-in', async () => {
     const res = await request(app).get('/api/onboarding/templates').set(auth(user));
     expect(res.status).toBe(200);
     const slugs = res.body.map((t: { slug: string }) => t.slug).sort();
-    expect(slugs).toEqual(['blank', 'content-calendar', 'personal', 'team-sprint']);
+    expect(slugs).toEqual([
+      'blank',
+      'bug-tracker',
+      'content-calendar',
+      'freelancer-projects',
+      'personal',
+      'student-kanban',
+      'team-sprint',
+    ]);
   });
 
   it('POST /api/onboarding/seed applies a template to the first board', async () => {

@@ -3,6 +3,7 @@ import { useBoards, useCreateBoard, useDeleteBoard, useRenameBoard } from '../..
 import { useWorkspaces } from '../../hooks/useWorkspaces';
 import { useBoardStore } from '../../store/boardStore';
 import { useUiStore } from '../../store/uiStore';
+import TemplateGalleryModal from './TemplateGalleryModal';
 
 interface BoardsModalProps {
   onClose: () => void;
@@ -19,6 +20,7 @@ const BoardsModal: React.FC<BoardsModalProps> = ({ onClose }) => {
   const pushToast = useUiStore((s) => s.pushToast);
   const [newName, setNewName] = useState('');
   const [workspaceId, setWorkspaceId] = useState('');
+  const [galleryOpen, setGalleryOpen] = useState(false);
 
   // Viewers cannot add boards to a workspace.
   const creatable = workspaces.filter((w) => w.role !== 'viewer');
@@ -121,14 +123,16 @@ const BoardsModal: React.FC<BoardsModalProps> = ({ onClose }) => {
               ))}
             </select>
           )}
-          <button
-            type="submit"
-            disabled={!newName.trim() || busy}
-            className="btn-accent rounded-lg px-3 py-2 text-sm font-semibold disabled:opacity-50"
+<button
+            type="button"
+            onClick={() => setGalleryOpen(true)}
+            data-tour="browse-templates"
+            className="text-xs font-semibold text-accent-strong hover:text-accent"
           >
-            Create board
+            Or browse templates →
           </button>
         </form>
+
 
         <ul className="space-y-2">
           {boards.map((board) => {
@@ -171,6 +175,7 @@ const BoardsModal: React.FC<BoardsModalProps> = ({ onClose }) => {
           })}
         </ul>
       </div>
+      {galleryOpen && <TemplateGalleryModal onClose={() => setGalleryOpen(false)} />}
     </div>
   );
 };
