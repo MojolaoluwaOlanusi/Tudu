@@ -10,6 +10,7 @@ import {
 } from '../services/realtimeService';
 import { CreateTaskInput, UpdateTaskInput, TaskFilters, Status } from '../types/task';
 import { SOCKET_EVENTS } from '../types/socket';
+import { parseQuery, buildFilterFragment, buildOrderClause } from '../services/taskQueryBuilder';
 import {
   getBoardRole,
   resolveColumn,
@@ -78,7 +79,22 @@ export const getAllTasks = async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    const { status, category, priority, search, scope } = req.query as TaskFilters;
+    const {
+      status,
+      category,
+      priority,
+      search: rawSearch,
+      scope,
+      sort,
+      order,
+    } = req.query as TaskFilters;
+
+    // Feature 4.3 — the search field is a small query language. Operators
+    // (@me, #work, due:week, ...) narrow the result; anything left becomes
+    // free text. The `search` variable below is the free-text piece, so the
+    // existing ILIKE block keeps working unchanged.
+    const parsed = parseQuery(rawSearch ?? '');
+    const search = parsed.freeText || undefined;
 
     // `scope=all` adds tasks on boards shared with me (the Kanban asks for
     // this). The default stays "tasks I created", so the List view is unchanged.
@@ -116,8 +132,16 @@ export const getAllTasks = async (req: Request, res: Response) => {
       query += ` AND (t.title ILIKE $${paramCount} OR t.description ILIKE $${paramCount})`;
       params.push(`%${search}%`);
     }
+    // Feature 4.3 — the operator portions of the parsed query.
+    {
+      const fragment = buildFilterFragment(parsed, userId, params.length + 1);
+      query += fragment.sql;
+      params.push(...fragment.params);
+      paramCount = params.length;
+    }
 
-    query += ` ORDER BY t.created_at DESC`;
+
+    query += ` ${buildOrderClause(sort, order)}`;
 
     const result = await pool.query(query, params);
     res.json(result.rows);

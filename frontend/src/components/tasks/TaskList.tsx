@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import {
   useTasks,
   useCreateTask,
@@ -18,6 +18,9 @@ import TaskCard from './TaskCard';
 import TaskForm from './TaskForm';
 import ShareModal from '../sharing/ShareModal';
 import { useMyShares, flattenShares } from '../../hooks/useSharing';
+import QueryBar from './QueryBar';
+import SortDropdown from './SortDropdown';
+import { useSearchParams } from 'react-router-dom';
 import { useActiveBoardId } from '../../hooks/useBoards';
 import SearchBar from '../common/SearchBar';
 import FilterDropdown from '../common/FilterDropdown';
@@ -56,6 +59,24 @@ const TaskList: React.FC = () => {
   const { data: tasks, isLoading, isFetching, isError, error, refetch } =
     useTasks(activeFilters);
   const { data: overdueTasks } = useOverdueTasks();
+  const [taskQueryParams] = useSearchParams();
+  const setSearchFilter = useFilterStore((s) => s.setSearch);
+  const setSortFilter = useFilterStore((s) => s.setSort);
+  const setOrderFilter = useFilterStore((s) => s.setOrder);
+
+  // Feature 4.3 — the query bar writes ?q=, ?sort= and ?order= into the URL.
+  // This effect copies them into the filter store so the existing useTasks
+  // query picks them up unchanged.
+  useEffect(() => {
+    const q = taskQueryParams.get('q');
+    if (q !== null && q !== search) setSearchFilter(q);
+    const s = taskQueryParams.get('sort');
+    if (s) setSortFilter(s as never);
+    const o = taskQueryParams.get('order');
+    if (o === 'asc' || o === 'desc') setOrderFilter(o);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [taskQueryParams]);
+
   const createTask = useCreateTask();
   const activeBoardId = useActiveBoardId();
   const updateTask = useUpdateTask();
@@ -183,12 +204,14 @@ const TaskList: React.FC = () => {
         <p className="text-xs text-ink-muted">Syncing…</p>
       )}
 
-      {/* Search is always visible */}
-      <SearchBar
-        value={search}
-        onChange={setSearch}
-        placeholder="Search tasks by title or description..."
-      />
+      {/* Search + sort row. The query bar drives ?q=, the dropdown drives
+          ?sort= and ?order=; both feed the same useTaskFilters below. */}
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="min-w-0 flex-1">
+          <QueryBar />
+        </div>
+        <SortDropdown />
+      </div>
 
       {/* Filter panel: collapsible on mobile, always open from sm upwards */}
       <div className={`card p-4 ${isSidebarOpen ? 'block' : 'hidden'} sm:block`} data-tour="filters">
