@@ -1,4 +1,4 @@
-﻿import express, { Application, Request } from 'express';
+import express, { Application, Request } from 'express';
 import net from 'net';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -16,6 +16,7 @@ import pomodoroRoutes from './routes/pomodoro';
 import analyticsRoutes from './routes/analytics';
 import { boardsRouter, columnsRouter } from './routes/boards';
 import workspaceRoutes from './routes/workspaces';
+import publicRoutes from './routes/public';
 
 dotenv.config();
 
@@ -129,5 +130,6 @@ app.use('/api/analytics', analyticsRoutes);
 app.use('/api/boards', boardsRouter);
 app.use('/api/columns', columnsRouter);
 app.use('/api/workspaces', workspaceRoutes);
+app.use('/api/public', publicRoutes);
 
 export default app;

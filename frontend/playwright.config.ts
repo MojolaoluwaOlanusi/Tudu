@@ -3,9 +3,10 @@ import { defineConfig, devices } from '@playwright/test';
 /**
  * End-to-end tests for the critical user flows.
  *
- * The frontend dev server is started automatically; the backend is expected to
- * already be running on :5000 (`reuseExistingServer` means a dev server you
- * started yourself is reused rather than fighting over the port).
+ * Playwright starts both dev servers: the frontend on :5173 and the backend
+ * on :5000. `reuseExistingServer: true` means a server you started yourself
+ * is reused rather than fought over, so this works the same whether you run
+ * `npm run dev` in another terminal or let Playwright do it for you.
  */
 export default defineConfig({
   testDir: './e2e',
@@ -32,10 +33,21 @@ export default defineConfig({
       use: { ...devices['Pixel 7'] },
     },
   ],
-  webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:5173',
-    reuseExistingServer: true,
-    timeout: 120_000,
-  },
+  webServer: [
+    {
+      command: 'npm run dev',
+      url: 'http://localhost:5173',
+      reuseExistingServer: true,
+      timeout: 120_000,
+    },
+    {
+      // Runs the backend from the sibling folder. Playwright waits until
+      // /api/public/stats answers 200, so the server is fully ready before
+      // any test starts — not merely bound to its port.
+      command: 'npm --prefix ../backend run dev',
+      url: 'http://localhost:5000/api/public/stats',
+      reuseExistingServer: true,
+      timeout: 120_000,
+    },
+  ],
 });
