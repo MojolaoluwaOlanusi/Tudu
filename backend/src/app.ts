@@ -17,6 +17,7 @@ import analyticsRoutes from './routes/analytics';
 import { boardsRouter, columnsRouter } from './routes/boards';
 import workspaceRoutes from './routes/workspaces';
 import publicRoutes from './routes/public';
+import onboardingRoutes from './routes/onboarding';
 
 dotenv.config();
 
@@ -131,5 +132,6 @@ app.use('/api/boards', boardsRouter);
 app.use('/api/columns', columnsRouter);
 app.use('/api/workspaces', workspaceRoutes);
 app.use('/api/public', publicRoutes);
+app.use('/api/onboarding', onboardingRoutes);
 
 export default app;

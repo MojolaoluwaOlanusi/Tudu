@@ -14,6 +14,7 @@ import KanbanBoard from './components/kanban/KanbanBoard';
 import BoardTaskForm from './components/kanban/BoardTaskForm';
 import BoardSelector from './components/common/BoardSelector';
 import Landing from './components/landing/Landing';
+import WizardRoot from './components/onboarding/WizardRoot';
 import WorkspaceInvites from './components/workspace/WorkspaceInvites';
 import SharedListsSidebar from './components/sharing/SharedListsSidebar';
 import ShareInvites from './components/sharing/ShareInvites';
@@ -161,6 +162,7 @@ function App() {
         </Routes>
         <CollaborationBridge />
         <PomodoroRunner />
+        <WizardRoot />
         <OnboardingRoot />
         <ToastContainer />
         <VercelAnalytics />
