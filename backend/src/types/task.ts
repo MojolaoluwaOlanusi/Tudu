@@ -66,6 +66,10 @@ export interface TaskFilters {
   search?: string;
   /** `all` also returns tasks on boards shared with the caller. */
   scope?: 'all';
+  /** Which column to sort by. */
+  sort?: 'created_at' | 'updated_at' | 'due_date' | 'title' | 'priority';
+  /** `desc` (the default) or `asc`. */
+  order?: 'asc' | 'desc';
 }
 
 /**
