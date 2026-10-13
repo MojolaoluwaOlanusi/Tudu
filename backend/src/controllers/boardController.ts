@@ -1,5 +1,7 @@
 import { Request, Response } from 'express';
 import pool from '../config/database';
+import { emitToUser, emitToUsers } from '../utils/socket';
+import { SOCKET_EVENTS } from '../types/socket';
 import {
   BoardRole,
   getBoardRole,
@@ -70,6 +72,41 @@ const boardBelongsToUser = async (
 /** Resolves a column through its board, so access is checked in one hop. */
 const columnBelongsToUser = async (columnId: string, userId: string): Promise<boolean> =>
   (await resolveColumn(userId, columnId, 'admin')) !== null;
+
+/**
+ * Broadcast a board/column event to the owner and (if the board is on a
+ * workspace) every accepted member, so their client refreshes the list in
+ * real time. Failures are swallowed: a missed socket event must never fail
+ * the request that caused it.
+ */
+const broadcastBoard = async (
+  event: string,
+  boardId: string,
+  actorId: string,
+  payload: Record<string, unknown> = {}
+): Promise<void> => {
+  try {
+    const row = await pool.query('SELECT user_id, workspace_id FROM boards WHERE id = $1', [
+      boardId,
+    ]);
+    if (row.rows.length === 0) return;
+    const ownerId = row.rows[0].user_id;
+    const workspaceId = row.rows[0].workspace_id;
+
+    const recipients = new Set<string>([ownerId]);
+    if (workspaceId) {
+      const members = await pool.query(
+        `SELECT user_id FROM workspace_members
+          WHERE workspace_id = $1 AND status = 'accepted'`,
+        [workspaceId]
+      );
+      members.rows.forEach((m: { user_id: string }) => recipients.add(m.user_id));
+    }
+    emitToUsers(recipients, event, { boardId, actorId, ...payload });
+  } catch (error) {
+    console.error('Error broadcasting board event:', error);
+  }
+};
 
 /** The columns of a board, with a live card count and WIP flag on each. */
 const listColumns = async (boardId: string): Promise<BoardColumn[]> => {
@@ -239,7 +276,9 @@ export const createBoard = async (req: Request, res: Response) => {
       }
 
       await client.query('COMMIT');
-      res.status(201).json({ ...created.rows[0], role: workspaceId ? 'admin' : 'admin' });
+      const newBoard = { ...created.rows[0], role: 'admin' as const };
+      await broadcastBoard(SOCKET_EVENTS.boardCreated, newBoard.id, userId, { board: newBoard });
+      res.status(201).json(newBoard);
     } catch (error) {
       await client.query('ROLLBACK');
       throw error;
@@ -354,6 +393,7 @@ export const deleteBoard = async (req: Request, res: Response) => {
     }
 
     await pool.query('DELETE FROM boards WHERE id = $1', [id]);
+    await broadcastBoard(SOCKET_EVENTS.boardDeleted, id, userId, { deleted: true });
     res.json({ message: 'Board deleted successfully' });
   } catch (error) {
     console.error('Error deleting board:', error);

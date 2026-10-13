@@ -4,6 +4,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { format } from 'date-fns';
 import { Task } from '../../types/task';
 import { isOverdueTask } from '../../lib/taskCache';
+import AssigneeChip from '../workspace/AssigneeChip';
 
 interface KanbanCardBodyProps {
   task: Task;
@@ -99,6 +100,8 @@ export const KanbanCardBody: React.FC<KanbanCardBodyProps> = ({
           </span>
         )}
       </div>
+
+      <AssigneeChip task={task} />
 
       {subtaskTotal > 0 && (
         <div className="mt-2 flex items-center gap-1.5">

@@ -14,13 +14,18 @@ export const assignTask = async (req: Request, res: Response) => {
   try {
     const userId = req.user?.userId;
     const { id } = req.params;
-    const { assignee_id } = (req.body ?? {}) as { assignee_id?: unknown };
+    const rawAssignee = (req.body ?? {}).assignee_id;
 
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
     if (!isValidUuid(id)) return res.status(400).json({ error: 'Invalid task id' });
-    if (assignee_id !== null && !isValidUuid(assignee_id)) {
+
+    // `null` explicitly means "unassign"; anything else must be a real UUID.
+    // `undefined` is treated as "unassign" too, so a missing field is not a 400.
+    if (rawAssignee !== null && rawAssignee !== undefined && !isValidUuid(rawAssignee)) {
       return res.status(400).json({ error: 'assignee_id must be a user id or null' });
     }
+    // Explicitly typed so TypeScript knows this is string | null from here on.
+    const assigneeId: string | null = (rawAssignee as string | null | undefined) ?? null;
 
     const task = await pool.query(
       `SELECT t.id, t.title, t.board_id FROM tasks t
@@ -29,9 +34,9 @@ export const assignTask = async (req: Request, res: Response) => {
     );
     if (task.rows.length === 0) return res.status(404).json({ error: 'Task not found' });
 
-    if (assignee_id !== null) {
-      const boardId = task.rows[0].board_id;
-      if (!boardId || !roleAtLeast(await getBoardRole(assignee_id, boardId), 'member')) {
+    if (assigneeId !== null) {
+      const boardId = task.rows[0].board_id as string | null;
+      if (!boardId || !roleAtLeast(await getBoardRole(assigneeId, boardId), 'member')) {
         return res
           .status(400)
           .json({ error: 'The assignee must be a member of the board this task is on' });
@@ -40,7 +45,7 @@ export const assignTask = async (req: Request, res: Response) => {
 
     const result = await pool.query(
       'UPDATE tasks SET assignee_id = $1, updated_at = NOW() WHERE id = $2 RETURNING *',
-      [assignee_id, id]
+      [assigneeId, id]
     );
 
     await logActivity(userId, 'task_updated', id, {

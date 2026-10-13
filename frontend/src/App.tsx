@@ -11,6 +11,8 @@ import Header from './components/layout/Header';
 import TaskList from './components/tasks/TaskList';
 import KanbanBoard from './components/kanban/KanbanBoard';
 import BoardTaskForm from './components/kanban/BoardTaskForm';
+import BoardSelector from './components/common/BoardSelector';
+import WorkspaceInvites from './components/workspace/WorkspaceInvites';
 import SharedListsSidebar from './components/sharing/SharedListsSidebar';
 import ShareInvites from './components/sharing/ShareInvites';
 import SharedWithMeSection from './components/sharing/SharedWithMeSection';
@@ -47,6 +49,8 @@ const Shell = ({ children }: { children: ReactNode }) => (
         <div className="mb-4 lg:hidden">
           <ShareInvites />
         </div>
+        <BoardSelector />
+        <WorkspaceInvites />
         <SharedWithMeSection />
         {children}
         <div className="mt-6" data-tour="activity">

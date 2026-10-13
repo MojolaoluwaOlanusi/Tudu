@@ -18,6 +18,37 @@ import {
   taskVisibleSql,
 } from '../services/boardAccess';
 
+/**
+ * WIP enforcement: refuse a move that would push a column past its wip_limit.
+ *
+ * The count excludes the tasks being moved, so re-dropping a card into the
+ * column it already lives in never trips the limit. Returns a user-facing
+ * message when the move must be refused, or null when it is allowed.
+ */
+const wipViolation = async (
+  columnId: string | null,
+  movingIds: string[]
+): Promise<string | null> => {
+  if (!columnId) return null;
+  const column = await pool.query(
+    'SELECT name, wip_limit FROM board_columns WHERE id = $1',
+    [columnId]
+  );
+  if (column.rows.length === 0) return null;
+  const limit = column.rows[0].wip_limit;
+  if (limit === null || limit === undefined) return null;
+
+  const count = await pool.query(
+    `SELECT COUNT(*)::int AS n FROM tasks
+      WHERE column_id = $1 AND NOT (id = ANY($2::uuid[]))`,
+    [columnId, movingIds]
+  );
+  if (count.rows[0].n >= limit) {
+    return `"${column.rows[0].name}" is full (WIP limit ${limit}). Move or finish a card first.`;
+  }
+  return null;
+};
+
 /** LEFT JOIN that adds subtask totals to every task row. */
 const TASK_SUBTASK_COUNTS_JOIN = `
   LEFT JOIN (
@@ -462,6 +493,12 @@ export const updateTaskStatus = async (req: Request, res: Response) => {
         .json({ error: 'Status must be one of: todo, doing, done' });
     }
 
+    // Refuse the move if the destination column is at its WIP limit.
+    if (targetColumn) {
+      const violation = await wipViolation(targetColumn, [id]);
+      if (violation) return res.status(409).json({ error: violation });
+    }
+
     const before = await pool.query(
       `SELECT t.id, t.title, t.status FROM tasks t WHERE t.id = $1 AND ${taskEditableSql('$2')}`,
       [id, userId]
@@ -560,6 +597,19 @@ export const batchUpdateTaskStatus = async (req: Request, res: Response) => {
       ids.push(update.id);
       statuses.push(status);
       columnIds.push(columnId);
+    }
+
+    // Group by destination column and check each once.
+    const byColumn = new Map<string, string[]>();
+    updates.forEach((u) => {
+      if (!u.column_id) return;
+      const list = byColumn.get(u.column_id) ?? [];
+      list.push(u.id);
+      byColumn.set(u.column_id, list);
+    });
+    for (const [columnId, moved] of byColumn) {
+      const violation = await wipViolation(columnId, moved);
+      if (violation) return res.status(409).json({ error: violation });
     }
 
     const before = await pool.query(

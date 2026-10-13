@@ -5,6 +5,13 @@ export const userRoom = (userId: string): string => `user-${userId}`;
 
 /** Task events pushed by the server. Kept in one place so both sides agree. */
 export const SOCKET_EVENTS = {
+  boardCreated: 'board:created',
+  boardUpdated: 'board:updated',
+  boardDeleted: 'board:deleted',
+  columnCreated: 'column:created',
+  columnUpdated: 'column:updated',
+  columnDeleted: 'column:deleted',
+  columnsReordered: 'columns:reordered',
   taskCreate: 'task:create',
   taskUpdate: 'task:update',
   taskMove: 'task:move',

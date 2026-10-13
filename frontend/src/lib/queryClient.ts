@@ -45,6 +45,8 @@ export const queryKeys = {
   },
   workspaces: {
     all: ['workspaces'] as const,
+    invites: ['workspaces', 'invites'] as const,
+    members: (id: string) => ['workspaces', 'members', id] as const,
   },
   shares: {
     all: ['shares'] as const,

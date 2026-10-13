@@ -19,6 +19,13 @@ const SOCKET_URL =
 
 /** Sharing events that predate the task events and still drive refetches. */
 const COLLAB_EVENTS = [
+  'board:created',
+  'board:updated',
+  'board:deleted',
+  'column:created',
+  'column:updated',
+  'column:deleted',
+  'columns:reordered',
   'share-invited',
   'share-accepted',
   'share-declined',
