@@ -54,6 +54,17 @@ const TaskList: React.FC = () => {
     setSelectMode(false);
   };
 
+  // Feature 4.7 — Esc leaves select mode. The keyboard-shortcuts hook
+  // fires this event so the List view does not have to expose its local
+  // state or move it into a store.
+  useEffect(() => {
+    if (!selectMode) return;
+    const handler = () => exitSelectMode();
+    window.addEventListener('tudu:escape', handler);
+    return () => window.removeEventListener('tudu:escape', handler);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectMode]);
+
   const handleBulkDone = async () => {
     const ids = Array.from(selectedIds);
     if (ids.length === 0) return;

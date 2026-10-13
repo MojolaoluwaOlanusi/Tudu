@@ -225,6 +225,7 @@ const QueryBar = () => {
           placeholder={
             chips.length === 0 && !input ? 'Search tasks, or try @me #work due:week…' : ''
           }
+          data-shortcut-search=""
           aria-label="Search and filter tasks"
           autoComplete="off"
           autoCorrect="off"

@@ -24,11 +24,21 @@ import SharedListView from './components/sharing/SharedListView';
 import PomodoroStats from './components/pomodoro/PomodoroStats';
 import PomodoroRunner from './components/pomodoro/PomodoroRunner';
 import ToastContainer from './components/common/ToastContainer';
+import ShortcutHelp from './components/common/ShortcutHelp';
+import CommandPalette from './components/common/CommandPalette';
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import UndoToast from './components/common/UndoToast';
 import OnboardingRoot from './components/onboarding/OnboardingRoot';
 import { ConfettiProvider } from './components/common/ConfettiProvider';
 
 /** Opens the real-time socket once we know who is signed in. */
+/** Mounts the global keyboard listener. Inside Router, so useNavigate
+    works; called once, so every keypress is handled exactly once. */
+const ShortcutBridge = () => {
+  useKeyboardShortcuts();
+  return null;
+};
+
 const CollaborationBridge = () => {
   useRealtimeSync();
   return null;
@@ -162,6 +172,9 @@ function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
         <CollaborationBridge />
+        <ShortcutBridge />
+        <ShortcutHelp />
+        <CommandPalette />
         <PomodoroRunner />
         <WizardRoot />
         <OnboardingRoot />
