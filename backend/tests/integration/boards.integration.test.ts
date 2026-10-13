@@ -364,6 +364,19 @@ describe('boards and columns', () => {
       }
     }
 
+    // Earlier tests in this file create their own boards and do not always
+    // clean them up, so this test cannot assume the user has exactly one
+    // board left. Delete every board except the first, so the assertion
+    // below runs against a known state of exactly one.
+    const current = await request(app).get('/api/boards').set(auth(user));
+    const [, ...extra] = current.body as { id: string }[];
+    for (const b of extra) {
+      await request(app)
+        .delete(`/api/boards/${b.id}`)
+        .query({ confirm: 'true' })
+        .set(auth(user));
+    }
+
     const last = await request(app).get('/api/boards').set(auth(user));
     expect(last.body).toHaveLength(1);
 
