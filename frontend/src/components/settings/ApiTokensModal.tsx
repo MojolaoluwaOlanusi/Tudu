@@ -75,12 +75,12 @@ const ApiTokensModal: React.FC<ApiTokensModalProps> = ({ onClose }) => {
 
   return (
     <div
-      className='fixed inset-0 z-[70] flex items-end justify-center bg-black/50 p-3 sm:items-center sm:p-4'
+      className='fixed inset-0 z-[70] flex items-start justify-center overflow-y-auto bg-black/50 p-3 pt-16 pb-6 sm:pt-20'
       onClick={onClose}
       role='presentation'
     >
       <div
-        className='max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-2xl border border-hairline bg-surface p-5 shadow-xl sm:p-6'
+        className='w-full max-w-xl rounded-2xl border border-hairline bg-surface p-5 shadow-xl sm:p-6'
         onClick={(event) => event.stopPropagation()}
         role='dialog'
         aria-modal='true'
