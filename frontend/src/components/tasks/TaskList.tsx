@@ -20,6 +20,8 @@ import ShareModal from '../sharing/ShareModal';
 import { useMyShares, flattenShares } from '../../hooks/useSharing';
 import QueryBar from './QueryBar';
 import SortDropdown from './SortDropdown';
+import SortDirectionToggle from './SortDirectionToggle';
+import { useUserPreferencesSync } from '../../hooks/useUserPreferencesSync';
 import { useSearchParams } from 'react-router-dom';
 import { useActiveBoardId } from '../../hooks/useBoards';
 import SearchBar from '../common/SearchBar';
@@ -59,6 +61,10 @@ const TaskList: React.FC = () => {
   const { data: tasks, isLoading, isFetching, isError, error, refetch } =
     useTasks(activeFilters);
   const { data: overdueTasks } = useOverdueTasks();
+  // Feature 4.4 — load the user's saved default sort on mount and persist
+  // changes back to the server so the choice follows them across devices.
+  useUserPreferencesSync();
+
   const [taskQueryParams] = useSearchParams();
   const setSearchFilter = useFilterStore((s) => s.setSearch);
   const setSortFilter = useFilterStore((s) => s.setSort);
@@ -211,6 +217,7 @@ const TaskList: React.FC = () => {
           <QueryBar />
         </div>
         <SortDropdown />
+        <SortDirectionToggle />
       </div>
 
       {/* Filter panel: collapsible on mobile, always open from sm upwards */}

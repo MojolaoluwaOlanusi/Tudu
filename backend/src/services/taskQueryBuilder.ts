@@ -155,13 +155,21 @@ const SORT_COLUMNS: Record<string, string> = {
   title: 't.title',
   priority:
     "CASE t.priority WHEN 'low' THEN 1 WHEN 'medium' THEN 2 WHEN 'high' THEN 3 ELSE 4 END",
+  // NULLS LAST so a task with no assignee does not sort to the top when the
+  // order is ascending; a null is not "smaller" than a real value here.
+  assignee: 't.assignee_id',
+  category: 't.category',
 };
+
+const NULLABLE_SORTS = new Set(['due_date', 'assignee', 'category']);
 
 export const buildOrderClause = (
   sort: string | undefined,
   order: string | undefined
 ): string => {
-  const col = SORT_COLUMNS[sort ?? 'created_at'] ?? SORT_COLUMNS.created_at;
+  const key = sort ?? 'created_at';
+  const col = SORT_COLUMNS[key] ?? SORT_COLUMNS.created_at;
   const dir = order === 'asc' ? 'ASC' : 'DESC';
-  return `ORDER BY ${col} ${dir}, t.created_at DESC`;
+  const nulls = NULLABLE_SORTS.has(key) ? ' NULLS LAST' : '';
+  return `ORDER BY ${col} ${dir}${nulls}, t.created_at DESC`;
 };
