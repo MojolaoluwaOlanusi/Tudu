@@ -430,35 +430,3 @@ button,
 a {
   transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
 }
-
-
-/* ------------------------------------------------------------------ */
-/* Desktop PWA — Window Controls Overlay (feature 4.8b)                */
-/*                                                                     */
-/* When the OS hands us the title bar strip via display_override, the  */
-/* app fills it. The strip must be draggable to move the window;       */
-/* anything interactive inside it has to say so explicitly.            */
-/* ------------------------------------------------------------------ */
-
-.wco-drag {
-  -webkit-app-region: drag;
-  app-region: drag;
-}
-
-.wco-no-drag,
-.wco-drag button,
-.wco-drag a,
-.wco-drag input,
-.wco-drag select,
-.wco-drag [role='button'] {
-  -webkit-app-region: no-drag;
-  app-region: no-drag;
-}
-
-/* Add safe-area padding to the page when the overlay is present, so the */
-/* Header is not hidden underneath the drag strip.                       */
-@supports (padding-top: env(titlebar-area-height)) {
-  html.wco-visible body {
-    padding-top: env(titlebar-area-height, 0px);
-  }
-}

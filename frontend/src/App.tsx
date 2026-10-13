@@ -1,6 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { lazy, Suspense, useEffect, type ReactNode } from 'react';
+import { lazy, Suspense, type ReactNode } from 'react';
 import { Analytics as VercelAnalytics } from '@vercel/analytics/react';
 import { queryClient } from './lib/queryClient';
 import { useRealtimeSync } from './hooks/useRealtimeSync';
@@ -9,8 +9,6 @@ import Login from './components/auth/Login';
 import AuthCallback from './components/auth/AuthCallback';
 import ProtectedRoute from './components/common/ProtectedRoute';
 import Header from './components/layout/Header';
-import AppTitleBar from './components/layout/AppTitleBar';
-
 import TaskList from './components/tasks/TaskList';
 import KanbanBoard from './components/kanban/KanbanBoard';
 import BoardTaskForm from './components/kanban/BoardTaskForm';
@@ -31,8 +29,6 @@ import CommandPalette from './components/common/CommandPalette';
 import InstallPrompt from './components/common/InstallPrompt';
 import OfflineIndicator from './components/common/OfflineIndicator';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
-import { useWindowControlsOverlay } from './hooks/useWindowControlsOverlay';
-
 import UndoToast from './components/common/UndoToast';
 import OnboardingRoot from './components/onboarding/OnboardingRoot';
 import { ConfettiProvider } from './components/common/ConfettiProvider';
@@ -59,7 +55,6 @@ const AnalyticsDashboard = lazy(() => import('./components/analytics/AnalyticsDa
 /** App shell: header plus the shared-lists sidebar on large screens. */
 const Shell = ({ children }: { children: ReactNode }) => (
   <div className="min-h-screen">
-    <AppTitleBar />
     <Header />
     <div className="mx-auto flex w-full max-w-6xl gap-6 px-4 py-6 sm:px-6 sm:py-8">
       <aside className="hidden w-64 shrink-0 lg:block" data-tour="shared">
@@ -129,13 +124,6 @@ const Analytics = () => (
 );
 
 function App() {
-  // Feature 4.8b — tell CSS whether the Window Controls Overlay is active.
-  const { visible: wcoVisible } = useWindowControlsOverlay();
-  useEffect(() => {
-    document.documentElement.classList.toggle('wco-visible', wcoVisible);
-  }, [wcoVisible]);
-
-
   return (
     <QueryClientProvider client={queryClient}>
       <ConfettiProvider>
