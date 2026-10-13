@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   useApiTokens,
   useCreateApiToken,
@@ -15,17 +16,20 @@ const formatDate = (iso: string | null): string => {
   if (!iso) return 'Never';
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return 'Never';
-  return d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  return (
+    d.toLocaleDateString() +
+    ' ' +
+    d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  );
 };
 
 /**
  * Personal access tokens for the read-only public API (feature 4.10).
  *
- * The plaintext is shown exactly once, on creation, in a highlighted box
- * with a Copy button. After the user closes that box, the token is gone -
- * only the hash lives on the server - and they would need to issue a new
- * one. That is the right trade-off: no secret lives in the browser longer
- * than the time it takes to copy it.
+ * Rendered via a portal to `document.body` so it can never be trapped
+ * behind the sticky Header, or by any ancestor that creates a stacking
+ * context (transform, filter, backdrop-filter, etc.). z-[100] sits above
+ * the Header, the toast container, and the install prompt.
  */
 const ApiTokensModal: React.FC<ApiTokensModalProps> = ({ onClose }) => {
   const { data: tokens = [], isLoading } = useApiTokens();
@@ -53,7 +57,11 @@ const ApiTokensModal: React.FC<ApiTokensModalProps> = ({ onClose }) => {
   };
 
   const handleRevoke = (t: ApiToken) => {
-    if (!window.confirm('Revoke ' + JSON.stringify(t.label) + '? Any service using it will lose access immediately.')) {
+    if (
+      !window.confirm(
+        'Revoke ' + JSON.stringify(t.label) + '? Any service using it will lose access immediately.'
+      )
+    ) {
       return;
     }
     revoke.mutate(t.id, {
@@ -73,133 +81,139 @@ const ApiTokensModal: React.FC<ApiTokensModalProps> = ({ onClose }) => {
 
   const busy = create.isPending || revoke.isPending;
 
-  return (
+  const content = (
     <div
-      className='fixed inset-0 z-[70] flex items-start justify-center overflow-y-auto bg-black/50 p-3 pt-16 pb-6 sm:pt-20'
+      className="fixed inset-0 z-[100] overflow-y-auto bg-black/60"
       onClick={onClose}
-      role='presentation'
+      role="presentation"
+      style={{ paddingTop: 'max(4rem, env(safe-area-inset-top, 0px) + 4rem)' }}
     >
-      <div
-        className='w-full max-w-xl rounded-2xl border border-hairline bg-surface p-5 shadow-xl sm:p-6'
-        onClick={(event) => event.stopPropagation()}
-        role='dialog'
-        aria-modal='true'
-        aria-label='API tokens'
-      >
-        <div className='mb-5 flex items-start justify-between gap-3'>
-          <div>
-            <h2 className='font-handwritten text-2xl text-ink'>API tokens</h2>
-            <p className='mt-0.5 text-xs text-ink-muted'>
-              Read-only access to your boards and tasks over HTTPS.
-            </p>
-          </div>
-          <button
-            type='button'
-            onClick={onClose}
-            aria-label='Close'
-            className='rounded-full border border-hairline bg-surface-2 px-3 py-1.5 text-sm text-ink-muted hover:text-ink'
-          >
-            Close
-          </button>
-        </div>
-
-        {justCreated && justCreated.plaintext && (
-          <div className='mb-5 rounded-xl border border-accent bg-accent/10 p-4'>
-            <p className='mb-1 text-sm font-semibold text-ink'>
-              Copy this token now
-            </p>
-            <p className='mb-3 text-[11px] text-ink-muted'>
-              You will not be able to see it again. If you lose it, revoke it and create a new one.
-            </p>
-            <div className='flex flex-wrap items-center gap-2'>
-              <code className='min-w-0 flex-1 overflow-x-auto rounded-lg border border-hairline bg-surface px-3 py-2 font-mono text-xs text-ink'>
-                {justCreated.plaintext}
-              </code>
-              <button
-                type='button'
-                onClick={() => copyPlaintext(justCreated.plaintext!)}
-                className='rounded-lg bg-accent px-3 py-2 text-xs font-semibold text-white hover:brightness-110'
-              >
-                Copy
-              </button>
-              <button
-                type='button'
-                onClick={() => setJustCreated(null)}
-                className='rounded-lg border border-hairline bg-surface px-3 py-2 text-xs font-semibold text-ink-muted hover:text-ink'
-              >
-                Done
-              </button>
+      <div className="flex min-h-full items-start justify-center px-3 pb-8 sm:px-4">
+        <div
+          className="w-full max-w-xl rounded-2xl border border-hairline bg-surface p-5 shadow-2xl sm:p-6"
+          onClick={(event) => event.stopPropagation()}
+          role="dialog"
+          aria-modal="true"
+          aria-label="API tokens"
+        >
+          <div className="mb-5 flex items-start justify-between gap-3">
+            <div>
+              <h2 className="font-handwritten text-2xl text-ink">API tokens</h2>
+              <p className="mt-0.5 text-xs text-ink-muted">
+                Read-only access to your boards and tasks over HTTPS.
+              </p>
             </div>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close"
+              className="rounded-full border border-hairline bg-surface-2 px-3 py-1.5 text-sm text-ink-muted hover:text-ink"
+            >
+              Close
+            </button>
           </div>
-        )}
 
-        <form onSubmit={handleCreate} className='mb-5 flex flex-wrap items-center gap-2'>
-          <input
-            type='text'
-            value={label}
-            onChange={(event) => setLabel(event.target.value)}
-            placeholder='Label (e.g. Home Assistant)'
-            maxLength={255}
-            aria-label='Token label'
-            className='min-w-0 flex-1 rounded-lg border border-hairline bg-surface px-2.5 py-2 text-sm text-ink focus:border-accent focus:outline-none'
-          />
-          <button
-            type='submit'
-            disabled={!label.trim() || busy}
-            className='btn-accent rounded-lg px-3 py-2 text-sm font-semibold disabled:opacity-50'
-          >
-            Create token
-          </button>
-        </form>
-
-        {isLoading ? (
-          <p className='text-sm text-ink-muted'>Loading...</p>
-        ) : tokens.length === 0 ? (
-          <p className='text-sm text-ink-muted'>
-            No tokens yet. Create one to use the public API.
-          </p>
-        ) : (
-          <ul className='space-y-2'>
-            {tokens.map((t) => (
-              <li
-                key={t.id}
-                className='flex flex-wrap items-center gap-2 rounded-xl border border-hairline bg-surface-2 p-3'
-              >
-                <div className='min-w-0 flex-1'>
-                  <p className='truncate text-sm font-semibold text-ink'>{t.label}</p>
-                  <p className='truncate text-[11px] text-ink-muted'>
-                    <code className='font-mono'>{t.token_prefix}...</code>
-                    {' · '}
-                    Last used: {formatDate(t.last_used_at)}
-                  </p>
-                </div>
+          {justCreated && justCreated.plaintext && (
+            <div className="mb-5 rounded-xl border border-accent bg-accent/10 p-4">
+              <p className="mb-1 text-sm font-semibold text-ink">Copy this token now</p>
+              <p className="mb-3 text-[11px] text-ink-muted">
+                You will not be able to see it again. If you lose it, revoke it and create a new one.
+              </p>
+              <div className="flex flex-wrap items-center gap-2">
+                <code className="min-w-0 flex-1 overflow-x-auto rounded-lg border border-hairline bg-surface px-3 py-2 font-mono text-xs text-ink">
+                  {justCreated.plaintext}
+                </code>
                 <button
-                  type='button'
-                  onClick={() => handleRevoke(t)}
-                  disabled={busy}
-                  aria-label={'Revoke ' + t.label}
-                  className='rounded-lg border border-hairline bg-surface px-2.5 py-1.5 text-xs font-semibold text-red-500 hover:border-red-300 disabled:opacity-40'
+                  type="button"
+                  onClick={() => copyPlaintext(justCreated.plaintext!)}
+                  className="rounded-lg bg-accent px-3 py-2 text-xs font-semibold text-white hover:brightness-110"
                 >
-                  Revoke
+                  Copy
                 </button>
-              </li>
-            ))}
-          </ul>
-        )}
+                <button
+                  type="button"
+                  onClick={() => setJustCreated(null)}
+                  className="rounded-lg border border-hairline bg-surface px-3 py-2 text-xs font-semibold text-ink-muted hover:text-ink"
+                >
+                  Done
+                </button>
+              </div>
+            </div>
+          )}
 
-        <div className='mt-5 rounded-xl border border-hairline bg-surface-2 p-4'>
-          <p className='mb-2 text-xs font-semibold text-ink'>Example</p>
-          <pre className='overflow-x-auto rounded-lg bg-surface p-3 font-mono text-[11px] leading-relaxed text-ink-muted'>
-            {'curl -H ' + JSON.stringify('Authorization: Bearer ' + '<token>') + ' '}
-            {'https://your-tudu-api/api/v1/tasks'}
-          </pre>
-          <p className='mt-2 text-[11px] text-ink-muted'>
-            Read-only for now. Writes are coming in Pro.
-          </p>
+          <form onSubmit={handleCreate} className="mb-5 flex flex-wrap items-center gap-2">
+            <input
+              type="text"
+              value={label}
+              onChange={(event) => setLabel(event.target.value)}
+              placeholder="Label (e.g. Home Assistant)"
+              maxLength={255}
+              aria-label="Token label"
+              className="min-w-0 flex-1 rounded-lg border border-hairline bg-surface px-2.5 py-2 text-sm text-ink focus:border-accent focus:outline-none"
+            />
+            <button
+              type="submit"
+              disabled={!label.trim() || busy}
+              className="btn-accent rounded-lg px-3 py-2 text-sm font-semibold disabled:opacity-50"
+            >
+              Create token
+            </button>
+          </form>
+
+          {isLoading ? (
+            <p className="text-sm text-ink-muted">Loading...</p>
+          ) : tokens.length === 0 ? (
+            <p className="text-sm text-ink-muted">
+              No tokens yet. Create one to use the public API.
+            </p>
+          ) : (
+            <ul className="space-y-2">
+              {tokens.map((t) => (
+                <li
+                  key={t.id}
+                  className="flex flex-wrap items-center gap-2 rounded-xl border border-hairline bg-surface-2 p-3"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold text-ink">{t.label}</p>
+                    <p className="truncate text-[11px] text-ink-muted">
+                      <code className="font-mono">{t.token_prefix}...</code>
+                      {' · '}
+                      Last used: {formatDate(t.last_used_at)}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleRevoke(t)}
+                    disabled={busy}
+                    aria-label={'Revoke ' + t.label}
+                    className="rounded-lg border border-hairline bg-surface px-2.5 py-1.5 text-xs font-semibold text-red-500 hover:border-red-300 disabled:opacity-40"
+                  >
+                    Revoke
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          <div className="mt-5 rounded-xl border border-hairline bg-surface-2 p-4">
+            <p className="mb-2 text-xs font-semibold text-ink">Example</p>
+            <pre className="overflow-x-auto rounded-lg bg-surface p-3 font-mono text-[11px] leading-relaxed text-ink-muted">
+              {'curl -H ' +
+                JSON.stringify('Authorization: Bearer ' + '<token>') +
+                ' '}
+              {'https://your-tudu-api/api/v1/tasks'}
+            </pre>
+            <p className="mt-2 text-[11px] text-ink-muted">
+              Read-only for now. Writes are coming in Pro.
+            </p>
+          </div>
         </div>
       </div>
     </div>
   );
+
+  // Render into document.body so no ancestor stacking context can trap it.
+  return createPortal(content, document.body);
 };
 
 export default ApiTokensModal;
