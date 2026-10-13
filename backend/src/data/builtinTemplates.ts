@@ -92,6 +92,61 @@ export const BUILTIN_TEMPLATES: BuiltinTemplate[] = [
     ],
     tasks: [],
   },
+  {
+    slug: 'bug-tracker',
+    name: 'Bug tracker',
+    columns: [
+      { name: 'New', stage: 'todo', color: 'gray' },
+      { name: 'Triaged', stage: 'todo', color: 'blue' },
+      { name: 'In Progress', stage: 'doing', color: 'amber' },
+      { name: 'QA', stage: 'doing', color: 'violet' },
+      { name: 'Fixed', stage: 'done', color: 'teal' },
+      { name: 'Deployed', stage: 'done', color: 'green' },
+    ],
+    tasks: [
+      { title: 'Login button unresponsive on Safari', column: 'New', priority: 'high' },
+      { title: 'Task card overflows on small screens', column: 'Triaged', priority: 'medium' },
+      { title: 'Fix board column sync on drag', column: 'In Progress', priority: 'high' },
+      { title: 'Verify CSV export encoding', column: 'QA', priority: 'low' },
+      { title: 'N+1 query on the analytics page', column: 'Fixed', priority: 'medium' },
+      { title: 'Ship v1.2.3 to production', column: 'Deployed', priority: 'low' },
+    ],
+  },
+  {
+    slug: 'student-kanban',
+    name: 'Student',
+    columns: [
+      { name: 'Assignments', stage: 'todo', color: 'gray' },
+      { name: 'In Progress', stage: 'doing', color: 'blue' },
+      { name: 'Review', stage: 'doing', color: 'amber' },
+      { name: 'Submitted', stage: 'done', color: 'green' },
+    ],
+    tasks: [
+      { title: 'Read chapter 4 and take notes', column: 'Assignments', priority: 'medium' },
+      { title: 'Start the group project outline', column: 'Assignments', priority: 'high' },
+      { title: 'Draft essay introduction', column: 'In Progress', priority: 'high' },
+      { title: 'Review statistics problem set', column: 'Review', priority: 'medium' },
+      { title: 'Submit history paper', column: 'Submitted', priority: 'low' },
+    ],
+  },
+  {
+    slug: 'freelancer-projects',
+    name: 'Freelancer projects',
+    columns: [
+      { name: 'Leads', stage: 'todo', color: 'gray' },
+      { name: 'Proposal', stage: 'todo', color: 'blue' },
+      { name: 'Active', stage: 'doing', color: 'amber' },
+      { name: 'Invoicing', stage: 'doing', color: 'violet' },
+      { name: 'Paid', stage: 'done', color: 'green' },
+    ],
+    tasks: [
+      { title: 'Reply to inbound from Acme Co', column: 'Leads', priority: 'high' },
+      { title: 'Draft proposal for Studio Nine', column: 'Proposal', priority: 'medium' },
+      { title: 'Build landing page for Orbit', column: 'Active', priority: 'high' },
+      { title: 'Send December invoice', column: 'Invoicing', priority: 'medium' },
+      { title: 'Collect payment from Vega Ltd', column: 'Paid', priority: 'low' },
+    ],
+  },
 ];
 
 export const findTemplate = (slug: string): BuiltinTemplate | undefined =>

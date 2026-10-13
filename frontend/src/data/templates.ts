@@ -42,4 +42,25 @@ export const TEMPLATES: TemplateDisplay[] = [
     emoji: '⬜',
     highlights: ['Add columns as you go'],
   },
+  {
+    slug: 'bug-tracker',
+    name: 'Bug tracker',
+    description: 'For QA and engineering triage.',
+    emoji: '🐞',
+    highlights: ['New through Deployed', 'Six columns for a real pipeline'],
+  },
+  {
+    slug: 'student-kanban',
+    name: 'Student',
+    description: 'For coursework, essays, and revisions.',
+    emoji: '🎓',
+    highlights: ['Assignments through Submitted', 'Simple, four columns'],
+  },
+  {
+    slug: 'freelancer-projects',
+    name: 'Freelancer projects',
+    description: 'For client work from lead to payment.',
+    emoji: '💼',
+    highlights: ['Leads through Paid', 'Track invoices in the same board'],
+  },
 ];

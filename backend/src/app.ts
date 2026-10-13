@@ -16,6 +16,7 @@ import pomodoroRoutes from './routes/pomodoro';
 import analyticsRoutes from './routes/analytics';
 import { boardsRouter, columnsRouter } from './routes/boards';
 import workspaceRoutes from './routes/workspaces';
+import templateRoutes from './routes/templates';
 import publicRoutes from './routes/public';
 import onboardingRoutes from './routes/onboarding';
 
@@ -133,5 +134,6 @@ app.use('/api/columns', columnsRouter);
 app.use('/api/workspaces', workspaceRoutes);
 app.use('/api/public', publicRoutes);
 app.use('/api/onboarding', onboardingRoutes);
+app.use('/api/templates', templateRoutes);
 
 export default app;
