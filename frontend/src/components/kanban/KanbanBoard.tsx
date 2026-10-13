@@ -218,12 +218,8 @@ const KanbanBoard: React.FC = () => {
           ))}
         </div>
 
-        {showColumns && boardId && hasRealColumns && (
-          <ColumnManager
-            boardId={boardId}
-            columns={boardColumns!}
-            onClose={() => setShowColumns(false)}
-          />
+        {showColumns && boardId && (
+          <ColumnManager onClose={() => setShowColumns(false)} />
         )}
       </div>
 

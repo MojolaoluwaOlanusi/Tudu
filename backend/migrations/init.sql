@@ -144,6 +144,22 @@ CREATE INDEX IF NOT EXISTS idx_tasks_board_id ON tasks(board_id);
 CREATE INDEX IF NOT EXISTS idx_tasks_column_id ON tasks(column_id);
 
 
+-- ---------------------------------------------------------------------------
+-- Pre-flight for Phase 1.1b. The backfill below filters boards by workspace_id,
+-- but that column is otherwise created by the 1.2 section further down. Creating
+-- workspaces and adding the columns here (idempotently) makes this file safe on
+-- a fresh database.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS workspaces (
+  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name       VARCHAR(255) NOT NULL,
+  owner_id   UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+ALTER TABLE boards ADD COLUMN IF NOT EXISTS workspace_id UUID;
+ALTER TABLE tasks  ADD COLUMN IF NOT EXISTS assignee_id UUID;
+
 -- =====================================================================
 -- Phase 1.1b - board integrity.
 -- Every task belongs to exactly one board and sits in a column of that board
@@ -258,10 +274,16 @@ CREATE TABLE IF NOT EXISTS workspace_members (
 );
 CREATE INDEX IF NOT EXISTS idx_workspace_members_user_id ON workspace_members(user_id);
 
-ALTER TABLE boards ADD COLUMN IF NOT EXISTS workspace_id UUID REFERENCES workspaces(id) ON DELETE CASCADE;
+DO $$ BEGIN
+  ALTER TABLE boards ADD CONSTRAINT boards_workspace_id_fkey
+    FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 CREATE INDEX IF NOT EXISTS idx_boards_workspace_id ON boards(workspace_id);
 
-ALTER TABLE tasks ADD COLUMN IF NOT EXISTS assignee_id UUID REFERENCES users(id) ON DELETE SET NULL;
+DO $$ BEGIN
+  ALTER TABLE tasks ADD CONSTRAINT tasks_assignee_id_fkey
+    FOREIGN KEY (assignee_id) REFERENCES users(id) ON DELETE SET NULL;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 CREATE INDEX IF NOT EXISTS idx_tasks_assignee_id ON tasks(assignee_id);
 
 -- The user's role on a board: 'admin' | 'member' | 'viewer', or NULL for no access.

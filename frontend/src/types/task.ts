@@ -14,6 +14,8 @@ export interface Task {
   /** Board/column placement. Null for tasks that predate custom columns. */
   board_id?: string | null;
   column_id?: string | null;
+  /** Who the task is assigned to (team boards). */
+  assignee_id?: string | null;
   created_at: string;
   updated_at: string;
   /** Sub-task progress, supplied by the backend. */

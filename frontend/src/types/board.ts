@@ -1,5 +1,6 @@
 /** Board & column definitions (Phase 1.1). Mirrors `backend/src/types/board.ts`. */
 export type Stage = 'todo' | 'doing' | 'done';
+export type BoardRole = 'admin' | 'member' | 'viewer';
 
 export const STAGES: Stage[] = ['todo', 'doing', 'done'];
 
@@ -11,10 +12,10 @@ export const COLUMN_COLORS = [
   'green',
   'teal',
   'blue',
+  'indigo',
   'violet',
   'pink',
 ] as const;
-
 export type ColumnColor = (typeof COLUMN_COLORS)[number];
 
 export interface Board {
@@ -26,6 +27,11 @@ export interface Board {
   updated_at: string;
   column_count?: number;
   task_count?: number;
+  /** Set when the board belongs to a workspace (Phase 1.2). */
+  workspace_id?: string | null;
+  workspace_name?: string | null;
+  /** The signed-in user's role on this board (returned by GET /api/boards). */
+  role?: BoardRole;
 }
 
 export interface BoardColumn {
@@ -38,8 +44,20 @@ export interface BoardColumn {
   wip_limit: number | null;
   created_at: string;
   updated_at: string;
+  /** How many cards currently sit here, supplied alongside the column list. */
   task_count?: number;
+  /** True when `task_count` is at or over `wip_limit`. */
   over_wip_limit?: boolean;
+}
+
+export interface CreateBoardInput {
+  name?: string;
+  workspace_id?: string | null;
+}
+
+export interface UpdateBoardInput {
+  name?: string;
+  position?: number;
 }
 
 export interface CreateColumnInput {
@@ -49,15 +67,13 @@ export interface CreateColumnInput {
   wip_limit?: number | null;
 }
 
-export interface UpdateColumnInput extends CreateColumnInput {}
+export interface UpdateColumnInput {
+  name?: string;
+  stage?: Stage;
+  color?: string;
+  wip_limit?: number | null;
+}
 
-/**
- * The three classic columns, used whenever the board API has not answered yet
- * (or the backend predates this phase). Kept identical to what the server
- * seeds so the board never visibly changes shape while loading.
- */
-export const FALLBACK_COLUMNS: { status: Stage; title: string }[] = [
-  { status: 'todo', title: 'To-do' },
-  { status: 'doing', title: 'Doing' },
-  { status: 'done', title: 'Done' },
-];
+export interface ReorderColumnsInput {
+  column_ids: string[];
+}
