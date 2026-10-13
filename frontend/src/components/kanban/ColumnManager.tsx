@@ -22,6 +22,33 @@ const STAGE_LABELS: Record<Stage, string> = {
 };
 
 /**
+ * Hex values for each palette entry. Kept as a lookup so the picker can show
+ * a live preview dot without relying on Tailwind's JIT to have every
+ * `bg-*-400` class safelisted. Matches the palette used elsewhere in Tudu.
+ */
+const COLOR_HEX: Record<ColumnColor, string> = {
+  gray: '#9ca3af',
+  red: '#f87171',
+  orange: '#fb923c',
+  amber: '#fbbf24',
+  green: '#4ade80',
+  teal: '#2dd4bf',
+  blue: '#60a5fa',
+  indigo: '#818cf8',
+  violet: '#a78bfa',
+  pink: '#f472b6',
+};
+
+/** A small filled circle in a column's colour, with a subtle border. */
+const ColorDot: React.FC<{ color: ColumnColor; size?: number }> = ({ color, size = 14 }) => (
+  <span
+    aria-hidden="true"
+    className="inline-block shrink-0 rounded-full border border-hairline"
+    style={{ width: size, height: size, background: COLOR_HEX[color] }}
+  />
+);
+
+/**
  * Manage a board's columns: rename, change stage/colour, set a WIP limit,
  * delete, and reorder by dragging the ⋮⋮ handle.
  *
@@ -222,6 +249,9 @@ const ColumnManager: React.FC<ColumnManagerProps> = ({ onClose }) => {
                 ⋮⋮
               </button>
 
+              {/* Colour preview dot: always visible next to the name. */}
+              <ColorDot color={column.color} />
+
               <input
                 type="text"
                 defaultValue={column.name}
@@ -248,18 +278,22 @@ const ColumnManager: React.FC<ColumnManagerProps> = ({ onClose }) => {
                 ))}
               </select>
 
-              <select
-                value={column.color}
-                onChange={(event) => handleColor(column, event.target.value as ColumnColor)}
-                aria-label={`Colour of ${column.name}`}
-                className="rounded-lg border border-hairline bg-surface px-2 py-1 text-xs text-ink"
-              >
-                {COLUMN_COLORS.map((color) => (
-                  <option key={color} value={color}>
-                    {color}
-                  </option>
-                ))}
-              </select>
+              {/* Colour picker: live preview dot beside the dropdown. */}
+              <label className="flex items-center gap-1.5 rounded-lg border border-hairline bg-surface px-2 py-1">
+                <ColorDot color={column.color} size={12} />
+                <select
+                  value={column.color}
+                  onChange={(event) => handleColor(column, event.target.value as ColumnColor)}
+                  aria-label={`Colour of ${column.name}`}
+                  className="bg-transparent text-xs capitalize text-ink focus:outline-none"
+                >
+                  {COLUMN_COLORS.map((color) => (
+                    <option key={color} value={color} className="capitalize">
+                      {color}
+                    </option>
+                  ))}
+                </select>
+              </label>
 
               <label className="flex items-center gap-1 text-[11px] text-ink-muted">
                 WIP
@@ -317,18 +351,24 @@ const ColumnManager: React.FC<ColumnManagerProps> = ({ onClose }) => {
               </option>
             ))}
           </select>
-          <select
-            value={newColor}
-            onChange={(event) => setNewColor(event.target.value as ColumnColor)}
-            aria-label="Colour for the new column"
-            className="rounded-lg border border-hairline bg-surface px-2 py-2 text-sm text-ink"
-          >
-            {COLUMN_COLORS.map((color) => (
-              <option key={color} value={color}>
-                {color}
-              </option>
-            ))}
-          </select>
+
+          {/* New-column colour picker: live preview dot beside the dropdown. */}
+          <label className="flex items-center gap-1.5 rounded-lg border border-hairline bg-surface px-2 py-2">
+            <ColorDot color={newColor} size={12} />
+            <select
+              value={newColor}
+              onChange={(event) => setNewColor(event.target.value as ColumnColor)}
+              aria-label="Colour for the new column"
+              className="bg-transparent text-sm capitalize text-ink focus:outline-none"
+            >
+              {COLUMN_COLORS.map((color) => (
+                <option key={color} value={color} className="capitalize">
+                  {color}
+                </option>
+              ))}
+            </select>
+          </label>
+
           <button
             type="submit"
             disabled={!newName.trim() || createColumn.isPending}
