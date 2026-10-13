@@ -782,6 +782,140 @@ export const restoreTask = async (req: Request, res: Response) => {
   }
 };
 
+/**
+ * DELETE /api/tasks/batch — body: { ids: string[] }.
+ *
+ * Soft-deletes every id the caller may edit. Runs as one statement, so the
+ * set of rows either all flip together or none do. Rows that are already
+ * deleted, or that the caller does not have access to, are silently skipped
+ * — the response reports how many actually changed.
+ */
+export const batchDeleteTasks = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    const { ids } = (req.body ?? {}) as { ids?: unknown };
+
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ error: 'ids must be a non-empty array' });
+    }
+    if (ids.length > MAX_BATCH_SIZE) {
+      return res.status(400).json({ error: `Too many ids (max ${MAX_BATCH_SIZE})` });
+    }
+    for (const id of ids) {
+      if (!isValidUuid(id)) {
+        return res.status(400).json({ error: 'Every id must be a UUID' });
+      }
+    }
+
+    const result = await pool.query(
+      `UPDATE tasks t
+          SET deleted_at = NOW(), updated_at = NOW()
+        WHERE t.id = ANY($1::uuid[])
+          AND ${taskEditableSql('$2')}
+        RETURNING t.id, t.title, t.user_id, t.board_id`,
+      [ids, userId]
+    );
+
+    // Announce and log per task, matching the single-delete path. Doing
+    // this after the UPDATE (not inside a loop around it) keeps the change
+    // atomic; a broadcast failure cannot roll back a successful delete.
+    for (const task of result.rows) {
+      await notifyCollaborators(task.id, task.user_id, 'shared-task-deleted', {
+        taskId: task.id,
+      });
+      await broadcastTaskDeleted(task.id, task.user_id, userId, task.board_id);
+      await logActivity(userId, 'task_deleted', null, { title: task.title });
+    }
+
+    res.json({
+      deleted: result.rows.length,
+      ids: result.rows.map((r: { id: string }) => r.id),
+    });
+  } catch (error) {
+    console.error('Error bulk deleting tasks:', error);
+    res.status(500).json({ error: 'Failed to delete the tasks' });
+  }
+};
+/**
+ * PATCH /api/tasks/batch/assign — body: { ids: string[], assignee_id: string | null }.
+ *
+ * Assigns (or unassigns, with null) every id the caller may edit. When an
+ * assignee is given, they must be a member of every board the selected tasks
+ * sit on; otherwise the whole call is refused, so we never half-assign.
+ */
+export const batchAssignTasks = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    const { ids, assignee_id } = (req.body ?? {}) as {
+      ids?: unknown;
+      assignee_id?: unknown;
+    };
+
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ error: 'ids must be a non-empty array' });
+    }
+    if (ids.length > MAX_BATCH_SIZE) {
+      return res.status(400).json({ error: `Too many ids (max ${MAX_BATCH_SIZE})` });
+    }
+    if (assignee_id !== null && assignee_id !== undefined && !isValidUuid(assignee_id)) {
+      return res.status(400).json({ error: 'assignee_id must be a UUID or null' });
+    }
+    for (const id of ids) {
+      if (!isValidUuid(id)) {
+        return res.status(400).json({ error: 'Every id must be a UUID' });
+      }
+    }
+
+    const targetAssignee: string | null =
+      (assignee_id as string | null | undefined) ?? null;
+
+    // If we're assigning, prove the target is on every board involved before
+    // touching any row. One query for the boards, one role check each.
+    if (targetAssignee !== null) {
+      const boards = await pool.query(
+        `SELECT DISTINCT t.board_id FROM tasks t
+          WHERE t.id = ANY($1::uuid[]) AND ${taskEditableSql('$2')}`,
+        [ids, userId]
+      );
+      for (const row of boards.rows) {
+        if (!row.board_id) {
+          return res
+            .status(400)
+            .json({ error: 'Only tasks on a board can be assigned' });
+        }
+        const role = await getBoardRole(targetAssignee, row.board_id);
+        if (!roleAtLeast(role, 'member')) {
+          return res
+            .status(400)
+            .json({ error: 'The assignee must be a member of every board involved' });
+        }
+      }
+    }
+
+    const result = await pool.query(
+      `UPDATE tasks
+          SET assignee_id = $1, updated_at = NOW()
+        WHERE id = ANY($2::uuid[]) AND ${taskEditableSql('$3', 'tasks')}
+        RETURNING *`,
+      [targetAssignee, ids, userId]
+    );
+
+    for (const task of result.rows) {
+      await logActivity(userId, 'task_updated', task.id, {
+        title: task.title,
+        fields: ['assignee'],
+      });
+      await broadcastTask(SOCKET_EVENTS.taskUpdate, userId, task);
+    }
+
+    res.json({ updated: result.rows.length, tasks: result.rows });
+  } catch (error) {
+    console.error('Error bulk assigning tasks:', error);
+    res.status(500).json({ error: 'Failed to assign the tasks' });
+  }
+};
 export const getOverdueTasks = async (req: Request, res: Response) => {
   try {
     const userId = req.user?.userId;
