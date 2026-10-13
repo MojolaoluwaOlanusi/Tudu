@@ -26,6 +26,8 @@ import PomodoroRunner from './components/pomodoro/PomodoroRunner';
 import ToastContainer from './components/common/ToastContainer';
 import ShortcutHelp from './components/common/ShortcutHelp';
 import CommandPalette from './components/common/CommandPalette';
+import InstallPrompt from './components/common/InstallPrompt';
+import OfflineIndicator from './components/common/OfflineIndicator';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import UndoToast from './components/common/UndoToast';
 import OnboardingRoot from './components/onboarding/OnboardingRoot';
@@ -173,6 +175,8 @@ function App() {
         </Routes>
         <CollaborationBridge />
         <ShortcutBridge />
+        <OfflineIndicator />
+        <InstallPrompt />
         <ShortcutHelp />
         <CommandPalette />
         <PomodoroRunner />

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Tudu">
+  <!-- Full-bleed background so any launcher mask still shows green -->
+  <rect width="512" height="512" fill="#22c55e"/>
+
+  <!-- Check scaled into the inner 70% safe zone -->
+  <g fill="none" stroke="#ffffff" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M170 268 L226 324 L346 194" stroke-width="42"/>
+    <path d="M336 202 L352 190" stroke-width="13" opacity="0.95"/>
+    <path d="M330 208 L346 198" stroke-width="9"  opacity="0.8"/>
+    <path d="M328 216 L340 208" stroke-width="6"  opacity="0.6"/>
+    <path d="M166 260 L178 254"   stroke-width="10" opacity="0.9"/>
+    <path d="M168 276 L160 272"   stroke-width="7"  opacity="0.75"/>
+  </g>
+</svg>

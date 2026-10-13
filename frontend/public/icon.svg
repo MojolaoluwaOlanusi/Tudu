@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Tudu">
+  <circle cx="256" cy="256" r="240" fill="#22c55e"/>
+
+  <!-- Main check stroke -->
+  <g fill="none" stroke="#ffffff" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M154 272 L226 342 L372 172" stroke-width="54"/>
+
+    <!-- Brush tail at the top-right tip -->
+    <path d="M360 182 L382 166" stroke-width="16" opacity="0.95"/>
+    <path d="M352 190 L374 176" stroke-width="11" opacity="0.85"/>
+    <path d="M344 198 L362 186" stroke-width="8"  opacity="0.70"/>
+    <path d="M336 204 L352 194" stroke-width="6"  opacity="0.55"/>
+
+    <!-- Brush tail at the bottom-left start -->
+    <path d="M148 260 L164 252" stroke-width="12" opacity="0.9"/>
+    <path d="M152 278 L142 272" stroke-width="9"  opacity="0.75"/>
+    <path d="M158 288 L148 284" stroke-width="7"  opacity="0.55"/>
+
+    <!-- Faint inner grain along the long arm, for texture -->
+    <path d="M240 326 L354 198" stroke-width="5" opacity="0.28"/>
+    <path d="M232 318 L344 192" stroke-width="3" opacity="0.18"/>
+  </g>
+</svg>
