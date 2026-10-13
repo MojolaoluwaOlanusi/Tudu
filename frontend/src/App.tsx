@@ -24,6 +24,7 @@ import SharedListView from './components/sharing/SharedListView';
 import PomodoroStats from './components/pomodoro/PomodoroStats';
 import PomodoroRunner from './components/pomodoro/PomodoroRunner';
 import ToastContainer from './components/common/ToastContainer';
+import UndoToast from './components/common/UndoToast';
 import OnboardingRoot from './components/onboarding/OnboardingRoot';
 import { ConfettiProvider } from './components/common/ConfettiProvider';
 
@@ -164,6 +165,7 @@ function App() {
         <PomodoroRunner />
         <WizardRoot />
         <OnboardingRoot />
+        <UndoToast />
         <ToastContainer />
         <VercelAnalytics />
         </Router>

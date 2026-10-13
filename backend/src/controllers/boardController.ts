@@ -203,7 +203,7 @@ export const getBoards = async (req: Request, res: Response) => {
               w.name AS workspace_name,
               get_board_role($1, b.id) AS role,
               COALESCE(c.cnt, 0)::int AS column_count,
-              (SELECT COUNT(*)::int FROM tasks t WHERE t.board_id = b.id) AS task_count
+              (SELECT COUNT(*)::int FROM tasks t WHERE t.board_id = b.id AND t.deleted_at IS NULL) AS task_count
        FROM boards b
        LEFT JOIN workspaces w ON w.id = b.workspace_id
        LEFT JOIN (
@@ -382,7 +382,7 @@ export const deleteBoard = async (req: Request, res: Response) => {
     }
 
     const tasksOnBoard = await pool.query(
-      'SELECT COUNT(*)::int AS n FROM tasks WHERE board_id = $1',
+      'SELECT COUNT(*)::int AS n FROM tasks WHERE board_id = $1 AND deleted_at IS NULL',
       [id]
     );
     if (tasksOnBoard.rows[0].n > 0 && req.query.confirm !== 'true') {

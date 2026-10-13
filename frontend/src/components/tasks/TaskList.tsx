@@ -8,6 +8,7 @@ import {
 } from '../../hooks/useTasks';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import { useUiStore } from '../../store/uiStore';
+import { useUndoStore } from '../../store/undoStore';
 import {
   useFilterStore,
   useTaskFilters,
@@ -132,11 +133,23 @@ const TaskList: React.FC = () => {
 
   const { burst } = useConfetti();
 
+  const setPendingUndo = useUndoStore((s) => s.setPending);
+
   const handleDeleteTask = async (id: string) => {
+    const task = tasks?.find((t) => t.id === id);
+    if (!task) return;
     if (!window.confirm('Are you sure you want to delete this task?')) return;
     try {
       await deleteTask.mutateAsync(id);
-      pushToast('Task deleted', 'success');
+      // Feature 4.5 — show the undo toast for 10s. If the user clicks Undo
+      // (or presses Ctrl+Z), the task reappears; if the window closes, the
+      // row stays soft-deleted on the server and a retention job removes
+      // it later.
+      setPendingUndo({
+        taskId: id,
+        title: task.title,
+        expiresAt: Date.now() + 10_000,
+      });
     } catch (err) {
       notify(err, 'Could not delete the task');
     }

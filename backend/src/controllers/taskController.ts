@@ -16,6 +16,7 @@ import {
   resolveColumn,
   roleAtLeast,
   taskEditableSql,
+  taskRestorableSql,
   taskVisibleSql,
 } from '../services/boardAccess';
 
@@ -41,7 +42,9 @@ const wipViolation = async (
 
   const count = await pool.query(
     `SELECT COUNT(*)::int AS n FROM tasks
-      WHERE column_id = $1 AND NOT (id = ANY($2::uuid[]))`,
+      WHERE column_id = $1
+        AND deleted_at IS NULL
+        AND NOT (id = ANY($2::uuid[]))`,
     [columnId, movingIds]
   );
   if (count.rows[0].n >= limit) {
@@ -98,7 +101,10 @@ export const getAllTasks = async (req: Request, res: Response) => {
 
     // `scope=all` adds tasks on boards shared with me (the Kanban asks for
     // this). The default stays "tasks I created", so the List view is unchanged.
-    const visibility = scope === 'all' ? taskVisibleSql('$1') : 't.user_id = $1';
+    // taskVisibleSql already excludes soft-deleted rows; the plain owner
+    // branch needs to say so explicitly.
+    const visibility =
+      scope === 'all' ? taskVisibleSql('$1') : 't.user_id = $1 AND t.deleted_at IS NULL';
 
     let query = `
       SELECT t.*, ${TASK_SUBTASK_COUNTS_SELECT}
@@ -699,8 +705,14 @@ export const deleteTask = async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
+    // Soft delete: the row stays, only `deleted_at` is set. The undo
+    // endpoint clears it again; a retention purge would eventually hard-delete
+    // it, at which point restore stops finding it.
     const result = await pool.query(
-      `DELETE FROM tasks WHERE id = $1 AND ${taskEditableSql('$2', 'tasks')} RETURNING *`,
+      `UPDATE tasks
+          SET deleted_at = NOW(), updated_at = NOW()
+        WHERE id = $1 AND ${taskEditableSql('$2', 'tasks')}
+        RETURNING *`,
       [id, userId]
     );
 
@@ -708,17 +720,65 @@ export const deleteTask = async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Task not found' });
     }
 
-    await notifyCollaborators(id, result.rows[0].user_id, 'shared-task-deleted', { taskId: id });
-    await broadcastTaskDeleted(id, result.rows[0].user_id, userId, result.rows[0].board_id);
+    const task = result.rows[0];
+    await notifyCollaborators(id, task.user_id, 'shared-task-deleted', { taskId: id });
+    await broadcastTaskDeleted(id, task.user_id, userId, task.board_id);
 
     // task_id is deliberately null: activity_log cascades with the task, so
     // the entry keeps the title in its details instead of disappearing.
-    await logActivity(userId, 'task_deleted', null, { title: result.rows[0].title });
+    await logActivity(userId, 'task_deleted', null, { title: task.title });
 
-    res.json({ message: 'Task deleted successfully' });
+    res.json({ message: 'Task deleted successfully', deleted_at: task.deleted_at });
   } catch (error) {
     console.error('Error deleting task:', error);
     res.status(500).json({ error: 'Failed to delete task' });
+  }
+};
+
+/**
+ * POST /api/tasks/:id/restore
+ *
+ * Reverses a soft delete. Ownership is proved with `taskRestorableSql`,
+ * which — unlike the visible / editable fragments — does not require the
+ * row to be undeleted, because that is exactly the state a restore is
+ * undoing.
+ */
+export const restoreTask = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    const { id } = req.params;
+
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    if (!isValidUuid(id)) {
+      return res.status(400).json({ error: 'Invalid task id' });
+    }
+
+    const result = await pool.query(
+      `UPDATE tasks
+          SET deleted_at = NULL, updated_at = NOW()
+        WHERE id = $1
+          AND deleted_at IS NOT NULL
+          AND ${taskRestorableSql('$2', 'tasks')}
+        RETURNING *`,
+      [id, userId]
+    );
+
+    if (result.rows.length === 0) {
+      // Same 404 for "never existed", "still visible", and "hard-deleted";
+      // a differentiated error would leak whether a task id exists.
+      return res.status(404).json({ error: 'Task not found or not restorable' });
+    }
+
+    const task = result.rows[0];
+    await notifyCollaborators(id, task.user_id, 'shared-task-updated', { task });
+    await broadcastTask(SOCKET_EVENTS.taskUpdate, userId, task);
+
+    res.json(task);
+  } catch (error) {
+    console.error('Error restoring task:', error);
+    res.status(500).json({ error: 'Failed to restore task' });
   }
 };
 
@@ -733,8 +793,9 @@ export const getOverdueTasks = async (req: Request, res: Response) => {
       `SELECT t.*, ${TASK_SUBTASK_COUNTS_SELECT}
        FROM tasks t
        ${TASK_SUBTASK_COUNTS_JOIN}
-       WHERE t.user_id = $1 
-       AND t.due_date < NOW() 
+       WHERE t.user_id = $1
+       AND t.deleted_at IS NULL
+       AND t.due_date < NOW()
        AND t.status != 'done'
        ORDER BY t.due_date ASC`,
       [userId]
