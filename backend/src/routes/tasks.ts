@@ -38,6 +38,8 @@ router.patch('/:id/assignee', assignmentController.assignTask);
 
 // Delete task
 router.delete('/:id', taskController.deleteTask);
+// Undo a soft delete (feature 4.5).
+router.post('/:id/restore', taskController.restoreTask);
 
 /* ------------------------- Sub-tasks ------------------------- */
 router.get('/:taskId/subtasks', subtaskController.getSubtasks);

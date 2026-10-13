@@ -40,12 +40,28 @@ export const getWorkspaceRole = async (
  *
  * A task with no board is private to its creator; a task on a board is
  * governed by the caller's role on that board.
+ *
+ * Both fragments also exclude soft-deleted rows, so every caller inherits
+ * the filter for free. Restore is the only endpoint that needs to see a
+ * deleted row, and it uses `taskRestorableSql` below — same body, without
+ * the deleted_at guard, so a caller who owns the task can still find it.
  */
 export const taskVisibleSql = (userParam: string, alias = 't'): string =>
+  `${alias}.deleted_at IS NULL AND ` +
   `((${alias}.board_id IS NULL AND ${alias}.user_id = ${userParam}) ` +
   `OR get_board_role(${userParam}, ${alias}.board_id) IS NOT NULL)`;
 
 export const taskEditableSql = (userParam: string, alias = 't'): string =>
+  `${alias}.deleted_at IS NULL AND ` +
+  `((${alias}.board_id IS NULL AND ${alias}.user_id = ${userParam}) ` +
+  `OR get_board_role(${userParam}, ${alias}.board_id) IN ('admin', 'member'))`;
+
+/**
+ * "Is this task mine (or on a board I can edit)?" — deliberately ignores
+ * `deleted_at`, so the restore endpoint can find a row whose visibility
+ * fragments would otherwise exclude it.
+ */
+export const taskRestorableSql = (userParam: string, alias = 't'): string =>
   `((${alias}.board_id IS NULL AND ${alias}.user_id = ${userParam}) ` +
   `OR get_board_role(${userParam}, ${alias}.board_id) IN ('admin', 'member'))`;
 

@@ -61,6 +61,17 @@ export const taskService = {
     });
   },
 
+  // Undo a soft delete (feature 4.5). The row was never removed, only
+  // flagged, so this is a normal PATCH of one column under the hood.
+  restoreTask: async (token: string, id: string): Promise<Task> => {
+    const response = await axios.post(
+      `${API_URL}/api/tasks/${id}/restore`,
+      {},
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    return response.data;
+  },
+
   // Get overdue tasks
   getOverdueTasks: async (token: string): Promise<Task[]> => {
     const response = await axios.get(`${API_URL}/api/tasks/overdue`, {

@@ -308,3 +308,16 @@ $$ LANGUAGE sql STABLE;
 -- default_order.
 -- =====================================================================
 ALTER TABLE users ADD COLUMN IF NOT EXISTS preferences JSONB DEFAULT '{}'::jsonb;
+
+
+-- =====================================================================
+-- Phase 4.5 — soft delete for tasks.
+--
+-- Deleting a task sets `deleted_at`; every read filters it out. An undo
+-- clears the column, which is what makes a 10-second undo window possible
+-- without holding a copy of the row in application memory. A separate
+-- retention job may later hard-delete rows whose deleted_at is older than
+-- the retention window; when it does, restore stops finding them.
+-- =====================================================================
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP;
+CREATE INDEX IF NOT EXISTS idx_tasks_deleted_at ON tasks(deleted_at);
