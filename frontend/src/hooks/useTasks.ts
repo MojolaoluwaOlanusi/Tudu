@@ -178,6 +178,32 @@ export const useUpdateTask = () => {
   });
 };
 
+export const useBatchDeleteTasks = () => {
+  const { token } = useAuthStore();
+  const queryClient = useQueryClient();
+  return useMutation<{ deleted: number; ids: string[] }, unknown, string[]>({
+    mutationFn: (ids) => taskService.batchDelete(token!, ids),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all });
+    },
+  });
+};
+
+export const useBatchAssignTasks = () => {
+  const { token } = useAuthStore();
+  const queryClient = useQueryClient();
+  return useMutation<
+    { updated: number; tasks: unknown[] },
+    unknown,
+    { ids: string[]; assigneeId: string | null }
+  >({
+    mutationFn: ({ ids, assigneeId }) => taskService.batchAssign(token!, ids, assigneeId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all });
+    },
+  });
+};
+
 export const useDeleteTask = () => {
   const { token } = useAuthStore();
   const queryClient = useQueryClient();

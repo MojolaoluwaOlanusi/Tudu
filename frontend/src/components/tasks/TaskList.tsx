@@ -1,10 +1,12 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   useTasks,
   useCreateTask,
   useUpdateTask,
   useDeleteTask,
   useOverdueTasks,
+  useBatchDeleteTasks,
+  useBatchAssignTasks,
 } from '../../hooks/useTasks';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import { useUiStore } from '../../store/uiStore';
@@ -22,6 +24,7 @@ import { useMyShares, flattenShares } from '../../hooks/useSharing';
 import QueryBar from './QueryBar';
 import SortDropdown from './SortDropdown';
 import SortDirectionToggle from './SortDirectionToggle';
+import BulkActionBar from '../common/BulkActionBar';
 import { useUserPreferencesSync } from '../../hooks/useUserPreferencesSync';
 import { useSearchParams } from 'react-router-dom';
 import { useActiveBoardId } from '../../hooks/useBoards';
@@ -30,6 +33,77 @@ import FilterDropdown from '../common/FilterDropdown';
 import { useConfetti } from '../common/ConfettiProvider';
 
 const TaskList: React.FC = () => {
+  /* ------------- Bulk selection (feature 4.6) ------------- */
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const batchDelete = useBatchDeleteTasks();
+  const batchAssign = useBatchAssignTasks();
+
+  const toggleSelect = (id: string) =>
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
+  const clearSelection = () => setSelectedIds(new Set());
+
+  const exitSelectMode = () => {
+    clearSelection();
+    setSelectMode(false);
+  };
+
+  const handleBulkDone = async () => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    try {
+      await updateTask.mutateAsync({ id: ids[0], task: { status: 'done' } });
+      // The single-task endpoint only moves one card; for the rest, walk the
+      // batch endpoint.
+      if (ids.length > 1) {
+        await Promise.all(
+          ids.slice(1).map((id) => updateTask.mutateAsync({ id, task: { status: 'done' } }))
+        );
+      }
+      pushToast(`${ids.length} task${ids.length === 1 ? '' : 's'} marked done`, 'success');
+      exitSelectMode();
+    } catch (err) {
+      notify(err, 'Could not update the tasks');
+    }
+  };
+
+  const handleBulkTodo = async () => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    try {
+      await Promise.all(ids.map((id) => updateTask.mutateAsync({ id, task: { status: 'todo' } })));
+      pushToast(`${ids.length} task${ids.length === 1 ? '' : 's'} reopened`, 'success');
+      exitSelectMode();
+    } catch (err) {
+      notify(err, 'Could not update the tasks');
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    if (
+      !window.confirm(
+        `Delete ${ids.length} task${ids.length === 1 ? '' : 's'}? You can undo one at a time from the toast.`
+      )
+    ) {
+      return;
+    }
+    try {
+      await batchDelete.mutateAsync(ids);
+      pushToast(`${ids.length} task${ids.length === 1 ? '' : 's'} deleted`, 'success');
+      exitSelectMode();
+    } catch (err) {
+      notify(err, 'Could not delete the selected tasks');
+    }
+  };
+
   /* ------------- Filters (Zustand) ------------- */
   const search = useFilterStore((s) => s.search);
   const setSearch = useFilterStore((s) => s.setSearch);
@@ -208,6 +282,17 @@ const TaskList: React.FC = () => {
             Share
           </button>
           <button
+            onClick={() => {
+              if (selectMode) exitSelectMode();
+              else setSelectMode(true);
+            }}
+            className="btn-ghost shrink-0"
+            aria-pressed={selectMode}
+            data-tour="select-tasks"
+          >
+            {selectMode ? 'Cancel' : 'Select'}
+          </button>
+          <button
             onClick={() =>
               isTaskFormOpen && !editingTask ? closeTaskForm() : openTaskForm(null)
             }
@@ -311,6 +396,14 @@ const TaskList: React.FC = () => {
       )}
 
       {isShareModalOpen && <ShareModal tasks={tasks ?? []} />}
+      <BulkActionBar
+        count={selectedIds.size}
+        busy={batchDelete.isPending || batchAssign.isPending}
+        onMarkDone={handleBulkDone}
+        onMarkTodo={handleBulkTodo}
+        onDelete={handleBulkDelete}
+        onClear={clearSelection}
+      />
 
       {!tasks || tasks.length === 0 ? (
         <div className="card p-10 text-center">
@@ -320,16 +413,66 @@ const TaskList: React.FC = () => {
         </div>
       ) : (
         <div className="grid gap-4">
-          {tasks.map((task) => (
-            <TaskCard
-              key={task.id}
-              task={task}
-              isShared={sharedTaskIds.has(task.id)}
-              onEdit={handleEdit}
-              onDelete={handleDeleteTask}
-              onStatusChange={handleStatusChange}
-            />
-          ))}
+          {tasks.map((task) => {
+            const selected = selectedIds.has(task.id);
+            return (
+              <div
+                key={task.id}
+                role={selectMode ? 'checkbox' : undefined}
+                aria-checked={selectMode ? selected : undefined}
+                tabIndex={selectMode ? 0 : undefined}
+                onClick={selectMode ? () => toggleSelect(task.id) : undefined}
+                onKeyDown={
+                  selectMode
+                    ? (e) => {
+                        if (e.key === ' ' || e.key === 'Enter') {
+                          e.preventDefault();
+                          toggleSelect(task.id);
+                        }
+                      }
+                    : undefined
+                }
+                className={
+                  selectMode
+                    ? 'flex cursor-pointer items-start gap-3 rounded-2xl p-1 transition-colors hover:bg-surface-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent'
+                    : undefined
+                }
+              >
+                {selectMode && (
+                  <span
+                    aria-hidden="true"
+                    className={`mt-4 flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 transition-colors ${
+                      selected ? 'border-accent bg-accent text-white' : 'border-hairline bg-surface'
+                    }`}
+                  >
+                    {selected && (
+                      <svg
+                        width="12"
+                        height="12"
+                        viewBox="0 0 12 12"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M2 6l3 3 5-6" />
+                      </svg>
+                    )}
+                  </span>
+                )}
+                <div className={selectMode ? 'pointer-events-none flex-1' : 'flex-1'}>
+                  <TaskCard
+                    task={task}
+                    isShared={sharedTaskIds.has(task.id)}
+                    onEdit={handleEdit}
+                    onDelete={handleDeleteTask}
+                    onStatusChange={handleStatusChange}
+                  />
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

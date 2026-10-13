@@ -72,6 +72,30 @@ export const taskService = {
     return response.data;
   },
 
+  // Bulk soft-delete (feature 4.6). The backend skips rows the caller
+  // cannot edit and returns how many actually changed.
+  batchDelete: async (token: string, ids: string[]): Promise<{ deleted: number; ids: string[] }> => {
+    const response = await axios.delete(`${API_URL}/api/tasks/batch`, {
+      headers: { Authorization: `Bearer ${token}` },
+      data: { ids },
+    });
+    return response.data;
+  },
+
+  // Bulk assign; pass assigneeId = null to unassign.
+  batchAssign: async (
+    token: string,
+    ids: string[],
+    assigneeId: string | null
+  ): Promise<{ updated: number; tasks: Task[] }> => {
+    const response = await axios.patch(
+      `${API_URL}/api/tasks/batch/assign`,
+      { ids, assignee_id: assigneeId },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    return response.data;
+  },
+
   // Get overdue tasks
   getOverdueTasks: async (token: string): Promise<Task[]> => {
     const response = await axios.get(`${API_URL}/api/tasks/overdue`, {

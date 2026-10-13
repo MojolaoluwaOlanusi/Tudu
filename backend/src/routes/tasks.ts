@@ -34,9 +34,17 @@ router.put('/:id', taskController.updateTask);
 router.patch('/:id/status', taskController.updateTaskStatus);
 
 // Assign a task to a member of its (team) board
+// Bulk assign (feature 4.6). Registered before /:id/assignee so the
+// more specific path matches first.
+router.patch('/batch/assign', taskController.batchAssignTasks);
+
 router.patch('/:id/assignee', assignmentController.assignTask);
 
 // Delete task
+// Bulk delete (feature 4.6). Must come before DELETE /:id so 'batch'
+// is never read as a task id.
+router.delete('/batch', taskController.batchDeleteTasks);
+
 router.delete('/:id', taskController.deleteTask);
 // Undo a soft delete (feature 4.5).
 router.post('/:id/restore', taskController.restoreTask);
