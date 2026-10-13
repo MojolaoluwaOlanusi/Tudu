@@ -4,6 +4,7 @@ module.exports = {
   testEnvironment: 'node',
   roots: ['<rootDir>/tests'],
   testMatch: ['**/*.test.ts'],
+  globalSetup: '<rootDir>/tests/globalSetup.ts',
   clearMocks: true,
   // Real timers in most suites; individual tests opt into fake ones.
   transform: {
