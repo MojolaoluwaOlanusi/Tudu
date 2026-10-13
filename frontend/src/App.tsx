@@ -4,6 +4,7 @@ import { lazy, Suspense, type ReactNode } from 'react';
 import { Analytics as VercelAnalytics } from '@vercel/analytics/react';
 import { queryClient } from './lib/queryClient';
 import { useRealtimeSync } from './hooks/useRealtimeSync';
+import { useAuthStore } from './store/authStore';
 import Login from './components/auth/Login';
 import AuthCallback from './components/auth/AuthCallback';
 import ProtectedRoute from './components/common/ProtectedRoute';
@@ -12,6 +13,7 @@ import TaskList from './components/tasks/TaskList';
 import KanbanBoard from './components/kanban/KanbanBoard';
 import BoardTaskForm from './components/kanban/BoardTaskForm';
 import BoardSelector from './components/common/BoardSelector';
+import Landing from './components/landing/Landing';
 import WorkspaceInvites from './components/workspace/WorkspaceInvites';
 import SharedListsSidebar from './components/sharing/SharedListsSidebar';
 import ShareInvites from './components/sharing/ShareInvites';
@@ -60,6 +62,11 @@ const Shell = ({ children }: { children: ReactNode }) => (
     </div>
   </div>
 );
+
+const LandingOrApp = ({ children }: { children: ReactNode }) => {
+  const user = useAuthStore((s) => s.user);
+  return user ? <>{children}</> : <Landing />;
+};
 
 const Dashboard = () => (
   <Shell>
@@ -113,9 +120,9 @@ function App() {
           <Route
             path="/"
             element={
-              <ProtectedRoute>
+              <LandingOrApp>
                 <Dashboard />
-              </ProtectedRoute>
+              </LandingOrApp>
             }
           />
           <Route
