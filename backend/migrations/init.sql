@@ -321,3 +321,23 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS preferences JSONB DEFAULT '{}'::jsonb
 -- =====================================================================
 ALTER TABLE tasks ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP;
 CREATE INDEX IF NOT EXISTS idx_tasks_deleted_at ON tasks(deleted_at);
+
+
+-- =====================================================================
+-- Phase 4.10 - personal access tokens for the public read-only API.
+--
+-- Only the hash is stored; the plaintext is shown to the user once and
+-- then forgotten. `token_prefix` keeps a short, non-secret fragment so a
+-- user can tell two tokens apart in the UI without being shown the secret.
+-- =====================================================================
+CREATE TABLE IF NOT EXISTS api_tokens (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  label VARCHAR(255) NOT NULL,
+  token_hash TEXT NOT NULL UNIQUE,
+  token_prefix VARCHAR(24) NOT NULL,
+  last_used_at TIMESTAMP,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_api_tokens_user_id ON api_tokens(user_id);
+CREATE INDEX IF NOT EXISTS idx_api_tokens_hash ON api_tokens(token_hash);

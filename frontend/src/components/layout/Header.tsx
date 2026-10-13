@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import ThemeToggle from '../common/ThemeToggle';
+import ApiTokensModal from '../settings/ApiTokensModal';
 import Wordmark from '../common/Wordmark';
 import SyncIndicator from '../common/SyncIndicator';
 null
@@ -16,6 +17,7 @@ const navClass = ({ isActive }: { isActive: boolean }) =>
   }`;
 
 const Header: React.FC = () => {
+  const [apiTokensOpen, setApiTokensOpen] = useState(false);
   const { user, logout } = useAuthStore();
   const initial = user?.name?.trim()?.charAt(0)?.toUpperCase() || '?';
 
@@ -67,6 +69,28 @@ const Header: React.FC = () => {
               the header wrapped on phones and crowded the nav on desktop. */}
           {user && <PomodoroTimerHeader />}
           <ThemeToggle />
+          <button
+            type="button"
+            onClick={() => setApiTokensOpen(true)}
+            aria-label="API tokens"
+            title="Manage API tokens"
+            className="rounded-full border border-hairline bg-surface-2 p-2 text-ink-muted transition-colors hover:border-accent hover:text-ink"
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <circle cx="12" cy="12" r="3" />
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+            </svg>
+          </button>
           {user && <TourButton />}
 
           {user && (
@@ -107,6 +131,7 @@ const Header: React.FC = () => {
           )}
         </div>
       </div>
+      {apiTokensOpen && <ApiTokensModal onClose={() => setApiTokensOpen(false)} />}
     </header>
   );
 };
