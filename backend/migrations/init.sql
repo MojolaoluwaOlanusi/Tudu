@@ -299,3 +299,12 @@ CREATE OR REPLACE FUNCTION get_board_role(p_user UUID, p_board UUID) RETURNS TEX
       WHERE b.id = p_board AND wm.user_id = p_user AND wm.status = 'accepted')
   );
 $$ LANGUAGE sql STABLE;
+
+
+-- =====================================================================
+-- Phase 4.4 — per-user preferences.
+-- A JSONB bag so adding a new preference (theme, default view, ...) never
+-- needs another migration. Today the only keys are default_sort and
+-- default_order.
+-- =====================================================================
+ALTER TABLE users ADD COLUMN IF NOT EXISTS preferences JSONB DEFAULT '{}'::jsonb;

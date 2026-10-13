@@ -3,7 +3,14 @@ import { persist } from 'zustand/middleware';
 import { useShallow } from 'zustand/react/shallow';
 import { Category, Priority, Status, TaskFilters } from '../types/task';
 
-export type SortKey = 'created_at' | 'updated_at' | 'due_date' | 'title' | 'priority';
+export type SortKey =
+  | 'created_at'
+  | 'updated_at'
+  | 'due_date'
+  | 'title'
+  | 'priority'
+  | 'assignee'
+  | 'category';
 export type SortOrder = 'asc' | 'desc';
 
 interface FilterState {

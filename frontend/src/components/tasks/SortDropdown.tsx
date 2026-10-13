@@ -8,9 +8,16 @@ const OPTIONS = [
   { value: 'priority:desc', label: 'High priority first' },
   { value: 'priority:asc', label: 'Low priority first' },
   { value: 'title:asc', label: 'Title A–Z' },
+  { value: 'assignee:asc', label: 'Assignee A–Z' },
+  { value: 'category:asc', label: 'Category A–Z' },
   { value: 'updated_at:desc', label: 'Recently updated' },
 ];
 
+/**
+ * Sort order for the List view. State lives in the URL next to \`?q=\`, so a
+ * filtered *and* sorted view is shareable. The direction can also be flipped
+ * with the SortDirectionToggle button beside this one.
+ */
 const SortDropdown = () => {
   const [params, setParams] = useSearchParams();
   const sort = params.get('sort') ?? 'created_at';

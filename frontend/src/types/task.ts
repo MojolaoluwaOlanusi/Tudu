@@ -50,7 +50,14 @@ export interface TaskFilters {
   priority?: Priority;
   search?: string;
   /** Which column to sort by. */
-  sort?: 'created_at' | 'updated_at' | 'due_date' | 'title' | 'priority';
+  sort?:
+    | 'created_at'
+    | 'updated_at'
+    | 'due_date'
+    | 'title'
+    | 'priority'
+    | 'assignee'
+    | 'category';
   /** `desc` (the default) or `asc`. */
   order?: 'asc' | 'desc';
 }
