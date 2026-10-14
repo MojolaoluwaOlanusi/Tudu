@@ -5,6 +5,7 @@ const auth = (token: string) => ({ Authorization: 'Bearer ' + token });
 
 export interface NotificationPreferences {
   reminders: boolean;
+  celebrations: boolean;
   last_sent_at: string | null;
 }
 
@@ -14,12 +15,12 @@ export const notificationService = {
 
   set: async (
     token: string,
-    reminders: boolean
+    patch: { reminders?: boolean; celebrations?: boolean }
   ): Promise<NotificationPreferences> =>
     (
       await axios.put(
         API_URL + '/api/users/me/notifications',
-        { reminders },
+        patch,
         { headers: auth(token) }
       )
     ).data,

@@ -2,11 +2,12 @@ import { Request, Response } from 'express';
 import pool from '../config/database';
 
 /**
- * Defaults returned when the user has never touched the toggle.
- * The shape matches the JSONB default in the migration.
+ * Defaults returned when the user has never touched the preferences.
+ * The shape matches the JSONB defaults across migrations 4.11 and 4.12.
  */
 const DEFAULTS = {
   reminders: false,
+  celebrations: true,
   last_sent_at: null as string | null,
 };
 
@@ -32,27 +33,47 @@ export const getNotifications = async (req: Request, res: Response) => {
 };
 
 /**
- * PUT /api/users/me/notifications - body: { reminders: boolean }.
+ * PUT /api/users/me/notifications - body: { reminders?, celebrations? }.
  *
- * Only the reminders flag can be changed from the client. last_sent_at
- * is written by the reminder job alone, so a client cannot reset its own
- * throttle and force a second email.
+ * Only the two client-writable flags are accepted; last_sent_at is
+ * written by the reminder job alone. Each flag is validated independently
+ * so a request may update one, the other, or both.
  */
 export const updateNotifications = async (req: Request, res: Response) => {
   try {
     const userId = req.user?.userId;
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
-    const raw = (req.body ?? {}).reminders;
-    if (typeof raw !== 'boolean') {
-      return res.status(400).json({ error: 'reminders must be a boolean' });
+    const patch: Record<string, boolean> = {};
+    const { reminders, celebrations } = (req.body ?? {}) as {
+      reminders?: unknown;
+      celebrations?: unknown;
+    };
+
+    if (reminders !== undefined) {
+      if (typeof reminders !== 'boolean') {
+        return res.status(400).json({ error: 'reminders must be a boolean' });
+      }
+      patch.reminders = reminders;
+    }
+
+    if (celebrations !== undefined) {
+      if (typeof celebrations !== 'boolean') {
+        return res.status(400).json({ error: 'celebrations must be a boolean' });
+      }
+      patch.celebrations = celebrations;
+    }
+
+    if (Object.keys(patch).length === 0) {
+      return res
+        .status(400)
+        .json({ error: 'Supply reminders, celebrations, or both' });
     }
 
     const result = await pool.query(
-      'UPDATE users SET notifications = COALESCE(notifications, \'{}\'::jsonb) || ' +
-        'jsonb_build_object(\'reminders\', $1::boolean) ' +
+      'UPDATE users SET notifications = COALESCE(notifications, \'{}\'::jsonb) || $1::jsonb ' +
         'WHERE id = $2 RETURNING notifications',
-      [raw, userId]
+      [JSON.stringify(patch), userId]
     );
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'User not found' });

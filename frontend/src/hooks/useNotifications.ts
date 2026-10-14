@@ -17,11 +17,24 @@ export const useNotificationPreferences = () => {
   });
 };
 
-export const useSetReminders = () => {
+export const useUpdateNotifications = () => {
   const { token } = useAuthStore();
   const queryClient = useQueryClient();
-  return useMutation<NotificationPreferences, unknown, boolean>({
-    mutationFn: (reminders) => notificationService.set(token!, reminders),
+  return useMutation<
+    NotificationPreferences,
+    unknown,
+    { reminders?: boolean; celebrations?: boolean }
+  >({
+    mutationFn: (patch) => notificationService.set(token!, patch),
     onSuccess: (data) => queryClient.setQueryData(QUERY_KEY, data),
   });
+};
+
+export const useSetReminders = () => {
+  const mutation = useUpdateNotifications();
+  return {
+    ...mutation,
+    mutate: (reminders: boolean, opts?: Parameters<typeof mutation.mutate>[1]) =>
+      mutation.mutate({ reminders }, opts),
+  };
 };
