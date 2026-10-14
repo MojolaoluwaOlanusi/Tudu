@@ -19,6 +19,8 @@ import workspaceRoutes from './routes/workspaces';
 import templateRoutes from './routes/templates';
 import apiTokensRoutes from './routes/apiTokens';
 import apiV1Routes from './routes/apiV1';
+import reminderRoutes from './routes/reminders';
+import notificationRoutes from './routes/notifications';
 import publicRoutes from './routes/public';
 import onboardingRoutes from './routes/onboarding';
 
@@ -139,5 +141,7 @@ app.use('/api/onboarding', onboardingRoutes);
 app.use('/api/templates', templateRoutes);
 app.use('/api/tokens', apiTokensRoutes);
 app.use('/api/v1', apiV1Routes);
+app.use('/api/reminders', reminderRoutes);
+app.use('/api/users/me/notifications', notificationRoutes);
 
 export default app;
