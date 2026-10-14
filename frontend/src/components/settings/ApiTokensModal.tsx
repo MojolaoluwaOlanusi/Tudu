@@ -201,7 +201,7 @@ const ApiTokensModal: React.FC<ApiTokensModalProps> = ({ onClose }) => {
               {'curl -H ' +
                 JSON.stringify('Authorization: Bearer ' + '<token>') +
                 ' '}
-              {'https://your-tudu-api/api/v1/tasks'}
+              {'https://tudu-backend-iuyu.onrender.com/api/v1/tasks'}
             </pre>
             <p className="mt-2 text-[11px] text-ink-muted">
               Read-only for now. Writes are coming in Pro.
