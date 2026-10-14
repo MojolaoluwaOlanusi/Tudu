@@ -352,3 +352,14 @@ CREATE INDEX IF NOT EXISTS idx_api_tokens_hash ON api_tokens(token_hash);
 -- the same person twice in a day even if the cron runs more than once.
 -- =====================================================================
 ALTER TABLE users ADD COLUMN IF NOT EXISTS notifications JSONB DEFAULT '{"reminders": false, "last_sent_at": null}'::jsonb;
+
+
+-- =====================================================================
+-- Phase 4.12 - celebrations.
+--
+-- Adds the celebrations flag to the notifications JSONB bag. Defaults
+-- to true: a fresh user should see the little green celebration on their
+-- first finished task. || keeps any existing keys untouched, so this is
+-- safe on a database that already has reminders.
+-- =====================================================================
+UPDATE users SET notifications = '{"reminders": false, "celebrations": true}'::jsonb || COALESCE(notifications, '{}'::jsonb) WHERE notifications IS NULL OR NOT (notifications ? 'celebrations');

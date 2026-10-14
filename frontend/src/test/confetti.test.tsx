@@ -1,75 +1,165 @@
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { render, screen, fireEvent, act } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen, act } from '@testing-library/react';
+
+// Mock canvas-confetti before anything imports it. jsdom has no canvas
+// implementation, so the real library throws on getContext and its
+// animation loop then crashes on a null 2d context. Mocking lets the
+// tests assert what our provider does - how many times it calls the
+// library, with which options - rather than trying to observe pixels
+// in an environment that cannot draw them.
+vi.mock('canvas-confetti', () => ({
+  default: vi.fn(),
+}));
+
+import confetti from 'canvas-confetti';
 import { ConfettiProvider, useConfetti } from '../components/common/ConfettiProvider';
 
-/**
- * Regression coverage for the phase-17 confetti bug.
- *
- * The provider used to pass `handle.current` straight into the context value.
- * React renders a parent before its children assign refs, so that value was
- * always null and every consumer silently received the no-op fallback - no
- * burst could ever play, anywhere in the app.
- */
-const Probe: React.FC = () => {
-  const { burst } = useConfetti();
+const mockedConfetti = vi.mocked(confetti);
+
+// A fresh QueryClient per render. A shared one would leak cached query
+// state between tests and turn an unrelated failure into a flaky one.
+const wrap = (ui: React.ReactNode) =>
+  render(<QueryClientProvider client={new QueryClient()}>{ui}</QueryClientProvider>);
+
+beforeEach(() => {
+  mockedConfetti.mockClear();
+});
+
+afterEach(() => {
+  vi.useRealTimers();
+});
+
+const Consumer = () => {
+  const { burst, celebrate } = useConfetti();
   return (
-    <button onClick={() => burst()}>fire</button>
+    <div>
+      <button onClick={burst}>burst</button>
+      <button onClick={() => celebrate('task-complete')}>routine</button>
+      <button onClick={() => celebrate('ten-tasks')}>mid</button>
+      <button onClick={() => celebrate('hundred-tasks')}>big</button>
+    </div>
   );
 };
 
-const renderProbe = () =>
-  render(
-    <ConfettiProvider>
-      <Probe />
-    </ConfettiProvider>
-  );
-
 describe('ConfettiProvider', () => {
   it('hands a working burst to consumers', () => {
-    renderProbe();
-    const button = screen.getByRole('button', { name: 'fire' });
+    wrap(
+      <ConfettiProvider>
+        <Consumer />
+      </ConfettiProvider>
+    );
 
-    // The failure mode was a silent no-op, so assert pieces actually appear.
-    act(() => {
-      button.click();
-    });
+    expect(screen.getByRole('button', { name: /^burst$/i })).toBeInTheDocument();
 
-    expect(document.querySelectorAll('.confetti-piece').length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByRole('button', { name: /^burst$/i }));
+    expect(mockedConfetti).toHaveBeenCalledTimes(1);
   });
 
-  it('cleans pieces up so the DOM does not grow without bound', () => {
+  it('fires a burst every time without leaking state between calls', () => {
+    // The equivalent of the "does not grow without bound" check, expressed
+    // against the mock: three clicks, three calls. No deduplication, no
+    // throttling, no accumulator the provider forgets to reset.
+    wrap(
+      <ConfettiProvider>
+        <Consumer />
+      </ConfettiProvider>
+    );
+
+    const button = screen.getByRole('button', { name: /^burst$/i });
+    fireEvent.click(button);
+    fireEvent.click(button);
+    fireEvent.click(button);
+    expect(mockedConfetti).toHaveBeenCalledTimes(3);
+  });
+
+  it('routine celebration matches the plain burst', () => {
+    wrap(
+      <ConfettiProvider>
+        <Consumer />
+      </ConfettiProvider>
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /^routine$/i }));
+    expect(mockedConfetti).toHaveBeenCalledTimes(1);
+  });
+
+  it('mid-tier celebration fires once', () => {
+    wrap(
+      <ConfettiProvider>
+        <Consumer />
+      </ConfettiProvider>
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /^mid$/i }));
+    expect(mockedConfetti).toHaveBeenCalledTimes(1);
+  });
+
+  it('big celebration fires once now and twice after a beat', () => {
     vi.useFakeTimers();
-    try {
-      renderProbe();
-      const button = screen.getByRole('button', { name: 'fire' });
+    wrap(
+      <ConfettiProvider>
+        <Consumer />
+      </ConfettiProvider>
+    );
 
-      act(() => {
-        button.click();
-      });
-      expect(document.querySelectorAll('.confetti-piece').length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByRole('button', { name: /^big$/i }));
+    // First burst fires synchronously.
+    expect(mockedConfetti).toHaveBeenCalledTimes(1);
 
-      act(() => {
-        vi.advanceTimersByTime(3000);
-      });
-
-      expect(document.querySelectorAll('.confetti-piece')).toHaveLength(0);
-    } finally {
-      vi.useRealTimers();
-    }
+    // The two side bursts fire after a 200ms delay in the provider.
+    act(() => {
+      vi.advanceTimersByTime(300);
+    });
+    expect(mockedConfetti).toHaveBeenCalledTimes(3);
   });
 
   it('does not crash for a consumer rendered outside the provider', () => {
-    const spy = vi.fn();
-    const Orphan: React.FC = () => {
+    // A missing provider is a no-op, not a thrown error. The tree renders;
+    // confetti is never called because the no-op fallback does nothing.
+    const Orphan = () => {
       const { burst } = useConfetti();
-      return <button onClick={() => { burst(); spy(); }}>orphan</button>;
+      burst();
+      return <p>orphan ok</p>;
     };
 
-    render(<Orphan />);
-    const button = screen.getByRole('button', { name: 'orphan' });
+    wrap(<Orphan />);
 
-    expect(() => button.click()).not.toThrow();
-    expect(spy).toHaveBeenCalled();
+    expect(screen.getByText(/orphan ok/i)).toBeInTheDocument();
+    expect(mockedConfetti).not.toHaveBeenCalled();
+  });
+
+  it('respects prefers-reduced-motion', () => {
+    const original = window.matchMedia;
+    // Force the reduced-motion query to report true, and everything else
+    // to report false. The provider asks specifically for
+    // "(prefers-reduced-motion: reduce)".
+    window.matchMedia = ((query: string) =>
+      ({
+        matches: query.includes('prefers-reduced-motion'),
+        media: query,
+        onchange: null,
+        addListener: () => {},
+        removeListener: () => {},
+        addEventListener: () => {},
+        removeEventListener: () => {},
+        dispatchEvent: () => false,
+      }) as unknown as MediaQueryList) as unknown as typeof window.matchMedia;
+
+    try {
+      wrap(
+        <ConfettiProvider>
+          <Consumer />
+        </ConfettiProvider>
+      );
+
+      fireEvent.click(screen.getByRole('button', { name: /^burst$/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^big$/i }));
+      // Reduced motion means every path must be a no-op.
+      expect(mockedConfetti).not.toHaveBeenCalled();
+    } finally {
+      window.matchMedia = original;
+    }
   });
 });

@@ -2,7 +2,7 @@ import React from 'react';
 import { createPortal } from 'react-dom';
 import {
   useNotificationPreferences,
-  useSetReminders,
+  useUpdateNotifications,
 } from '../../hooks/useNotifications';
 import { useUiStore } from '../../store/uiStore';
 
@@ -11,32 +11,46 @@ interface NotificationSettingsModalProps {
 }
 
 /**
- * Notification preferences (feature 4.11).
+ * Notification preferences (features 4.11 and 4.12).
  *
- * Rendered via portal to document.body, so no ancestor stacking context
- * can trap it - same pattern as the API tokens modal. The one control
- * today is the reminders toggle; the layout leaves room for more without
- * a redesign.
+ * Two toggles: due-date reminders (email) and celebrations (confetti).
+ * Each is wired to its own field in the notifications JSONB, and each is
+ * saved the moment it is toggled, so there is no separate "Save" step.
  */
 const NotificationSettingsModal: React.FC<NotificationSettingsModalProps> = ({
   onClose,
 }) => {
   const { data: prefs, isLoading } = useNotificationPreferences();
-  const setReminders = useSetReminders();
+  const update = useUpdateNotifications();
   const pushToast = useUiStore((s) => s.pushToast);
 
   const remindersOn = prefs?.reminders ?? false;
+  const celebrationsOn = prefs?.celebrations ?? true;
 
-  const handleToggle = () => {
+  const fail = () => pushToast('Could not save the preference', 'error');
+
+  const toggleReminders = () => {
     const next = !remindersOn;
-    setReminders.mutate(next, {
-      onSuccess: () =>
-        pushToast(
-          next ? 'Daily reminders on' : 'Daily reminders off',
-          'success'
-        ),
-      onError: () => pushToast('Could not save the preference', 'error'),
-    });
+    update.mutate(
+      { reminders: next },
+      {
+        onSuccess: () =>
+          pushToast(next ? 'Daily reminders on' : 'Daily reminders off', 'success'),
+        onError: fail,
+      }
+    );
+  };
+
+  const toggleCelebrations = () => {
+    const next = !celebrationsOn;
+    update.mutate(
+      { celebrations: next },
+      {
+        onSuccess: () =>
+          pushToast(next ? 'Celebrations on' : 'Celebrations off', 'success'),
+        onError: fail,
+      }
+    );
   };
 
   const lastSent =
@@ -80,24 +94,46 @@ const NotificationSettingsModal: React.FC<NotificationSettingsModalProps> = ({
           {isLoading ? (
             <p className="text-sm text-ink-muted">Loading...</p>
           ) : (
-            <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-hairline bg-surface-2 p-4">
-              <input
-                type="checkbox"
-                checked={remindersOn}
-                onChange={handleToggle}
-                disabled={setReminders.isPending}
-                className="mt-0.5 h-4 w-4 accent-accent"
-              />
-              <span className="min-w-0 flex-1">
-                <span className="block text-sm font-semibold text-ink">
-                  Daily due-date reminders
+            <div className="space-y-3">
+              <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-hairline bg-surface-2 p-4">
+                <input
+                  type="checkbox"
+                  checked={remindersOn}
+                  onChange={toggleReminders}
+                  disabled={update.isPending}
+                  className="mt-0.5 h-4 w-4 accent-accent"
+                />
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-semibold text-ink">
+                    Daily due-date reminders
+                  </span>
+                  <span className="mt-0.5 block text-xs text-ink-muted">
+                    One email a day listing tasks that are due or overdue.
+                    Sent at 07:00 UTC.
+                  </span>
                 </span>
-                <span className="mt-0.5 block text-xs text-ink-muted">
-                  One email a day listing tasks that are due or overdue.
-                  Sent at 07:00 UTC.
+              </label>
+
+              <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-hairline bg-surface-2 p-4">
+                <input
+                  type="checkbox"
+                  checked={celebrationsOn}
+                  onChange={toggleCelebrations}
+                  disabled={update.isPending}
+                  className="mt-0.5 h-4 w-4 accent-accent"
+                />
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-semibold text-ink">
+                    Celebrations
+                  </span>
+                  <span className="mt-0.5 block text-xs text-ink-muted">
+                    A small confetti pop when you finish a task, and a
+                    bigger one at milestones (first 10, first 100).
+                    Turn this off and everything stays quiet.
+                  </span>
                 </span>
-              </span>
-            </label>
+              </label>
+            </div>
           )}
 
           {lastSent && (
