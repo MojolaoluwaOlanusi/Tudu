@@ -1,0 +1,29 @@
+# Render Blueprint for the Tudu backend.
+#
+# Defines two services:
+#   - the web service that already exists (left untouched by this file;
+#     Render keeps the dashboard configuration when a Blueprint does not
+#     declare the service).
+#   - a cron job that pings /api/reminders/run once a day at 07:00 UTC.
+#
+# First deploy: in the Render Dashboard, open the cron job after the
+# Blueprint sync and set REMINDER_CRON_SECRET to the same value as the
+# web service. The Blueprint cannot copy env between services by itself.
+
+services:
+  - type: cron
+    name: tudu-reminders
+    runtime: node
+    plan: starter
+    region: oregon
+    schedule: "0 7 * * *"  # 07:00 UTC, every day
+    buildCommand: npm ci
+    startCommand: >-
+      curl -fsS -X POST
+      -H "X-Cron-Secret: $REMINDER_CRON_SECRET"
+      "$TUDU_API_URL/api/reminders/run"
+    envVars:
+      - key: TUDU_API_URL
+        sync: false  # set to https://<your-backend>.onrender.com in the dashboard
+      - key: REMINDER_CRON_SECRET
+        sync: false  # same value as the web service

@@ -341,3 +341,14 @@ CREATE TABLE IF NOT EXISTS api_tokens (
 );
 CREATE INDEX IF NOT EXISTS idx_api_tokens_user_id ON api_tokens(user_id);
 CREATE INDEX IF NOT EXISTS idx_api_tokens_hash ON api_tokens(token_hash);
+
+
+-- =====================================================================
+-- Phase 4.11 - due-date reminders.
+--
+-- A JSONB bag of notification preferences, so adding a new kind of
+-- reminder (mentions, assignments, weekly digest) never needs another
+-- migration. Last-sent tracking lives on the user so we do not email
+-- the same person twice in a day even if the cron runs more than once.
+-- =====================================================================
+ALTER TABLE users ADD COLUMN IF NOT EXISTS notifications JSONB DEFAULT '{"reminders": false, "last_sent_at": null}'::jsonb;

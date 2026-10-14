@@ -37,6 +37,7 @@
     "passport-github2": "^0.1.12",
     "passport-google-oauth20": "^2.0.0",
     "pg": "^8.11.3",
+    "resend": "^6.33.0",
     "socket.io": "^4.7.2",
     "zod": "^3.22.4"
   },
