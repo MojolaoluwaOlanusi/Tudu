@@ -140,6 +140,28 @@ const BillingSettings: React.FC = () => {
             Your subscription will end on {formatDate(ent.subscription.currentPeriodEnd)}.
           </p>
         )}
+
+        {isPro && (
+        <section className="card mb-5 p-5">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="font-handwritten text-xl text-ink">Self-hosting</h2>
+              <p className="mt-1 max-w-md text-xs text-ink-muted">
+                Run Tudu on your own server. Issue a signed license and
+                download it to unlock Pro features on your self-hosted
+                instance.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => navigate('/settings/license')}
+              className="shrink-0 rounded-full border border-hairline bg-surface-2 px-4 py-2 text-sm font-semibold text-ink transition-colors hover:border-accent"
+            >
+              Manage licenses →
+            </button>
+          </div>
+        </section>
+      )}
       </section>
 
       {isPro && (

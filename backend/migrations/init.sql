@@ -437,3 +437,30 @@ VALUES
   ('pro_monthly', 'Tudu Pro', 'monthly', 750000, 100),
   ('pro_yearly',  'Tudu Pro', 'yearly',  7500000, 1200)
 ON CONFLICT (code) DO NOTHING;
+
+
+-- =====================================================================
+-- Phase 5.4 - self-hosting licenses.
+--
+-- One row per license ever issued. A customer may re-issue after a
+-- hardware change; the old row stays for audit. Only the current row
+-- for a given customer is treated as active.
+--
+-- fingerprint is the SHA-256 hex of the machine identifiers, so no raw
+-- hardware details leave the customer server. The signed blob is stored
+-- verbatim so support can re-send a lost license without re-signing.
+-- =====================================================================
+CREATE TABLE IF NOT EXISTS licenses (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  fingerprint VARCHAR(128) NOT NULL,
+  tier VARCHAR(20) NOT NULL DEFAULT 'pro'
+    CHECK (tier IN ('pro', 'enterprise')),
+  signed_blob TEXT NOT NULL,
+  issued_at TIMESTAMP DEFAULT NOW(),
+  expires_at TIMESTAMP,
+  revoked_at TIMESTAMP,
+  notes TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_licenses_user_id ON licenses(user_id);
+CREATE INDEX IF NOT EXISTS idx_licenses_fingerprint ON licenses(fingerprint);
