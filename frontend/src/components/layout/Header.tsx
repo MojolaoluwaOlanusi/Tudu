@@ -3,6 +3,7 @@ import { NavLink } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import ThemeToggle from '../common/ThemeToggle';
 import ApiTokensModal from '../settings/ApiTokensModal';
+import { useEntitlements } from '../../hooks/useBilling';
 import NotificationSettingsModal from '../settings/NotificationSettingsModal';
 import Wordmark from '../common/Wordmark';
 import SyncIndicator from '../common/SyncIndicator';
@@ -21,6 +22,8 @@ const Header: React.FC = () => {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const { user, logout } = useAuthStore();
   const initial = user?.name?.trim()?.charAt(0)?.toUpperCase() || '?';
+  const { data: entitlements } = useEntitlements();
+  const isFree = !entitlements || entitlements.tier === 'free';
 
   const Avatar = ({ size }: { size: string }) =>
     user?.avatar_url ? (
@@ -115,6 +118,14 @@ const Header: React.FC = () => {
             </button>
           )}
 
+          {user && isFree && (
+            <NavLink
+              to="/pricing"
+              className="rounded-full border border-accent bg-accent/10 px-3 py-2 text-xs font-semibold text-accent-strong transition-colors hover:bg-accent/20"
+            >
+              ★ Upgrade
+            </NavLink>
+          )}
           {user && <TourButton />}
 
           {user && (
