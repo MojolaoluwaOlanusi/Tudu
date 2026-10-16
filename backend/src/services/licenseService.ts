@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
+import path from 'node:path';
 
 /**
  * The self-hosting license format.
@@ -147,6 +148,16 @@ export const verifyLicense = (
 export const computeFingerprint = (): string => {
   const parts: string[] = [];
 
+  // An operator-supplied salt makes the fingerprint stable across
+  // container restarts. On Docker, /etc/machine-id is often inherited
+  // from the image and os.hostname() changes every restart, so without
+  // a salt the fingerprint would be different on every boot and every
+  // issued license would instantly be invalid. Self-hosters set
+  // TUDU_FINGERPRINT_SALT to any stable string of their choice; the
+  // hosted portal never sees it, it is mixed into the hash only here.
+  const salt = process.env.TUDU_FINGERPRINT_SALT;
+  if (salt) parts.push('salt:' + salt);
+
   // Linux
   try {
     if (fs.existsSync('/etc/machine-id')) {
@@ -176,4 +187,128 @@ export const computeFingerprint = (): string => {
   parts.push(String(Math.round(os.totalmem() / 1024 / 1024 / 1024)));
 
   return crypto.createHash('sha256').update(parts.join('|')).digest('hex');
+};
+
+
+/* ====================================================================== */
+/* Self-hosting: disk I/O and the in-memory cache.                        */
+/*                                                                        */
+/* The hosted instance issues licenses and never calls these. The         */
+/* self-hosted instance reads the license from disk (or env) at boot      */
+/* and caches it, then verifies against this machine on each request.     */
+/* ====================================================================== */
+
+const DEFAULT_LICENSE_PATH = './data/license.lic';
+
+const getLicensePath = (): string =>
+  process.env.LICENSE_PATH || DEFAULT_LICENSE_PATH;
+
+/**
+ * Read the signed license from the environment or the disk.
+ *
+ * Precedence: TUDU_LICENSE_BLOB env var first, then LICENSE_PATH. The
+ * env var holds base64-encoded JSON of the signed license; it survives
+ * ephemeral container restarts where a file would not. A self-hoster
+ * on a host with a persistent disk uses LICENSE_PATH; one on a host
+ * that wipes the filesystem on deploy uses the env var.
+ */
+export const readLicenseFile = (): SignedLicense | null => {
+  const blob = process.env.TUDU_LICENSE_BLOB;
+  if (blob) {
+    try {
+      const decoded = Buffer.from(blob, 'base64').toString('utf8');
+      return JSON.parse(decoded) as SignedLicense;
+    } catch (err) {
+      console.error('TUDU_LICENSE_BLOB is not valid base64 JSON:', (err as Error).message);
+    }
+  }
+
+  try {
+    const p = getLicensePath();
+    if (!fs.existsSync(p)) return null;
+    const raw = fs.readFileSync(p, 'utf8');
+    return JSON.parse(raw) as SignedLicense;
+  } catch (err) {
+    console.error('Could not read license file:', (err as Error).message);
+    return null;
+  }
+};
+
+export const writeLicenseFile = (signed: SignedLicense): boolean => {
+  try {
+    const p = getLicensePath();
+    const dir = path.dirname(p);
+    if (dir && dir !== '.') fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(p, JSON.stringify(signed, null, 2), 'utf8');
+    return true;
+  } catch (err) {
+    console.error('Could not write license file:', (err as Error).message);
+    return false;
+  }
+};
+
+export const deleteLicenseFile = (): boolean => {
+  try {
+    const p = getLicensePath();
+    if (fs.existsSync(p)) fs.unlinkSync(p);
+    return true;
+  } catch (err) {
+    console.error('Could not delete license file:', (err as Error).message);
+    return false;
+  }
+};
+
+/**
+ * In-memory cache. A read of the license and a signature verification
+ * are cheap, but reading a file on every gated request is not. The
+ * cache is cleared when a new license is activated, so a fresh upload
+ * is reflected on the next request without a process restart.
+ */
+let cachedLicense: SignedLicense | null | undefined = undefined;
+
+export const clearLicenseCache = (): void => {
+  cachedLicense = undefined;
+};
+
+export interface CurrentLicenseStatus {
+  present: boolean;
+  valid: boolean;
+  /** One of: none, bad_signature, expired, fingerprint_mismatch. */
+  reason: string | null;
+  payload: LicensePayload | null;
+  /** This machine's fingerprint, always included so the UI can show it. */
+  fingerprint: string;
+}
+
+/**
+ * Verify whatever license is currently installed against this machine.
+ *
+ * The result is deliberately structured - a raw boolean would force the
+ * caller to re-derive the reason for a failure and would make the UI
+ * show a generic "invalid" message where a specific one is available.
+ */
+export const getCurrentLicenseStatus = (): CurrentLicenseStatus => {
+  const fingerprint = computeFingerprint();
+
+  if (cachedLicense === undefined) {
+    cachedLicense = readLicenseFile();
+  }
+
+  if (!cachedLicense) {
+    return { present: false, valid: false, reason: 'none', payload: null, fingerprint };
+  }
+
+  const result = verifyLicense(cachedLicense, fingerprint);
+  if (!result.ok) {
+    const failure = result as { ok: false; reason: string; message: string };
+    return {
+      present: true,
+      valid: false,
+      reason: failure.reason,
+      payload: cachedLicense.payload,
+      fingerprint,
+    };
+  }
+
+  return { present: true, valid: true, reason: null, payload: result.payload, fingerprint };
 };
