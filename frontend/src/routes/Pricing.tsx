@@ -152,7 +152,7 @@ const Pricing: React.FC = () => {
               <p className="mb-4 text-xs text-ink-muted">{p.tagline}</p>
               <p className="mb-1">
                 <span className="font-handwritten text-4xl text-ink">
-                  {local ?? '\u20a60'}
+                  {local ?? '₦0'}
                 </span>
                 {p.period && (
                   <span className="ml-1 text-xs text-ink-muted">{p.period}</span>
@@ -166,7 +166,7 @@ const Pricing: React.FC = () => {
               {(!ngn || display.code === 'NGN') && <div className="mb-4" />}
               <ul className="mb-6 space-y-1.5 text-xs text-ink-muted">
                 {p.bullets.map((b) => (
-                  <li key={b}>\u2713 {b}</li>
+                  <li key={b}>✓ {b}</li>
                 ))}
               </ul>
               <div className="mt-auto">
