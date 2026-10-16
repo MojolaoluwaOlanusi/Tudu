@@ -35,3 +35,16 @@ export const useCancelSubscription = () => {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: QUERY_KEY }),
   });
 };
+
+export const useBuyCredits = () => {
+  const { token } = useAuthStore();
+  const queryClient = useQueryClient();
+  return useMutation<
+    { access_code: string; reference: string; authorization_url: string },
+    unknown,
+    'ai_500' | 'ai_2000'
+  >({
+    mutationFn: (bundle) => billingService.buyAiCredits(token!, bundle),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: QUERY_KEY }),
+  });
+};

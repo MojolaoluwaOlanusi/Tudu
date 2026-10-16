@@ -1,6 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useAiBreakdown, useAiStatus } from '../../hooks/useAiBreakdown';
 import { useCreateSubtask } from '../../hooks/useSubtasks';
+import { aiService } from '../../services/aiService';
+import { useAuthStore } from '../../store/authStore';
+import { useUiStore } from '../../store/uiStore';
+import CreditBadge from './CreditBadge';
+import FeatureGate from '../common/FeatureGate';
 
 interface AiBreakdownModalProps {
   taskTitle: string;
@@ -50,6 +55,28 @@ const AiBreakdownModal: React.FC<AiBreakdownModalProps> = ({
   } = useAiBreakdown();
   const { mutate: createSubtask, isPending: isSaving } = useCreateSubtask();
   const { data: status } = useAiStatus();
+  const { token } = useAuthStore();
+  const pushToast = useUiStore((s) => s.pushToast);
+  const [hdLoading, setHdLoading] = useState(false);
+
+  const handleHdBreakdown = async () => {
+    if (!token) return;
+    setHdLoading(true);
+    try {
+      const result = await aiService.hdBreakdown(token, taskTitle);
+      setItems(result.subtasks.map((text) => ({ text, selected: true })));
+    } catch (err) {
+      const status = (err as { response?: { status?: number; data?: { error?: string } } })?.response?.status;
+      const detail = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
+      if (status === 402) {
+        pushToast('You are out of AI credits', 'error');
+      } else {
+        pushToast(detail || 'Could not generate the HD breakdown', 'error');
+      }
+    } finally {
+      setHdLoading(false);
+    }
+  };
 
   const [items, setItems] = useState<Suggestion[]>([]);
   const seeded = useRef(false);
@@ -141,6 +168,10 @@ return (
           Suggested steps for <span className="font-medium text-ink">{taskTitle}</span>
         </p>
 
+        <div className="mb-4">
+          <CreditBadge />
+        </div>
+
         {isLoading && (
           <div className="flex flex-col items-center gap-3 py-10 text-center">
             <span className="text-accent-strong">
@@ -206,6 +237,21 @@ return (
             >
               + Add a step
             </button>
+            
+            <FeatureGate
+              feature="ai.breakdown.hd"
+              compact
+              title="Deeper breakdown (12 steps)"
+            >
+              <button
+                type="button"
+                onClick={handleHdBreakdown}
+                disabled={isSaving || hdLoading}
+                className="btn-ghost mt-2 !py-1 !text-xs"
+              >
+                {hdLoading ? 'Thinking deeper…' : '✦ Regenerate with 12 steps'}
+              </button>
+            </FeatureGate>
 
             <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-hairline pt-4">
               <p className="text-xs text-ink-muted">

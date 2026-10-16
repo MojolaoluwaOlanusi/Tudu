@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useEntitlements, useCancelSubscription } from '../hooks/useBilling';
+import PaystackPop from '@paystack/inline-js';
+import { useEntitlements, useCancelSubscription, useBuyCredits } from '../hooks/useBilling';
 import { useUiStore } from '../store/uiStore';
 
 const formatDate = (iso: string | null): string => {
@@ -8,6 +9,49 @@ const formatDate = (iso: string | null): string => {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return '\u2014';
   return d.toLocaleDateString();
+};
+
+interface BuyCreditsButtonProps {
+  bundle: 'ai_500' | 'ai_2000';
+  label: string;
+}
+
+const BuyCreditsButton: React.FC<BuyCreditsButtonProps> = ({ bundle, label }) => {
+  const buy = useBuyCredits();
+  const navigate = useNavigate();
+  const pushToast = useUiStore((s) => s.pushToast);
+
+  const handleClick = () => {
+    buy.mutate(bundle, {
+      onSuccess: (session) => {
+        const popup = new PaystackPop();
+        popup.resumeTransaction(session.access_code, {
+          onSuccess: () => {
+            pushToast('Credits purchased. They will appear shortly.', 'success');
+            navigate('/settings/billing');
+          },
+          onCancel: () => pushToast('Purchase cancelled', 'info'),
+          onError: (error: { message?: string }) =>
+            pushToast(error?.message || 'Purchase failed', 'error'),
+        });
+      },
+      onError: (err) => {
+        const detail = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
+        pushToast(detail || 'Could not start the purchase', 'error');
+      },
+    });
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={handleClick}
+      disabled={buy.isPending}
+      className="btn-accent rounded-full px-4 py-2 text-sm font-semibold disabled:opacity-60"
+    >
+      {buy.isPending ? 'Opening checkout…' : label}
+    </button>
+  );
 };
 
 const BillingSettings: React.FC = () => {
@@ -97,6 +141,23 @@ const BillingSettings: React.FC = () => {
           </p>
         )}
       </section>
+
+      {isPro && (
+        <section className="card mb-5 p-5">
+          <div className="mb-3">
+            <h2 className="font-handwritten text-xl text-ink">Buy more AI credits</h2>
+            <p className="mt-1 text-xs text-ink-muted">
+              You have <span className="font-semibold text-ink">{ent?.aiCreditsRemaining ?? 0}</span>{' '}
+              credit{(ent?.aiCreditsRemaining ?? 0) === 1 ? '' : 's'} remaining.
+              Credits are one-off purchases and never expire.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <BuyCreditsButton bundle="ai_500" label="500 credits · ₦2,000" />
+            <BuyCreditsButton bundle="ai_2000" label="2,000 credits · ₦7,000" />
+          </div>
+        </section>
+      )}
     </div>
   );
 };

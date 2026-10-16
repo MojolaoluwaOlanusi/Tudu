@@ -6,6 +6,7 @@ import {
   PaystackError,
 } from '../services/paystackService';
 import { getEntitlements } from '../services/entitlementService';
+import { findBundle } from '../services/aiCreditService';
 
 const findPlan = async (code: string) => {
   const res = await pool.query(
@@ -132,6 +133,58 @@ export const cancelSubscription = async (req: Request, res: Response) => {
     }
     console.error('Error cancelling subscription:', error);
     res.status(500).json({ error: 'Failed to cancel subscription' });
+  }
+};
+
+/**
+ * POST /api/billing/ai-credits/checkout - body: { bundle }.
+ *
+ * Starts a one-off Paystack transaction for a credit bundle. Same
+ * initialize call as a subscription, but with amount instead of plan,
+ * and metadata.purpose="ai_credits" so the webhook knows to grant
+ * credits when charge.success arrives.
+ */
+export const buyAiCredits = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    const email = req.user?.email;
+    if (!userId || !email) return res.status(401).json({ error: 'Unauthorized' });
+
+    const rawBundle = (req.body ?? {}).bundle;
+    if (typeof rawBundle !== 'string') {
+      return res.status(400).json({ error: 'bundle is required' });
+    }
+
+    const bundle = findBundle(rawBundle);
+    if (!bundle) return res.status(404).json({ error: 'Bundle not found' });
+
+    const appUrl = process.env.APP_URL ?? 'http://localhost:5173';
+
+    const init = await initializeTransaction({
+      email,
+      amount: bundle.amount_kobo,
+      callback_url: appUrl + '/billing/callback',
+      metadata: {
+        userId,
+        purpose: 'ai_credits',
+        credits: bundle.credits,
+        bundle_code: bundle.code,
+      },
+    });
+
+    res.json({
+      authorization_url: init.authorization_url,
+      access_code: init.access_code,
+      reference: init.reference,
+      amount_kobo: bundle.amount_kobo,
+      currency: 'NGN',
+    });
+  } catch (error) {
+    if (error instanceof PaystackError) {
+      return res.status(error.statusCode).json({ error: error.message });
+    }
+    console.error('Error starting AI credit purchase:', error);
+    res.status(500).json({ error: 'Failed to start the purchase' });
   }
 };
 

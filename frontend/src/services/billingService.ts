@@ -52,6 +52,18 @@ export const billingService = {
       )
     ).data,
 
+  buyAiCredits: async (
+    token: string,
+    bundle: 'ai_500' | 'ai_2000'
+  ): Promise<{ access_code: string; reference: string; authorization_url: string }> =>
+    (
+      await axios.post(
+        API_URL + '/api/billing/ai-credits/checkout',
+        { bundle },
+        { headers: { Authorization: 'Bearer ' + token } }
+      )
+    ).data,
+
   cancel: async (token: string): Promise<void> => {
     await axios.post(API_URL + '/api/billing/cancel', {}, { headers: auth(token) });
   },
