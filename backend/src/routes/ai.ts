@@ -1,6 +1,7 @@
 import express from 'express';
 import rateLimit from 'express-rate-limit';
 import { authenticate } from '../middleware/auth';
+import { meterAiCall } from '../middleware/meterAiCall';
 import * as aiController from '../controllers/aiController';
 
 const router = express.Router();
@@ -18,6 +19,6 @@ const breakdownLimiter = rateLimit({
 });
 
 router.get('/status', aiController.getAiStatus);
-router.post('/breakdown', breakdownLimiter, aiController.breakdownTask);
+router.post('/breakdown', breakdownLimiter, meterAiCall('ai.breakdown', 1, aiController.breakdownTask));
 
 export default router;

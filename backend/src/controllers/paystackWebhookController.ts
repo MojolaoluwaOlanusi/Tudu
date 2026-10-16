@@ -27,6 +27,18 @@ const isValidSignature = (rawBody: Buffer, signature: unknown): boolean => {
   return crypto.timingSafeEqual(a, b);
 };
 
+/**
+ * Handle charge.success.
+ *
+ * Two paths: subscription charges (plan-based) are just recorded here,
+ * because subscription.create does the rest. One-off purchases
+ * (purpose=ai_credits) also grant the credits to the ledger.
+ *
+ * Idempotent per reference. The payments INSERT uses ON CONFLICT DO
+ * NOTHING, and the credits are granted only when the INSERT actually
+ * happened - a retried webhook finds the row already there and skips
+ * the grant.
+ */
 const handleChargeSuccess = async (data: Record<string, unknown>) => {
   const reference = data.reference as string | undefined;
   const amount = typeof data.amount === 'number' ? data.amount : 0;
@@ -35,18 +47,31 @@ const handleChargeSuccess = async (data: Record<string, unknown>) => {
   const currency = (data.currency as string) ?? 'NGN';
   const metadata = (data.metadata as Record<string, unknown>) ?? {};
   const userId = metadata.userId as string | undefined;
+  const purpose = (metadata.purpose as string) ?? 'subscription';
+  const credits = typeof metadata.credits === 'number' ? metadata.credits : 0;
 
   if (!reference || !userId) {
     console.error('charge.success missing reference or userId', data);
     return;
   }
 
-  await pool.query(
+  const inserted = await pool.query(
     'INSERT INTO payments (user_id, reference, amount_kobo, currency, status, channel, purpose, raw) ' +
-      'VALUES ($1, $2, $3, $4, $5, $6, \'subscription\', $7) ' +
-      'ON CONFLICT (reference) DO NOTHING',
-    [userId, reference, amount, currency, status, channel, JSON.stringify(data)]
+      'VALUES ($1, $2, $3, $4, $5, $6, $7, $8) ' +
+      'ON CONFLICT (reference) DO NOTHING ' +
+      'RETURNING id',
+    [userId, reference, amount, currency, status, channel, purpose, JSON.stringify(data)]
   );
+
+  // If the row already existed, this is a retry - nothing left to do.
+  if (inserted.rows.length === 0) return;
+
+  if (purpose === 'ai_credits' && credits > 0) {
+    await pool.query(
+      'INSERT INTO ai_credit_ledger (user_id, delta, reason) VALUES ($1, $2, $3)',
+      [userId, credits, 'credit_purchase']
+    );
+  }
 };
 
 const handleSubscriptionCreate = async (data: Record<string, unknown>) => {

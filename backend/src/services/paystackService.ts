@@ -55,13 +55,30 @@ export interface PaystackInitData {
   reference: string;
 }
 
+/**
+ * Initialise a transaction.
+ *
+ * Two modes: a plan (subscription - Paystack uses the plan amount and
+ * creates a recurring charge on success) or a bare amount (one-off -
+ * used for AI credit bundles). Exactly one of plan or amount must be
+ * provided; we do not trust both.
+ */
 export const initializeTransaction = async (params: {
   email: string;
-  plan: string;
+  plan?: string;
+  amount?: number;
   callback_url: string;
   metadata?: Record<string, unknown>;
-}): Promise<PaystackInitData> =>
-  request<PaystackInitData>('POST', '/transaction/initialize', params);
+}): Promise<PaystackInitData> => {
+  const body: Record<string, unknown> = {
+    email: params.email,
+    callback_url: params.callback_url,
+  };
+  if (params.plan) body.plan = params.plan;
+  if (typeof params.amount === 'number') body.amount = params.amount;
+  if (params.metadata) body.metadata = params.metadata;
+  return request<PaystackInitData>('POST', '/transaction/initialize', body);
+};
 
 export interface PaystackVerifyData {
   status: string;
