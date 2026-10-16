@@ -13,6 +13,7 @@ import BillingCallback from './routes/BillingCallback';
 import AuthCallback from './components/auth/AuthCallback';
 import ProtectedRoute from './components/common/ProtectedRoute';
 import Header from './components/layout/Header';
+import LicenseBanner from './components/common/LicenseBanner';
 import TaskList from './components/tasks/TaskList';
 import KanbanBoard from './components/kanban/KanbanBoard';
 import BoardTaskForm from './components/kanban/BoardTaskForm';
@@ -60,6 +61,7 @@ const AnalyticsDashboard = lazy(() => import('./components/analytics/AnalyticsDa
 const Shell = ({ children }: { children: ReactNode }) => (
   <div className="min-h-screen">
     <Header />
+      <LicenseBanner />
     <div className="mx-auto flex w-full max-w-6xl gap-6 px-4 py-6 sm:px-6 sm:py-8">
       <aside className="hidden w-64 shrink-0 lg:block" data-tour="shared">
         <SharedListsSidebar />
