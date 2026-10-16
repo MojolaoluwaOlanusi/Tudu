@@ -23,6 +23,17 @@ export const getAiErrorMessage = (error: unknown): string => {
 };
 
 export const aiService = {
+  // Pro-only HD breakdown. Gated server-side by ai.breakdown.hd;
+  // a free user gets a 402 and the UI is expected to show the upgrade
+  // prompt from the response body rather than the network error.
+  hdBreakdown: async (token: string, title: string): Promise<{ subtasks: string[]; count: number; hd: boolean }> =>
+    (
+      await axios.post(
+        API_URL + '/api/ai/hd/breakdown',
+        { title },
+        { headers: { Authorization: 'Bearer ' + token } }
+      )
+    ).data,
   /** Which provider the server is using, and whether it has credentials. */
   getStatus: async (token: string): Promise<AiStatus> => {
     const response = await axios.get(`${API_URL}/api/ai/status`, headers(token));
