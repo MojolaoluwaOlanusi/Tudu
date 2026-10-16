@@ -126,6 +126,25 @@ const Header: React.FC = () => {
               ★ Upgrade
             </NavLink>
           )}
+
+          {user && !isFree && (
+            <NavLink
+              to="/settings/billing"
+              title="View billing"
+              className="flex items-center gap-1.5 rounded-full border border-accent bg-accent/15 px-3 py-2 text-xs font-semibold text-accent-strong transition-colors hover:bg-accent/25"
+            >
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                aria-hidden="true"
+              >
+                <path d="M12 2l2.9 6.3 6.9.9-5 4.8 1.2 6.9L12 17.8 6 21l1.2-6.9-5-4.8 6.9-.9z" />
+              </svg>
+              Pro
+            </NavLink>
+          )}
           {user && <TourButton />}
 
           {user && (
