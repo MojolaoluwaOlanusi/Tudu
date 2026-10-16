@@ -8,6 +8,7 @@ import { useAuthStore } from './store/authStore';
 import Login from './components/auth/Login';
 import Pricing from './routes/Pricing';
 import BillingSettings from './routes/BillingSettings';
+import LicenseSettings from './routes/LicenseSettings';
 import BillingCallback from './routes/BillingCallback';
 import AuthCallback from './components/auth/AuthCallback';
 import ProtectedRoute from './components/common/ProtectedRoute';
@@ -135,6 +136,16 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/pricing" element={<Pricing />} />
           <Route path="/billing/callback" element={<BillingCallback />} />
+          <Route
+            path="/settings/license"
+            element={
+              <ProtectedRoute>
+                <Shell>
+                  <LicenseSettings />
+                </Shell>
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/settings/billing"
             element={
