@@ -21,6 +21,8 @@ import apiTokensRoutes from './routes/apiTokens';
 import apiV1Routes from './routes/apiV1';
 import reminderRoutes from './routes/reminders';
 import notificationRoutes from './routes/notifications';
+import billingRoutes from './routes/billing';
+import paystackWebhookRoutes from './routes/paystackWebhook';
 import publicRoutes from './routes/public';
 import onboardingRoutes from './routes/onboarding';
 
@@ -110,6 +112,15 @@ const credentialLimiter = rateLimit({
 });
 
 // Body parsing
+// IMPORTANT: mounted BEFORE express.json() so the request body stays a
+// raw Buffer. Paystack signs the raw bytes; parsing them first would
+// silently break the HMAC comparison and every webhook would 401.
+app.use(
+  '/api/billing/webhook',
+  express.raw({ type: 'application/json' }),
+  paystackWebhookRoutes
+);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -143,5 +154,6 @@ app.use('/api/tokens', apiTokensRoutes);
 app.use('/api/v1', apiV1Routes);
 app.use('/api/reminders', reminderRoutes);
 app.use('/api/users/me/notifications', notificationRoutes);
+app.use('/api/billing', billingRoutes);
 
 export default app;
