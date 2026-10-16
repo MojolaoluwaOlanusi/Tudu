@@ -464,3 +464,29 @@ CREATE TABLE IF NOT EXISTS licenses (
 );
 CREATE INDEX IF NOT EXISTS idx_licenses_user_id ON licenses(user_id);
 CREATE INDEX IF NOT EXISTS idx_licenses_fingerprint ON licenses(fingerprint);
+
+
+-- =====================================================================
+-- Phase 5.5 - browser push notifications.
+--
+-- One row per browser subscription. A user with three devices has three
+-- rows; sending iterates all of them. The endpoint is the identifying
+-- key: a browser rotating its subscription produces a new endpoint, and
+-- the old row is pruned the first time it 404s or 410s.
+-- =====================================================================
+CREATE TABLE IF NOT EXISTS push_subscriptions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  endpoint TEXT NOT NULL UNIQUE,
+  p256dh TEXT NOT NULL,
+  auth TEXT NOT NULL,
+  user_agent TEXT,
+  created_at TIMESTAMP DEFAULT NOW(),
+  last_used_at TIMESTAMP DEFAULT NOW(),
+  failed_count INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS idx_push_subscriptions_user ON push_subscriptions(user_id);
+
+-- The notifications JSONB gains a push flag. Merge rather than replace
+-- so reminders, celebrations and last_sent_at survive.
+UPDATE users SET notifications = '{"push": false}'::jsonb || COALESCE(notifications, '{}'::jsonb) WHERE notifications IS NULL OR NOT (notifications ? 'push');

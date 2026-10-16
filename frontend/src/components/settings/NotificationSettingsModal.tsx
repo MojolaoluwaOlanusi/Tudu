@@ -4,6 +4,7 @@ import {
   useNotificationPreferences,
   useUpdateNotifications,
 } from '../../hooks/useNotifications';
+import { usePushNotifications } from '../../hooks/usePushNotifications';
 import { useUiStore } from '../../store/uiStore';
 
 interface NotificationSettingsModalProps {
@@ -11,17 +12,23 @@ interface NotificationSettingsModalProps {
 }
 
 /**
- * Notification preferences (features 4.11 and 4.12).
+ * Notification preferences (features 4.11, 4.12 and 5.5).
  *
- * Two toggles: due-date reminders (email) and celebrations (confetti).
- * Each is wired to its own field in the notifications JSONB, and each is
- * saved the moment it is toggled, so there is no separate "Save" step.
+ * Three toggles: due-date reminders (email), celebrations (confetti)
+ * and browser notifications (push). Each is saved the moment it is
+ * toggled, so there is no separate "Save" step.
+ *
+ * The push toggle has three possible states:
+ *   - server not configured: the toggle is hidden entirely
+ *   - unsupported in this browser: hidden
+ *   - permission denied: shown but disabled with an explanatory hint
  */
 const NotificationSettingsModal: React.FC<NotificationSettingsModalProps> = ({
   onClose,
 }) => {
   const { data: prefs, isLoading } = useNotificationPreferences();
   const update = useUpdateNotifications();
+  const push = usePushNotifications();
   const pushToast = useUiStore((s) => s.pushToast);
 
   const remindersOn = prefs?.reminders ?? false;
@@ -53,11 +60,26 @@ const NotificationSettingsModal: React.FC<NotificationSettingsModalProps> = ({
     );
   };
 
+  const togglePush = async (next: boolean) => {
+    try {
+      if (next) await push.enable();
+      else await push.disable();
+      pushToast(next ? 'Browser notifications on' : 'Browser notifications off', 'success');
+    } catch {
+      pushToast('Could not update browser notifications', 'error');
+    }
+  };
+
   const lastSent =
     prefs?.last_sent_at &&
     !Number.isNaN(new Date(prefs.last_sent_at).getTime())
       ? new Date(prefs.last_sent_at).toLocaleString()
       : null;
+
+  const showPushToggle =
+    !push.loading &&
+    push.serverConfigured &&
+    push.support !== 'unsupported';
 
   const content = (
     <div
@@ -133,6 +155,30 @@ const NotificationSettingsModal: React.FC<NotificationSettingsModalProps> = ({
                   </span>
                 </span>
               </label>
+
+              {showPushToggle && (
+                <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-hairline bg-surface-2 p-4">
+                  <input
+                    type="checkbox"
+                    checked={push.support === 'subscribed'}
+                    disabled={push.support === 'denied'}
+                    onChange={async (e) => {
+                      await togglePush(e.target.checked);
+                    }}
+                    className="mt-0.5 h-4 w-4 accent-accent"
+                  />
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-semibold text-ink">
+                      Browser notifications
+                    </span>
+                    <span className="mt-0.5 block text-xs text-ink-muted">
+                      {push.support === 'denied'
+                        ? 'Notifications are blocked in your browser settings. Allow them for Tudu, then try again.'
+                        : 'A reminder appears even when Tudu is closed.'}
+                    </span>
+                  </span>
+                </label>
+              )}
             </div>
           )}
 
