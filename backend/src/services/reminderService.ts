@@ -1,5 +1,6 @@
 import pool from '../config/database';
 import { sendHtml } from './emailService';
+import { sendPushToUsers } from './pushService';
 
 export interface ReminderRunResult {
   usersChecked: number;
@@ -172,6 +173,35 @@ export const runReminders = async (): Promise<ReminderRunResult> => {
     } else {
       failed += 1;
       console.error('Reminder send failed for ' + user.email + ': ' + result.error);
+    }
+  }
+
+  // Push runs alongside the email loop, not inside it. The two
+  // channels are independent: a user can have email on and push off,
+  // or the other way round, and a push failure must never fail the
+  // email run.
+  if (candidates.length > 0) {
+    const pushSummary = await sendPushToUsers(
+      candidates.map((c) => c.id),
+      {
+        title: 'Your Tudu tasks',
+        body:
+          candidates.length === 1
+            ? 'One task needs your attention.'
+            : 'You have tasks due soon.',
+        tag: 'tudu-due-reminder',
+        url: '/',
+      }
+    );
+    if (pushSummary.delivered > 0 || pushSummary.pruned > 0) {
+      console.log(
+        '[push] delivered ' +
+          pushSummary.delivered +
+          ', pruned ' +
+          pushSummary.pruned +
+          ', failed ' +
+          pushSummary.failed,
+      );
     }
   }
 

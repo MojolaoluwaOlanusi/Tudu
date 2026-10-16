@@ -8,6 +8,7 @@ import pool from '../config/database';
 const DEFAULTS = {
   reminders: false,
   celebrations: true,
+  push: false,
   last_sent_at: null as string | null,
 };
 
@@ -45,9 +46,10 @@ export const updateNotifications = async (req: Request, res: Response) => {
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
     const patch: Record<string, boolean> = {};
-    const { reminders, celebrations } = (req.body ?? {}) as {
+    const { reminders, celebrations, push } = (req.body ?? {}) as {
       reminders?: unknown;
       celebrations?: unknown;
+      push?: unknown;
     };
 
     if (reminders !== undefined) {
@@ -64,10 +66,17 @@ export const updateNotifications = async (req: Request, res: Response) => {
       patch.celebrations = celebrations;
     }
 
+    if (push !== undefined) {
+      if (typeof push !== 'boolean') {
+        return res.status(400).json({ error: 'push must be a boolean' });
+      }
+      patch.push = push;
+    }
+
     if (Object.keys(patch).length === 0) {
       return res
         .status(400)
-        .json({ error: 'Supply reminders, celebrations, or both' });
+        .json({ error: 'Supply at least one of: reminders, celebrations, push' });
     }
 
     const result = await pool.query(

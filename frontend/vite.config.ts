@@ -33,6 +33,7 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
         // The socket.io handshake must never be served from cache.
         navigateFallbackDenylist: [/^\/api\//, /^\/socket\.io\//],
+        importScripts: ['/push-handler.js'],
         runtimeCaching: [
           {
             // API responses: fresh when the network is there, cached when it

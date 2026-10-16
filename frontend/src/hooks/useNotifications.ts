@@ -23,7 +23,7 @@ export const useUpdateNotifications = () => {
   return useMutation<
     NotificationPreferences,
     unknown,
-    { reminders?: boolean; celebrations?: boolean }
+    { reminders?: boolean; celebrations?: boolean; push?: boolean }
   >({
     mutationFn: (patch) => notificationService.set(token!, patch),
     onSuccess: (data) => queryClient.setQueryData(QUERY_KEY, data),
