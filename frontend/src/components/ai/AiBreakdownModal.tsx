@@ -141,16 +141,20 @@ const AiBreakdownModal: React.FC<AiBreakdownModalProps> = ({
   };
 return (
     <div
-      className="scrim fixed inset-0 z-50 flex items-end justify-center p-4 sm:items-center"
+      className="scrim fixed inset-0 z-50 overflow-y-auto"
       role="dialog"
       aria-modal="true"
       aria-label="AI task breakdown"
       onClick={onClose}
     >
       <div
-        className="animate-fade-in max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-hairline bg-surface p-5 shadow-xl sm:p-6"
-        onClick={(e) => e.stopPropagation()}
+        className="flex min-h-full items-start justify-center px-4 pb-8"
+        style={{ paddingTop: 'max(4rem, env(safe-area-inset-top, 0px) + 4rem)' }}
       >
+        <div
+          className="animate-fade-in w-full max-w-lg rounded-2xl border border-hairline bg-surface p-5 shadow-xl sm:p-6"
+          onClick={(e) => e.stopPropagation()}
+        >
         <div className="mb-1 flex items-start justify-between gap-4">
           <h2 className="font-handwritten text-2xl text-ink">Break it down</h2>
           <button
@@ -274,6 +278,7 @@ return (
             </div>
           </>
         )}
+        </div>
       </div>
     </div>
   );
