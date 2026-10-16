@@ -1,15 +1,23 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import PaystackPop from '@paystack/inline-js';
-import { useEntitlements, useCancelSubscription, useBuyCredits } from '../hooks/useBilling';
+import {
+  useEntitlements,
+  useCancelSubscription,
+  useBuyCredits,
+} from '../hooks/useBilling';
 import { useUiStore } from '../store/uiStore';
 
 const formatDate = (iso: string | null): string => {
-  if (!iso) return '\u2014';
+  if (!iso) return '—';
   const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return '\u2014';
+  if (Number.isNaN(d.getTime())) return '—';
   return d.toLocaleDateString();
 };
+
+/* ------------------------------------------------------------------ */
+/* Buy more AI credits                                                 */
+/* ------------------------------------------------------------------ */
 
 interface BuyCreditsButtonProps {
   bundle: 'ai_500' | 'ai_2000';
@@ -54,6 +62,10 @@ const BuyCreditsButton: React.FC<BuyCreditsButtonProps> = ({ bundle, label }) =>
   );
 };
 
+/* ------------------------------------------------------------------ */
+/* The billing settings page                                           */
+/* ------------------------------------------------------------------ */
+
 const BillingSettings: React.FC = () => {
   const navigate = useNavigate();
   const { data: ent, isLoading } = useEntitlements();
@@ -65,6 +77,7 @@ const BillingSettings: React.FC = () => {
   }
 
   const isPro = ent?.tier === 'pro';
+  const credits = ent?.aiCreditsRemaining ?? 0;
 
   const handleCancel = () => {
     if (!window.confirm('Cancel your Pro subscription at the end of this period?')) return;
@@ -78,6 +91,7 @@ const BillingSettings: React.FC = () => {
     <div className="mx-auto max-w-3xl px-4 py-8">
       <h1 className="mb-6 font-handwritten text-3xl text-ink">Billing</h1>
 
+      {/* ---------------------- Current plan ---------------------- */}
       <section className="card mb-5 p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -104,7 +118,9 @@ const BillingSettings: React.FC = () => {
             <div>
               <dt className="text-ink-muted">Billing</dt>
               <dd className="text-ink">
-                {ent.subscription.planCode === 'pro_yearly' ? 'Pro Yearly · ₦75,000' : 'Pro Monthly · ₦7,500'}
+                {ent.subscription.planCode === 'pro_yearly'
+                  ? 'Pro Yearly · ₦75,000'
+                  : 'Pro Monthly · ₦7,500'}
               </dd>
             </div>
             <div>
@@ -115,7 +131,7 @@ const BillingSettings: React.FC = () => {
             </div>
             <div>
               <dt className="text-ink-muted">AI credits</dt>
-              <dd className="text-ink">{ent.aiCreditsRemaining}</dd>
+              <dd className="text-ink">{credits}</dd>
             </div>
             <div>
               <dt className="text-ink-muted">Status</dt>
@@ -140,16 +156,17 @@ const BillingSettings: React.FC = () => {
             Your subscription will end on {formatDate(ent.subscription.currentPeriodEnd)}.
           </p>
         )}
+      </section>
 
-        {isPro && (
+      {/* ---------------------- Self-hosting ---------------------- */}
+      {isPro && (
         <section className="card mb-5 p-5">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <h2 className="font-handwritten text-xl text-ink">Self-hosting</h2>
               <p className="mt-1 max-w-md text-xs text-ink-muted">
-                Run Tudu on your own server. Issue a signed license and
-                download it to unlock Pro features on your self-hosted
-                instance.
+                Run Tudu on your own server. Issue a signed license and download
+                it to unlock Pro features on your self-hosted instance.
               </p>
             </div>
             <button
@@ -162,16 +179,16 @@ const BillingSettings: React.FC = () => {
           </div>
         </section>
       )}
-      </section>
 
+      {/* ---------------------- Buy more AI credits ---------------------- */}
       {isPro && (
         <section className="card mb-5 p-5">
           <div className="mb-3">
             <h2 className="font-handwritten text-xl text-ink">Buy more AI credits</h2>
             <p className="mt-1 text-xs text-ink-muted">
-              You have <span className="font-semibold text-ink">{ent?.aiCreditsRemaining ?? 0}</span>{' '}
-              credit{(ent?.aiCreditsRemaining ?? 0) === 1 ? '' : 's'} remaining.
-              Credits are one-off purchases and never expire.
+              You have <span className="font-semibold text-ink">{credits}</span>{' '}
+              credit{credits === 1 ? '' : 's'} remaining. Credits are one-off
+              purchases and never expire.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
