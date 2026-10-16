@@ -58,12 +58,24 @@ const BillingSettings: React.FC = () => {
         {isPro && ent?.subscription && (
           <dl className="mt-5 grid grid-cols-2 gap-3 text-xs">
             <div>
-              <dt className="text-ink-muted">Renews on</dt>
+              <dt className="text-ink-muted">Billing</dt>
+              <dd className="text-ink">
+                {ent.subscription.planCode === 'pro_yearly' ? 'Pro Yearly · ₦75,000' : 'Pro Monthly · ₦7,500'}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-ink-muted">
+                {ent.subscription.cancelAtPeriodEnd ? 'Ends on' : 'Renews on'}
+              </dt>
               <dd className="text-ink">{formatDate(ent.subscription.currentPeriodEnd)}</dd>
             </div>
             <div>
               <dt className="text-ink-muted">AI credits</dt>
               <dd className="text-ink">{ent.aiCreditsRemaining}</dd>
+            </div>
+            <div>
+              <dt className="text-ink-muted">Status</dt>
+              <dd className="text-ink capitalize">{ent.subscription.status}</dd>
             </div>
           </dl>
         )}
