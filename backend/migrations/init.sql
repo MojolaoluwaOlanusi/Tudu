@@ -363,3 +363,77 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS notifications JSONB DEFAULT '{"remind
 -- safe on a database that already has reminders.
 -- =====================================================================
 UPDATE users SET notifications = '{"reminders": false, "celebrations": true}'::jsonb || COALESCE(notifications, '{}'::jsonb) WHERE notifications IS NULL OR NOT (notifications ? 'celebrations');
+
+
+-- =====================================================================
+-- Phase 5.1 - Paystack subscriptions and billing.
+--
+-- Plans live in Paystack; these tables mirror the local view of a
+-- subscription so entitlement checks never depend on a live HTTP call.
+-- payments.reference is UNIQUE so a retried webhook cannot double-count.
+-- All amounts are stored in NGN kobo; the display currency is a
+-- frontend concern and never touches these tables.
+-- =====================================================================
+CREATE TABLE IF NOT EXISTS plans (
+  code VARCHAR(64) PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  interval VARCHAR(20) NOT NULL CHECK (interval IN ('monthly', 'yearly')),
+  amount_kobo BIGINT NOT NULL,
+  currency VARCHAR(3) NOT NULL DEFAULT 'NGN',
+  ai_credits INTEGER NOT NULL DEFAULT 100,
+  paystack_plan_code VARCHAR(64),
+  features JSONB NOT NULL DEFAULT '{}'::jsonb,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS subscriptions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  plan_code VARCHAR(64) NOT NULL REFERENCES plans(code),
+  status VARCHAR(20) NOT NULL DEFAULT 'pending'
+    CHECK (status IN ('pending', 'active', 'past_due', 'cancelled')),
+  paystack_subscription_code VARCHAR(64),
+  paystack_customer_code VARCHAR(64),
+  paystack_email_token VARCHAR(64),
+  current_period_end TIMESTAMP,
+  cancel_at_period_end BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_subscriptions_user_id ON subscriptions(user_id);
+CREATE INDEX IF NOT EXISTS idx_subscriptions_status ON subscriptions(status);
+
+-- Only one active subscription per user.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_subscriptions_one_active
+  ON subscriptions(user_id)
+  WHERE status = 'active';
+
+CREATE TABLE IF NOT EXISTS payments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  reference VARCHAR(128) NOT NULL UNIQUE,
+  amount_kobo BIGINT NOT NULL,
+  currency VARCHAR(3) NOT NULL DEFAULT 'NGN',
+  status VARCHAR(20) NOT NULL,
+  channel VARCHAR(40),
+  purpose VARCHAR(40) NOT NULL DEFAULT 'subscription',
+  raw JSONB,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_payments_user_id ON payments(user_id);
+
+CREATE TABLE IF NOT EXISTS ai_credit_ledger (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  delta INTEGER NOT NULL,
+  reason VARCHAR(60) NOT NULL,
+  ref_id UUID,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_ai_credit_ledger_user ON ai_credit_ledger(user_id);
+
+INSERT INTO plans (code, name, interval, amount_kobo, ai_credits)
+VALUES
+  ('pro_monthly', 'Tudu Pro', 'monthly', 750000, 100),
+  ('pro_yearly',  'Tudu Pro', 'yearly',  7500000, 1200)
+ON CONFLICT (code) DO NOTHING;

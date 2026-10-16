@@ -6,6 +6,9 @@ import { queryClient } from './lib/queryClient';
 import { useRealtimeSync } from './hooks/useRealtimeSync';
 import { useAuthStore } from './store/authStore';
 import Login from './components/auth/Login';
+import Pricing from './routes/Pricing';
+import BillingSettings from './routes/BillingSettings';
+import BillingCallback from './routes/BillingCallback';
 import AuthCallback from './components/auth/AuthCallback';
 import ProtectedRoute from './components/common/ProtectedRoute';
 import Header from './components/layout/Header';
@@ -130,6 +133,18 @@ function App() {
         <Router>
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/pricing" element={<Pricing />} />
+          <Route path="/billing/callback" element={<BillingCallback />} />
+          <Route
+            path="/settings/billing"
+            element={
+              <ProtectedRoute>
+                <Shell>
+                  <BillingSettings />
+                </Shell>
+              </ProtectedRoute>
+            }
+          />
           <Route path="/auth/callback" element={<AuthCallback />} />
           <Route
             path="/"
