@@ -1,5 +1,7 @@
 import pool from '../config/database';
 import { FEATURES, type FeatureKey, type Tier } from '../config/features';
+import { isSelfHosted } from '../config/mode';
+import { getCurrentLicenseStatus } from './licenseService';
 
 export interface Entitlements {
   tier: Tier;
@@ -21,6 +23,27 @@ export interface Entitlements {
  * cancelling clears it. That way there is exactly one source of truth.
  */
 export const getEntitlements = async (userId: string): Promise<Entitlements> => {
+  // In self-hosted mode the license is instance-wide, so every user gets
+  // the tier it grants. This is how self-hosting is meant to work: the
+  // customer paid for the whole instance, not for a seat. AI credits are
+  // marked as effectively unlimited for the same reason - metering a
+  // self-hoster per user would just be noise.
+  if (isSelfHosted()) {
+    const license = getCurrentLicenseStatus();
+    const tier: Tier =
+      license.valid && license.payload ? (license.payload.tier as Tier) : 'free';
+
+    const aiCreditsRemaining = license.valid ? 999_999 : 0;
+
+    const features = Object.keys(FEATURES).reduce((acc, key) => {
+      const k = key as FeatureKey;
+      acc[k] = FEATURES[k][tier];
+      return acc;
+    }, {} as Record<FeatureKey, boolean>);
+
+    return { tier, aiCreditsRemaining, features, subscription: undefined };
+  }
+
   const sub = await pool.query(
     'SELECT s.plan_code, s.status, s.current_period_end, s.cancel_at_period_end, ' +
       '       p.ai_credits ' +

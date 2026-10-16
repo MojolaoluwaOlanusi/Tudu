@@ -6,8 +6,14 @@ import {
   isIssuerConfigured,
   signLicense,
   verifyLicense,
+  writeLicenseFile,
+  deleteLicenseFile,
+  clearLicenseCache,
+  getCurrentLicenseStatus,
   type LicensePayload,
+  type SignedLicense,
 } from '../services/licenseService';
+import { isSelfHosted } from '../config/mode';
 
 /**
  * GET /api/license/fingerprint
@@ -98,15 +104,31 @@ export const issueLicense = async (req: Request, res: Response) => {
 };
 
 /**
- * GET /api/license/status - list the caller's licenses.
+ * GET /api/license/status.
  *
- * Used by the portal to show a customer what they have already issued
- * for which machine, and to let them re-download a lost license.
+ * The response shape depends on mode. On cloud this is the issuer's
+ * view: what has been signed for whom. On self-hosted this is the
+ * consumer's view: what is installed on this machine right now.
+ *
+ * Both include the mode string so the frontend can pick the right UI
+ * without a second request.
  */
 export const getLicenseStatus = async (req: Request, res: Response) => {
   try {
     const userId = req.user?.userId;
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+    const mode = isSelfHosted() ? 'self_hosted' : 'cloud';
+
+    if (isSelfHosted()) {
+      const current = getCurrentLicenseStatus();
+      return res.json({
+        mode,
+        issuerConfigured: false,
+        current,
+        licenses: [],
+      });
+    }
 
     const result = await pool.query(
       'SELECT id, fingerprint, tier, signed_blob, issued_at, expires_at, revoked_at, notes ' +
@@ -116,7 +138,9 @@ export const getLicenseStatus = async (req: Request, res: Response) => {
     );
 
     res.json({
+      mode,
       issuerConfigured: isIssuerConfigured(),
+      current: null,
       licenses: result.rows.map((r) => ({
         id: r.id,
         fingerprint: r.fingerprint,
@@ -191,5 +215,81 @@ export const revokeLicense = async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Error revoking license:', error);
     res.status(500).json({ error: 'Failed to revoke the license' });
+  }
+};
+
+
+/* ====================================================================== */
+/* Self-hosting: activation on the customer's own server.                 */
+/*                                                                        */
+/* The customer downloads a .lic file from the hosted portal, then        */
+/* uploads it here. Activation verifies the signature AND the             */
+/* fingerprint before saving, so a license issued for a different         */
+/* machine cannot be silently installed.                                  */
+/* ====================================================================== */
+
+/**
+ * POST /api/license/activate - body: { license }.
+ *
+ * Self-hosted only. The request body is the parsed .lic file: a signed
+ * payload plus its base64 signature. Nothing to do on cloud - that
+ * instance is the issuer, not a consumer.
+ */
+export const activateLicense = async (req: Request, res: Response) => {
+  if (!isSelfHosted()) {
+    return res.status(400).json({
+      error: 'This endpoint is only available on a self-hosted instance',
+    });
+  }
+
+  try {
+    const raw = (req.body ?? {}).license;
+    if (!raw || typeof raw !== 'object') {
+      return res.status(400).json({ error: 'license is required' });
+    }
+    const signed = raw as SignedLicense;
+
+    const fingerprint = computeFingerprint();
+    const result = verifyLicense(signed, fingerprint);
+    if (!result.ok) {
+      const failure = result as { ok: false; reason: string; message: string };
+      return res
+        .status(400)
+        .json({ ok: false, reason: failure.reason, message: failure.message });
+    }
+
+    if (!writeLicenseFile(signed)) {
+      return res.status(500).json({ error: 'Could not save the license' });
+    }
+    clearLicenseCache();
+
+    res.json({ ok: true, payload: result.payload });
+  } catch (error) {
+    console.error('Error activating license:', error);
+    res.status(500).json({ error: 'Failed to activate the license' });
+  }
+};
+
+/**
+ * DELETE /api/license/activate - remove the installed license.
+ *
+ * Self-hosted only. The instance falls back to the free tier on the
+ * next gated request, because getEntitlements reads the license fresh
+ * each time and the cache was just cleared.
+ */
+export const deactivateLicense = async (req: Request, res: Response) => {
+  if (!isSelfHosted()) {
+    return res.status(400).json({
+      error: 'This endpoint is only available on a self-hosted instance',
+    });
+  }
+
+  try {
+    deleteLicenseFile();
+    clearLicenseCache();
+    res.json({ ok: true, message: 'License removed' });
+  } catch (error) {
+    console.error('Error deactivating license:', error);
+    res.status(500).json({ error: 'Failed to remove the license' });
   }
 };
