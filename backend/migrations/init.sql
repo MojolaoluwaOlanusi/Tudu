@@ -490,3 +490,34 @@ CREATE INDEX IF NOT EXISTS idx_push_subscriptions_user ON push_subscriptions(use
 -- The notifications JSONB gains a push flag. Merge rather than replace
 -- so reminders, celebrations and last_sent_at survive.
 UPDATE users SET notifications = '{"push": false}'::jsonb || COALESCE(notifications, '{}'::jsonb) WHERE notifications IS NULL OR NOT (notifications ? 'push');
+
+
+-- =====================================================================
+-- Phase 5.6 - template marketplace.
+--
+-- Users publish boards as templates. The definition column snapshots
+-- the columns and example cards, so the template stays intact even if
+-- the source board is later edited or deleted.
+-- =====================================================================
+CREATE TABLE IF NOT EXISTS marketplace_templates (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  author_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  name VARCHAR(255) NOT NULL,
+  description TEXT,
+  category VARCHAR(50) NOT NULL DEFAULT 'General',
+  definition JSONB NOT NULL,
+  status VARCHAR(20) NOT NULL DEFAULT 'approved'
+    CHECK (status IN ('pending', 'approved', 'rejected')),
+  install_count INTEGER NOT NULL DEFAULT 0,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_marketplace_templates_author ON marketplace_templates(author_id);
+CREATE INDEX IF NOT EXISTS idx_marketplace_templates_status ON marketplace_templates(status);
+
+CREATE TABLE IF NOT EXISTS template_installs (
+  template_id UUID NOT NULL REFERENCES marketplace_templates(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  installed_at TIMESTAMP DEFAULT NOW(),
+  PRIMARY KEY (template_id, user_id)
+);
