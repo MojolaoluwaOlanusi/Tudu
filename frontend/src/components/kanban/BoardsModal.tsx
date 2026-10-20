@@ -4,6 +4,8 @@ import { useWorkspaces } from '../../hooks/useWorkspaces';
 import { useBoardStore } from '../../store/boardStore';
 import { useUiStore } from '../../store/uiStore';
 import TemplateGalleryModal from './TemplateGalleryModal';
+import PublishTemplateModal from './PublishTemplateModal';
+import FeatureGate from '../common/FeatureGate';
 
 interface BoardsModalProps {
   onClose: () => void;
@@ -21,6 +23,7 @@ const BoardsModal: React.FC<BoardsModalProps> = ({ onClose }) => {
   const [newName, setNewName] = useState('');
   const [workspaceId, setWorkspaceId] = useState('');
   const [galleryOpen, setGalleryOpen] = useState(false);
+  const [publishBoard, setPublishBoard] = useState<{ id: string; name: string } | null>(null);
 
   // Viewers cannot add boards to a workspace.
   const creatable = workspaces.filter((w) => w.role !== 'viewer');
@@ -160,22 +163,53 @@ const BoardsModal: React.FC<BoardsModalProps> = ({ onClose }) => {
                   {board.task_count ?? 0} task{(board.task_count ?? 0) === 1 ? '' : 's'}
                 </span>
                 {isAdmin && (
-                  <button
-                    type="button"
-                    onClick={() => handleDelete(board.id, board.name, board.task_count ?? 0)}
-                    disabled={busy}
-                    aria-label={`Delete ${board.name}`}
-                    className="rounded-lg border border-hairline bg-surface px-2.5 py-1.5 text-xs font-semibold text-red-500 hover:border-red-300 disabled:opacity-40"
-                  >
-                    Delete
-                  </button>
+                  <>
+                    <FeatureGate
+                      feature="templates.publish"
+                      fallback={
+                        <button
+                          type="button"
+                          onClick={() => {
+                            window.location.href = '/pricing';
+                          }}
+                          className="flex items-center gap-1 rounded-lg border border-hairline bg-surface px-2.5 py-1.5 text-xs font-semibold text-ink-muted transition-colors hover:border-accent hover:text-ink"
+                          title="Upgrade to Pro to publish templates to the marketplace"
+                        >
+                          Publish
+                          <span className="rounded-full bg-accent/15 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-accent-strong">
+                            Pro
+                          </span>
+                        </button>
+                      }
+                    >
+                      <button
+                        type="button"
+                        onClick={() => setPublishBoard({ id: board.id, name: board.name })}
+                        disabled={busy}
+                        className="rounded-lg border border-hairline bg-surface px-2.5 py-1.5 text-xs font-semibold text-accent-strong hover:border-accent disabled:opacity-40"
+                      >
+                        Publish
+                      </button>
+                    </FeatureGate>
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(board.id, board.name, board.task_count ?? 0)}
+                      disabled={busy}
+                      aria-label={`Delete ${board.name}`}
+                      className="rounded-lg border border-hairline bg-surface px-2.5 py-1.5 text-xs font-semibold text-red-500 hover:border-red-300 disabled:opacity-40"
+                    >
+                      Delete
+                    </button>
+                  </>
                 )}
               </li>
             );
           })}
         </ul>
       </div>
-      {galleryOpen && <TemplateGalleryModal onClose={() => setGalleryOpen(false)} />}
+            {publishBoard && <PublishTemplateModal boardId={publishBoard.id} initialName={publishBoard.name} onClose={() => setPublishBoard(null)} />}
+
+{galleryOpen && <TemplateGalleryModal onClose={() => setGalleryOpen(false)} />}
     </div>
   );
 };
