@@ -25,7 +25,8 @@ module.exports = {
       lines: 40,
     },
   },
-  testTimeout: 60000,
+  testTimeout: 120_000,
+  setupFilesAfterEnv: ['<rootDir>/tests/setupTestPool.ts', /* other files */],
   // Neon is a remote database reached over the network, so parallel workers
   // only add connection pressure and latency rather than finishing sooner.
   maxWorkers: 1,
