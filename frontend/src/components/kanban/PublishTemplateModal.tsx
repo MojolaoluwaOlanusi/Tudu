@@ -16,11 +16,14 @@ const CATEGORIES = [
   'Design',
 ];
 
+const MIN_PRICE_NAIRA = 100;
+
 /**
  * The "Publish as template" form.
  *
- * Shown from BoardsModal. On submit, the backend snapshots the board's
- * columns and example tasks; nothing else from this modal is stored.
+ * The price field is in naira; the backend stores it in kobo. 0 keeps
+ * the template free. Any non-zero value must be at least ₦100 - the
+ * backend enforces this too, but validating here gives instant feedback.
  */
 const PublishTemplateModal: React.FC<PublishTemplateModalProps> = ({
   boardId,
@@ -32,11 +35,26 @@ const PublishTemplateModal: React.FC<PublishTemplateModalProps> = ({
   const [name, setName] = useState(initialName);
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('General');
+  const [priceNaira, setPriceNaira] = useState('');
+
+  const numericPrice = priceNaira.trim() === '' ? 0 : Number(priceNaira);
+  const priceValid =
+    Number.isFinite(numericPrice) && (numericPrice === 0 || numericPrice >= MIN_PRICE_NAIRA);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!priceValid) {
+      pushToast('Price must be 0 (free) or at least ₦' + MIN_PRICE_NAIRA, 'error');
+      return;
+    }
     publish.mutate(
-      { board_id: boardId, name, description, category },
+      {
+        board_id: boardId,
+        name,
+        description,
+        category,
+        price_kobo: Math.round(numericPrice * 100),
+      },
       {
         onSuccess: () => {
           pushToast('Template published to marketplace', 'success');
@@ -57,7 +75,7 @@ const PublishTemplateModal: React.FC<PublishTemplateModalProps> = ({
       role="presentation"
     >
       <div
-        className="w-full max-w-md rounded-2xl border border-hairline bg-surface p-5 shadow-xl"
+        className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl border border-hairline bg-surface p-5 shadow-xl"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
@@ -107,13 +125,31 @@ const PublishTemplateModal: React.FC<PublishTemplateModalProps> = ({
               ))}
             </select>
           </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-ink-muted">
+              Price (₦)
+            </label>
+            <input
+              type="number"
+              value={priceNaira}
+              onChange={(e) => setPriceNaira(e.target.value)}
+              min={0}
+              step={50}
+              placeholder="0 for free, or ≥ 100 to sell"
+              className="input w-full"
+            />
+            <p className="mt-1 text-[11px] text-ink-muted">
+              Leave blank or 0 to publish for free. To sell, set at least
+              ₦{MIN_PRICE_NAIRA}. Tudu keeps 30% of each sale.
+            </p>
+          </div>
           <div className="flex justify-end gap-2 pt-2">
             <button type="button" onClick={onClose} className="btn-ghost">
               Cancel
             </button>
             <button
               type="submit"
-              disabled={publish.isPending || !name.trim()}
+              disabled={publish.isPending || !name.trim() || !priceValid}
               className="btn-accent"
             >
               {publish.isPending ? 'Publishing...' : 'Publish'}

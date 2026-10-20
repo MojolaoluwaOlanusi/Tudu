@@ -24,6 +24,8 @@ import reminderRoutes from './routes/reminders';
 import notificationRoutes from './routes/notifications';
 import billingRoutes from './routes/billing';
 import licenseRoutes from './routes/license';
+import publisherRoutes from './routes/publisher';
+
 import pushRoutes from './routes/push';
 import paystackWebhookRoutes from './routes/paystackWebhook';
 import publicRoutes from './routes/public';
@@ -160,6 +162,8 @@ app.use('/api/reminders', reminderRoutes);
 app.use('/api/users/me/notifications', notificationRoutes);
 app.use('/api/billing', billingRoutes);
 app.use('/api/license', licenseRoutes);
+app.use('/api/publisher', publisherRoutes);
+
 app.use('/api/push', pushRoutes);
 
 export default app;

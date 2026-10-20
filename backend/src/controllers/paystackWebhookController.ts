@@ -72,6 +72,17 @@ const handleChargeSuccess = async (data: Record<string, unknown>) => {
       [userId, credits, 'credit_purchase']
     );
   }
+
+  if (purpose === 'template_purchase') {
+    const templateId = metadata.template_id as string | undefined;
+    if (templateId) {
+      await pool.query(
+        'UPDATE template_purchases SET status = \'success\', updated_at = NOW() ' +
+          'WHERE reference = $1 AND status = \'pending\'',
+        [reference]
+      );
+    }
+  }
 };
 
 const handleSubscriptionCreate = async (data: Record<string, unknown>) => {
