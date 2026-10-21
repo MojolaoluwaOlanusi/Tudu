@@ -5,6 +5,7 @@ import { broadcastTask } from '../services/realtimeService';
 import { getBoardRole, roleAtLeast, taskEditableSql } from '../services/boardAccess';
 import { SOCKET_EVENTS } from '../types/socket';
 import { notifyAssignment } from '../services/slackService';
+import { triggerWebhooks } from '../services/webhookService';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const isValidUuid = (value: unknown): value is string =>
@@ -54,6 +55,7 @@ export const assignTask = async (req: Request, res: Response) => {
       fields: ['assignee'],
     });
     await broadcastTask(SOCKET_EVENTS.taskUpdate, userId, result.rows[0]);
+    await triggerWebhooks(userId, 'task.updated', { task: result.rows[0] });
 
     // Tell the assignee on Slack, if they have an integration installed.
     // Fire-and-forget: a Slack hiccup must never fail the assignment.
