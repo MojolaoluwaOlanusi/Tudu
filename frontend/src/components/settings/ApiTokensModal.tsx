@@ -201,10 +201,10 @@ const ApiTokensModal: React.FC<ApiTokensModalProps> = ({ onClose }) => {
               {'curl -H ' +
                 JSON.stringify('Authorization: Bearer ' + '<token>') +
                 ' '}
-              {'https://tudu-backend-iuyu.onrender.com/api/v1/tasks'}
+              {'https://your-tudu-api/api/v1/tasks'}
             </pre>
             <p className="mt-2 text-[11px] text-ink-muted">
-              Read-only for now. Writes are coming in Pro.
+              Reads are available on every account. Writes (POST, PUT, DELETE) are a Pro feature.
             </p>
           </div>
         </div>
