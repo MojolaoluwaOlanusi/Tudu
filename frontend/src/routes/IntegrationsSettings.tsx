@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useBoards, useBoardColumns } from '../hooks/useBoards';
 import {
@@ -6,6 +6,8 @@ import {
   type GitHubRepo,
   type GitHubStatus,
   type GitHubMapping,
+  type SlackStatus,
+  type SlackChannel,
 } from '../services/integrationService';
 import { useAuthStore } from '../store/authStore';
 import { useUiStore } from '../store/uiStore';
@@ -15,24 +17,36 @@ const IntegrationsSettings: React.FC = () => {
   const pushToast = useUiStore((s) => s.pushToast);
   const [params, setParams] = useSearchParams();
   const { data: boards = [] } = useBoards();
+
+  /* ------------------------------ shared ------------------------------ */
+
   const [boardId, setBoardId] = useState<string>('');
   const { data: columns = [] } = useBoardColumns(boardId || null);
 
-  const [status, setStatus] = useState<GitHubStatus | null>(null);
+  /* ------------------------------ GitHub ------------------------------ */
+
+  const [ghStatus, setGhStatus] = useState<GitHubStatus | null>(null);
   const [repos, setRepos] = useState<GitHubRepo[]>([]);
   const [mappings, setMappings] = useState<GitHubMapping[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [ghLoading, setGhLoading] = useState(true);
 
   const [selectedRepo, setSelectedRepo] = useState('');
   const [openedCol, setOpenedCol] = useState('');
   const [mergedCol, setMergedCol] = useState('');
 
-  const refresh = async () => {
+  /* ------------------------------- Slack ------------------------------ */
+
+  const [slackStatus, setSlackStatus] = useState<SlackStatus | null>(null);
+  const [channels, setChannels] = useState<SlackChannel[]>([]);
+  const [slackLoading, setSlackLoading] = useState(true);
+  const [slackBusy, setSlackBusy] = useState(false);
+
+  const refreshGitHub = useCallback(async () => {
     if (!token) return;
-    setLoading(true);
+    setGhLoading(true);
     try {
       const s = await integrationService.getStatus(token);
-      setStatus(s);
+      setGhStatus(s);
       if (s.connected) {
         const [r, m] = await Promise.all([
           integrationService.getRepos(token),
@@ -41,31 +55,51 @@ const IntegrationsSettings: React.FC = () => {
         setRepos(r);
         setMappings(m);
       }
-    } catch (err) {
+    } catch {
       pushToast('Could not load GitHub status', 'error');
     } finally {
-      setLoading(false);
+      setGhLoading(false);
     }
-  };
+  }, [token, pushToast]);
+
+  const refreshSlack = useCallback(async () => {
+    if (!token) return;
+    setSlackLoading(true);
+    try {
+      const s = await integrationService.getSlackStatus(token);
+      setSlackStatus(s);
+      if (s.connected) {
+        const c = await integrationService.getSlackChannels(token).catch(() => []);
+        setChannels(c);
+      } else {
+        setChannels([]);
+      }
+    } catch {
+      pushToast('Could not load Slack status', 'error');
+    } finally {
+      setSlackLoading(false);
+    }
+  }, [token, pushToast]);
 
   useEffect(() => {
-    if (params.get('connected') === '1') {
-      pushToast('GitHub connected', 'success');
+    if (params.get('connected') === '1') pushToast('GitHub connected', 'success');
+    if (params.get('slack') === 'connected') pushToast('Slack connected', 'success');
+    if (params.get('slack') === 'error') {
+      pushToast('Slack connection failed: ' + (params.get('reason') || 'unknown'), 'error');
     }
-    if (params.get('error')) {
-      pushToast('GitHub connection failed: ' + params.get('error'), 'error');
-    }
-    if (params.get('connected') || params.get('error')) {
+    if (params.get('connected') || params.get('error') || params.get('slack')) {
       const next = new URLSearchParams(params);
-      next.delete('connected');
-      next.delete('error');
+      ['connected', 'error', 'slack', 'reason'].forEach((k) => next.delete(k));
       setParams(next, { replace: true });
     }
-    void refresh();
+    void refreshGitHub();
+    void refreshSlack();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleConnect = async () => {
+  /* --------------------------- GitHub actions --------------------------- */
+
+  const handleConnectGitHub = async () => {
     if (!token) return;
     try {
       const { url } = await integrationService.startOAuth(token);
@@ -75,12 +109,12 @@ const IntegrationsSettings: React.FC = () => {
     }
   };
 
-  const handleDisconnect = async () => {
+  const handleDisconnectGitHub = async () => {
     if (!token) return;
     if (!window.confirm('Disconnect GitHub? Repos and mappings stay, but the token is deleted.')) return;
     try {
       await integrationService.disconnect(token);
-      setStatus({ connected: false });
+      setGhStatus({ connected: false });
       setRepos([]);
       setMappings([]);
       pushToast('GitHub disconnected', 'success');
@@ -106,7 +140,7 @@ const IntegrationsSettings: React.FC = () => {
       setSelectedRepo('');
       setOpenedCol('');
       setMergedCol('');
-      await refresh();
+      await refreshGitHub();
     } catch (err) {
       const detail = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
       pushToast(detail || 'Could not save mapping', 'error');
@@ -118,45 +152,220 @@ const IntegrationsSettings: React.FC = () => {
     if (!window.confirm('Remove mapping for ' + m.repo_full_name + '?')) return;
     try {
       await integrationService.deleteMapping(token, m.id);
-      await refresh();
+      await refreshGitHub();
       pushToast('Mapping removed', 'success');
     } catch {
       pushToast('Could not remove mapping', 'error');
     }
   };
 
-  if (loading) {
-    return <p className="text-sm text-ink-muted">Loading…</p>;
-  }
+  /* ---------------------------- Slack actions ---------------------------- */
+
+  const handleConnectSlack = async () => {
+    if (!token) return;
+    try {
+      const { url } = await integrationService.startSlackOAuth(token);
+      window.location.href = url;
+    } catch (err) {
+      const status = (err as { response?: { status?: number } })?.response?.status;
+      pushToast(
+        status === 402 ? 'Slack integration requires Pro' : 'Could not start Slack authorization',
+        'error'
+      );
+    }
+  };
+
+  const handleDisconnectSlack = async () => {
+    if (!token) return;
+    if (!window.confirm('Disconnect Slack? Notifications will stop immediately.')) return;
+    try {
+      await integrationService.disconnectSlack(token);
+      setSlackStatus({ connected: false });
+      setChannels([]);
+      pushToast('Slack disconnected', 'success');
+    } catch {
+      pushToast('Could not disconnect Slack', 'error');
+    }
+  };
+
+  const patchSlack = async (patch: Parameters<typeof integrationService.saveSlackSettings>[1]) => {
+    if (!token) return;
+    setSlackBusy(true);
+    try {
+      await integrationService.saveSlackSettings(token, patch);
+      await refreshSlack();
+    } catch {
+      pushToast('Could not save the Slack setting', 'error');
+    } finally {
+      setSlackBusy(false);
+    }
+  };
+
+  const handleTestSlack = async () => {
+    if (!token) return;
+    setSlackBusy(true);
+    try {
+      await integrationService.sendSlackTest(token);
+      pushToast('Test message sent', 'success');
+    } catch (err) {
+      const detail = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
+      pushToast(detail || 'Could not send the test message', 'error');
+    } finally {
+      setSlackBusy(false);
+    }
+  };
+
+  /* ------------------------------- render ------------------------------- */
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
       <h1 className="mb-2 font-handwritten text-3xl text-ink">Integrations</h1>
       <p className="mb-6 text-sm text-ink-muted">
-        Link GitHub to a board. When a PR contains a task ID (e.g., TUDU-12),
-        the task moves automatically.
+        Link GitHub and Slack to your boards. A task ID in a PR title moves the
+        card; assignments and due dates show up in Slack.
       </p>
 
+      {/* ------------------------------ Slack ------------------------------ */}
       <section className="card mb-5 p-5">
-        <h2 className="mb-3 font-handwritten text-xl text-ink">GitHub</h2>
-        {!status?.connected ? (
+        <h2 className="mb-3 font-handwritten text-xl text-ink">Slack</h2>
+
+        {slackLoading ? (
+          <p className="text-sm text-ink-muted">Loading…</p>
+        ) : !slackStatus?.connected ? (
           <>
             <p className="mb-3 text-sm text-ink-muted">
-              Connect your GitHub account once. After that, pick any number
-              of repositories and map each one to a board.
+              Connect a Slack workspace once. After that you can run{' '}
+              <code className="rounded bg-surface-2 px-1.5 py-0.5 font-mono text-[11px]">
+                /tudu create Buy milk tomorrow
+              </code>{' '}
+              and receive assignment and due-date notifications.
             </p>
-            <button type="button" onClick={handleConnect} className="btn-accent brush-stroke">
+            <button type="button" onClick={handleConnectSlack} className="btn-accent brush-stroke">
+              Connect Slack
+            </button>
+          </>
+        ) : (
+          <>
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <p className="text-sm text-ink">
+                Connected to <span className="font-semibold">{slackStatus.teamName}</span>
+              </p>
+              <button
+                type="button"
+                onClick={handleDisconnectSlack}
+                className="rounded-lg border border-hairline bg-surface px-3 py-1.5 text-xs font-semibold text-red-500 hover:border-red-300"
+              >
+                Disconnect
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="mb-1 block text-xs font-medium text-ink-muted">
+                  Notification channel
+                </label>
+                <select
+                  value={slackStatus.channelId ?? ''}
+                  onChange={(e) => {
+                    const id = e.target.value;
+                    const channel = channels.find((c) => c.id === id);
+                    void patchSlack({ channelId: id || null, channelName: channel?.name ?? null });
+                  }}
+                  disabled={slackBusy}
+                  className="input w-full"
+                >
+                  <option value="">No channel (notifications off)</option>
+                  {channels.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      #{c.name}
+                      {c.is_private ? ' (private)' : ''}
+                    </option>
+                  ))}
+                </select>
+                <p className="mt-1 text-[11px] text-ink-muted">
+                  Private channels need the Tudu bot invited before it can post.
+                </p>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs font-medium text-ink-muted">
+                  Default board for <code className="font-mono text-[11px]">/tudu create</code>
+                </label>
+                <select
+                  value={slackStatus.defaultBoardId ?? ''}
+                  onChange={(e) => void patchSlack({ defaultBoardId: e.target.value || null })}
+                  disabled={slackBusy}
+                  className="input w-full"
+                >
+                  <option value="">My first personal board</option>
+                  {boards.map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex flex-wrap gap-4 pt-1">
+                <label className="flex cursor-pointer items-center gap-2 text-sm text-ink">
+                  <input
+                    type="checkbox"
+                    checked={slackStatus.notifyAssignments ?? true}
+                    onChange={(e) => void patchSlack({ notifyAssignments: e.target.checked })}
+                    disabled={slackBusy}
+                    className="h-4 w-4 accent-accent"
+                  />
+                  When a task is assigned to me
+                </label>
+                <label className="flex cursor-pointer items-center gap-2 text-sm text-ink">
+                  <input
+                    type="checkbox"
+                    checked={slackStatus.notifyDue ?? true}
+                    onChange={(e) => void patchSlack({ notifyDue: e.target.checked })}
+                    disabled={slackBusy}
+                    className="h-4 w-4 accent-accent"
+                  />
+                  Daily due-date digest
+                </label>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleTestSlack}
+                disabled={slackBusy || !slackStatus.channelId}
+                className="btn-ghost rounded-lg px-3 py-2 text-sm disabled:opacity-50"
+              >
+                Send a test message
+              </button>
+            </div>
+          </>
+        )}
+      </section>
+
+      {/* ------------------------------ GitHub ------------------------------ */}
+      <section className="card mb-5 p-5">
+        <h2 className="mb-3 font-handwritten text-xl text-ink">GitHub</h2>
+
+        {ghLoading ? (
+          <p className="text-sm text-ink-muted">Loading…</p>
+        ) : !ghStatus?.connected ? (
+          <>
+            <p className="mb-3 text-sm text-ink-muted">
+              Connect your GitHub account once. After that, pick any number of
+              repositories and map each one to a board.
+            </p>
+            <button type="button" onClick={handleConnectGitHub} className="btn-accent brush-stroke">
               Connect GitHub
             </button>
           </>
         ) : (
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-sm text-ink">
-              Connected as <span className="font-semibold">@{status.login}</span>
+              Connected as <span className="font-semibold">@{ghStatus.login}</span>
             </p>
             <button
               type="button"
-              onClick={handleDisconnect}
+              onClick={handleDisconnectGitHub}
               className="rounded-lg border border-hairline bg-surface px-3 py-1.5 text-xs font-semibold text-red-500 hover:border-red-300"
             >
               Disconnect
@@ -165,7 +374,7 @@ const IntegrationsSettings: React.FC = () => {
         )}
       </section>
 
-      {status?.connected && (
+      {ghStatus?.connected && (
         <>
           <section className="card mb-5 p-5">
             <h2 className="mb-3 font-handwritten text-xl text-ink">Add a mapping</h2>
@@ -266,9 +475,7 @@ const IntegrationsSettings: React.FC = () => {
                   >
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-semibold text-ink">{m.repo_full_name}</p>
-                      <p className="truncate text-[11px] text-ink-muted">
-                        Board: {m.board_name}
-                      </p>
+                      <p className="truncate text-[11px] text-ink-muted">Board: {m.board_name}</p>
                     </div>
                     <button
                       type="button"

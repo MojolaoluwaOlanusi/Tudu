@@ -26,8 +26,26 @@ export interface GitHubMapping {
   created_at: string;
 }
 
+export interface SlackStatus {
+  connected: boolean;
+  teamName?: string;
+  channelId?: string | null;
+  channelName?: string | null;
+  defaultBoardId?: string | null;
+  notifyAssignments?: boolean;
+  notifyDue?: boolean;
+}
+
+export interface SlackChannel {
+  id: string;
+  name: string;
+  is_private: boolean;
+  is_archived: boolean;
+}
+
 export const integrationService = {
-  /** Returns the GitHub authorize URL for the current user. */
+  /* ------------------------------ GitHub ------------------------------ */
+
   startOAuth: async (token: string): Promise<{ url: string }> =>
     (await axios.get(API_URL + '/api/integrations/github/oauth/start', { headers: auth(token) }))
       .data,
@@ -61,10 +79,38 @@ export const integrationService = {
   },
 
   disconnect: async (token: string): Promise<void> => {
-    await axios.post(
-      API_URL + '/api/integrations/github/disconnect',
-      {},
-      { headers: auth(token) }
-    );
+    await axios.post(API_URL + '/api/integrations/github/disconnect', {}, { headers: auth(token) });
+  },
+
+  /* ------------------------------- Slack ------------------------------ */
+
+  startSlackOAuth: async (token: string): Promise<{ url: string }> =>
+    (await axios.get(API_URL + '/api/integrations/slack/oauth/start', { headers: auth(token) }))
+      .data,
+
+  getSlackStatus: async (token: string): Promise<SlackStatus> =>
+    (await axios.get(API_URL + '/api/integrations/slack/status', { headers: auth(token) })).data,
+
+  getSlackChannels: async (token: string): Promise<SlackChannel[]> =>
+    (await axios.get(API_URL + '/api/integrations/slack/channels', { headers: auth(token) })).data,
+
+  saveSlackSettings: async (
+    token: string,
+    patch: {
+      channelId?: string | null;
+      channelName?: string | null;
+      defaultBoardId?: string | null;
+      notifyAssignments?: boolean;
+      notifyDue?: boolean;
+    }
+  ): Promise<{ ok: boolean }> =>
+    (await axios.put(API_URL + '/api/integrations/slack/settings', patch, { headers: auth(token) }))
+      .data,
+
+  sendSlackTest: async (token: string): Promise<{ ok: boolean }> =>
+    (await axios.post(API_URL + '/api/integrations/slack/test', {}, { headers: auth(token) })).data,
+
+  disconnectSlack: async (token: string): Promise<void> => {
+    await axios.delete(API_URL + '/api/integrations/slack', { headers: auth(token) });
   },
 };

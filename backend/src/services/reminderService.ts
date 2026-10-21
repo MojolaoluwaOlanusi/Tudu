@@ -1,6 +1,7 @@
 import pool from '../config/database';
 import { sendHtml } from './emailService';
 import { sendPushToUsers } from './pushService';
+import { notifyDueReminders } from './slackService';
 
 export interface ReminderRunResult {
   usersChecked: number;
@@ -203,6 +204,12 @@ export const runReminders = async (): Promise<ReminderRunResult> => {
           pushSummary.failed,
       );
     }
+  }
+
+  // Slack digests run alongside email and push, with the same independence
+  // rule: a Slack failure must never fail the email run.
+  if (candidates.length > 0) {
+    await notifyDueReminders(candidates);
   }
 
   return {
