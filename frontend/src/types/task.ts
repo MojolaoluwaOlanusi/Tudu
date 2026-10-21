@@ -16,6 +16,8 @@ export interface Task {
   column_id?: string | null;
   /** Who the task is assigned to (team boards). */
   assignee_id?: string | null;
+  /** A short auto-incrementing ID for GitHub integrations (e.g., 42). */
+  short_id?: number;
   created_at: string;
   updated_at: string;
   /** Sub-task progress, supplied by the backend. */

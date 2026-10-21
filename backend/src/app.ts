@@ -25,6 +25,8 @@ import notificationRoutes from './routes/notifications';
 import billingRoutes from './routes/billing';
 import licenseRoutes from './routes/license';
 import publisherRoutes from './routes/publisher';
+import githubRoutes from './routes/github';
+
 
 import pushRoutes from './routes/push';
 import paystackWebhookRoutes from './routes/paystackWebhook';
@@ -163,6 +165,8 @@ app.use('/api/users/me/notifications', notificationRoutes);
 app.use('/api/billing', billingRoutes);
 app.use('/api/license', licenseRoutes);
 app.use('/api/publisher', publisherRoutes);
+app.use('/api/integrations/github', githubRoutes);
+
 
 app.use('/api/push', pushRoutes);
 

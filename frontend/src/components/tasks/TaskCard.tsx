@@ -7,6 +7,8 @@ import StartPomodoroButton from '../pomodoro/StartPomodoroButton';
 import PomodoroTimer from '../pomodoro/PomodoroTimer';
 import CheckPop from '../common/CheckPop';
 import { usePomodoroStore } from '../../store/pomodoroStore';
+import { useUiStore } from '../../store/uiStore';
+
 
 interface TaskCardProps {
   task: Task;
@@ -57,23 +59,37 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onEdit, onDelete, onStatusCha
 
   return (
     <div className="card p-4 transition-all hover:-translate-y-0.5 hover:shadow-lg" data-tour="task-card">
-      <div className="mb-2 flex items-start justify-between gap-3">
-        <div className="flex min-w-0 flex-1 items-start gap-2">
-          {task.status === 'done' && (
-            <CheckPop
-              key={`${task.id}-${celebrated ? 'done' : 'open'}`}
-              size={20}
-              animate
-              className="mt-0.5"
-            />
+            <div className="mb-2 flex items-start justify-between gap-3">
+        <div className="flex min-w-0 flex-1 flex-col gap-1">
+          {task.short_id && (
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(`TUDU-${task.short_id}`);
+                useUiStore.getState().pushToast('Task ID copied', 'info');
+              }}
+              className="self-start rounded bg-surface-2 px-1.5 py-0.5 text-[10px] font-mono text-ink-muted hover:text-ink"
+              title="Copy Task ID for GitHub"
+            >
+              TUDU-{task.short_id}
+            </button>
           )}
-          <h3
-            className={`min-w-0 flex-1 font-semibold transition-colors ${
-              task.status === 'done' ? 'text-ink-muted line-through' : 'text-ink'
-            }`}
-          >
-            {task.title}
-          </h3>
+          <div className="flex min-w-0 items-start gap-2">
+            {task.status === 'done' && (
+              <CheckPop
+                key={`${task.id}-${celebrated ? 'done' : 'open'}`}
+                size={20}
+                animate
+                className="mt-0.5"
+              />
+            )}
+            <h3
+              className={`min-w-0 flex-1 font-semibold transition-colors ${
+                task.status === 'done' ? 'text-ink-muted line-through' : 'text-ink'
+              }`}
+            >
+              {task.title}
+            </h3>
+          </div>
         </div>
         <div className="flex shrink-0 gap-1">
           {onEdit && (
