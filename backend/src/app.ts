@@ -26,6 +26,7 @@ import billingRoutes from './routes/billing';
 import licenseRoutes from './routes/license';
 import publisherRoutes from './routes/publisher';
 import githubRoutes from './routes/github';
+import slackRoutes, { slackCommandsRouter } from './routes/slack';
 
 
 import pushRoutes from './routes/push';
@@ -128,6 +129,14 @@ app.use(
   paystackWebhookRoutes
 );
 
+// IMPORTANT: Slack signs the raw form-urlencoded body, so this router must
+// be mounted BEFORE express.json() and receives a Buffer, not parsed JSON.
+app.use(
+  '/api/integrations/slack/commands',
+  express.raw({ type: '*/*' }),
+  slackCommandsRouter
+);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -166,6 +175,7 @@ app.use('/api/billing', billingRoutes);
 app.use('/api/license', licenseRoutes);
 app.use('/api/publisher', publisherRoutes);
 app.use('/api/integrations/github', githubRoutes);
+app.use('/api/integrations/slack', slackRoutes);
 
 
 app.use('/api/push', pushRoutes);

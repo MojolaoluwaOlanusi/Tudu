@@ -642,3 +642,35 @@ EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 DROP INDEX IF EXISTS idx_github_mappings_repo;
 CREATE UNIQUE INDEX IF NOT EXISTS idx_github_mappings_user_repo
   ON github_mappings(user_id, repo_full_name);
+
+
+-- =====================================================================
+-- Phase 5.8 - Slack integration.
+--
+-- One row per Tudu user who has installed the Slack app. team_id is
+-- UNIQUE because the slash command arrives with only a team_id and must
+-- resolve to exactly one Tudu account; installing from a second account
+-- transfers ownership of the team instead of creating an ambiguous row.
+--
+-- The bot token is stored as-is (TEXT), same posture as the GitHub
+-- integration: a database leak already exposes everything else, and
+-- encrypting at rest needs a key-management story that has not been
+-- built yet. Noted as a known trade-off, not an oversight.
+-- =====================================================================
+CREATE TABLE IF NOT EXISTS slack_integrations (
+  user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  team_id VARCHAR(64) NOT NULL,
+  team_name VARCHAR(255) NOT NULL,
+  bot_user_id VARCHAR(64),
+  access_token TEXT NOT NULL,
+  channel_id VARCHAR(64),
+  channel_name VARCHAR(255),
+  default_board_id UUID REFERENCES boards(id) ON DELETE SET NULL,
+  notify_assignments BOOLEAN NOT NULL DEFAULT TRUE,
+  notify_due BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_slack_integrations_team
+  ON slack_integrations(team_id);
