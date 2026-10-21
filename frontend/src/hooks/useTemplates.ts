@@ -3,6 +3,7 @@ import {
   templateService,
   type InstallTemplateInput,
   type MarketplaceTemplate,
+  type TemplatePurchase,
 } from '../services/templateService';
 import { useAuthStore } from '../store/authStore';
 import { queryKeys } from '../lib/queryClient';
@@ -38,8 +39,8 @@ export const useMarketplaceTemplates = () => {
 export const useInstallMarketplaceTemplate = () => {
   const { token } = useAuthStore();
   const queryClient = useQueryClient();
-  return useMutation<Board, unknown, { id: string }>({
-    mutationFn: ({ id }) => templateService.installMarketplace(token!, id),
+  return useMutation<Board, unknown, { id: string; reference?: string }>({
+    mutationFn: ({ id, reference }) => templateService.installMarketplace(token!, id, reference),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.boards.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all });
@@ -54,11 +55,49 @@ export const usePublishTemplate = () => {
   return useMutation<
     MarketplaceTemplate,
     unknown,
-    { board_id: string; name: string; description: string; category: string }
+    {
+      board_id: string;
+      name: string;
+      description: string;
+      category: string;
+      price_kobo: number;
+    }
   >({
     mutationFn: (data) => templateService.publish(token!, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['marketplace-templates'] });
+    },
+  });
+};
+
+export const useCheckoutMarketplace = () => {
+  const { token } = useAuthStore();
+  return useMutation<
+    { access_code: string; reference: string; authorization_url: string; amount_kobo: number },
+    unknown,
+    string
+  >({
+    mutationFn: (id) => templateService.checkoutMarketplace(token!, id),
+  });
+};
+
+export const useMyTemplatePurchases = () => {
+  const { token } = useAuthStore();
+  return useQuery<TemplatePurchase[]>({
+    queryKey: ['template-purchases'],
+    queryFn: () => templateService.listMyPurchases(token!),
+    enabled: !!token,
+    staleTime: 30_000,
+  });
+};
+
+export const useRefundTemplatePurchase = () => {
+  const { token } = useAuthStore();
+  const queryClient = useQueryClient();
+  return useMutation<void, unknown, string>({
+    mutationFn: (reference) => templateService.refundPurchase(token!, reference),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['template-purchases'] });
     },
   });
 };

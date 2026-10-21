@@ -15,9 +15,21 @@ export interface MarketplaceTemplate {
   description: string | null;
   category: string;
   install_count: number;
+  price_kobo: number;
   created_at: string;
   author_name?: string;
   status?: string;
+}
+
+export interface TemplatePurchase {
+  id: string;
+  reference: string;
+  amount_kobo: number;
+  status: string;
+  created_at: string;
+  refunded_at: string | null;
+  template_id: string;
+  template_name: string;
 }
 
 export const templateService = {
@@ -32,7 +44,13 @@ export const templateService = {
 
   publish: async (
     token: string,
-    data: { board_id: string; name: string; description: string; category: string }
+    data: {
+      board_id: string;
+      name: string;
+      description: string;
+      category: string;
+      price_kobo: number;
+    }
   ): Promise<MarketplaceTemplate> =>
     (
       await axios.post(API_URL + '/api/templates/publish', data, {
@@ -40,14 +58,41 @@ export const templateService = {
       })
     ).data,
 
-  installMarketplace: async (token: string, id: string): Promise<Board> =>
+  installMarketplace: async (
+    token: string,
+    id: string,
+    reference?: string
+  ): Promise<Board> =>
     (
       await axios.post(
         API_URL + '/api/templates/marketplace/' + id + '/install',
+        reference ? { reference } : {},
+        { headers: auth(token) }
+      )
+    ).data,
+
+  checkoutMarketplace: async (
+    token: string,
+    id: string
+  ): Promise<{ access_code: string; reference: string; authorization_url: string; amount_kobo: number }> =>
+    (
+      await axios.post(
+        API_URL + '/api/templates/marketplace/' + id + '/checkout',
         {},
         { headers: auth(token) }
       )
     ).data,
+
+  listMyPurchases: async (token: string): Promise<TemplatePurchase[]> =>
+    (await axios.get(API_URL + '/api/templates/purchases/mine', { headers: auth(token) })).data,
+
+  refundPurchase: async (token: string, reference: string): Promise<void> => {
+    await axios.post(
+      API_URL + '/api/templates/purchases/' + encodeURIComponent(reference) + '/refund',
+      {},
+      { headers: auth(token) }
+    );
+  },
 
   unpublish: async (token: string, id: string): Promise<void> => {
     await axios.delete(API_URL + '/api/templates/' + id, { headers: auth(token) });

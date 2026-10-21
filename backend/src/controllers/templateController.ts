@@ -2,6 +2,13 @@ import { Request, Response } from 'express';
 import pool from '../config/database';
 import { BUILTIN_TEMPLATES, findTemplate } from '../data/builtinTemplates';
 import {
+  initializeTransaction,
+  refundTransaction,
+  verifyTransaction,
+  PaystackError,
+} from '../services/paystackService';
+
+import {
   getBoardRole,
   getWorkspaceRole,
   roleAtLeast,
@@ -140,6 +147,7 @@ export const listMarketplace = async (_req: Request, res: Response) => {
   try {
     const result = await pool.query(
       'SELECT m.id, m.name, m.description, m.category, m.install_count, ' +
+        '       m.price_kobo::int AS price_kobo, ' +
         '       m.created_at, u.name AS author_name ' +
         'FROM marketplace_templates m ' +
         'JOIN users u ON u.id = m.author_id ' +
@@ -181,7 +189,7 @@ export const listMyTemplates = async (req: Request, res: Response) => {
 export const publishTemplate = async (req: Request, res: Response) => {
   try {
     const userId = req.user?.userId;
-    const { board_id, name, description, category } = (req.body ?? {}) as Record<
+    const { board_id, name, description, category, price_kobo } = (req.body ?? {}) as Record<
       string,
       unknown
     >;
@@ -193,6 +201,25 @@ export const publishTemplate = async (req: Request, res: Response) => {
     const role = await getBoardRole(userId, board_id);
     if (!roleAtLeast(role, 'member')) {
       return res.status(404).json({ error: 'Board not found' });
+    }
+
+    const priceKobo =
+      typeof price_kobo === 'number' && Number.isFinite(price_kobo)
+        ? Math.floor(price_kobo)
+        : 0;
+    if (priceKobo !== 0 && priceKobo < 10000) {
+      return res.status(400).json({ error: 'Minimum price is ₦100' });
+    }
+    if (priceKobo > 0) {
+      const publisher = await pool.query(
+        'SELECT payout_status FROM publisher_profiles WHERE user_id = $1',
+        [userId]
+      );
+      if (publisher.rows.length === 0 || publisher.rows[0].payout_status !== 'active') {
+        return res.status(400).json({
+          error: 'Set up your publisher account before publishing paid templates',
+        });
+      }
     }
 
     const columns = await pool.query(
@@ -224,10 +251,10 @@ export const publishTemplate = async (req: Request, res: Response) => {
 
     const result = await pool.query(
       'INSERT INTO marketplace_templates ' +
-        '(author_id, name, description, category, definition) ' +
-        'VALUES ($1, $2, $3, $4, $5) ' +
-        'RETURNING id, name, status, created_at',
-      [userId, tplName, tplDesc, tplCat, JSON.stringify(definition)]
+        '(author_id, name, description, category, definition, price_kobo) ' +
+        'VALUES ($1, $2, $3, $4, $5, $6) ' +
+        'RETURNING id, name, status, created_at, price_kobo',
+      [userId, tplName, tplDesc, tplCat, JSON.stringify(definition), priceKobo]
     );
 
     res.status(201).json(result.rows[0]);
@@ -248,20 +275,66 @@ export const installMarketplaceTemplate = async (req: Request, res: Response) =>
   try {
     const userId = req.user?.userId;
     const { id } = req.params;
-    const { name, workspace_id } = (req.body ?? {}) as {
+    const { name, workspace_id, reference } = (req.body ?? {}) as {
       name?: unknown;
       workspace_id?: unknown;
+      reference?: unknown;
     };
 
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
     if (!isValidUuid(id)) return res.status(400).json({ error: 'Invalid template id' });
 
     const tplRow = await pool.query(
-      'SELECT * FROM marketplace_templates WHERE id = $1 AND status = \'approved\'',
+      'SELECT id, author_id, name, definition, status, install_count, ' +
+        '       price_kobo::int AS price_kobo ' +
+        'FROM marketplace_templates WHERE id = $1 AND status = \'approved\'',
       [id]
     );
     if (tplRow.rows.length === 0) return res.status(404).json({ error: 'Template not found' });
     const tpl = tplRow.rows[0];
+
+    // Paid template: verify purchase (or exempt the author).
+    if (tpl.price_kobo > 0 && tpl.author_id !== userId) {
+      const existing = await pool.query(
+        `SELECT 1 FROM template_purchases
+         WHERE template_id = $1 AND buyer_id = $2 AND status = 'success'`,
+        [id, userId]
+      );
+
+      if (existing.rows.length === 0) {
+        if (typeof reference === 'string' && reference.length > 0 && reference.length < 128) {
+          try {
+            const verified = await verifyTransaction(reference);
+            if (verified.status !== 'success') {
+              return res
+                .status(402)
+                .json({ error: 'Payment not confirmed yet', price_kobo: tpl.price_kobo });
+            }
+            const updated = await pool.query(
+              `UPDATE template_purchases
+               SET status = 'success', updated_at = NOW()
+               WHERE reference = $1 AND template_id = $2 AND buyer_id = $3
+                 AND status = 'pending'
+               RETURNING id`,
+              [reference, id, userId]
+            );
+            if (updated.rows.length === 0) {
+              return res
+                .status(402)
+                .json({ error: 'Purchase reference is not valid for this template' });
+            }
+          } catch (err) {
+            console.error('Error verifying purchase reference:', err);
+            return res.status(402).json({ error: 'Could not verify payment' });
+          }
+        } else {
+          return res.status(402).json({
+            error: 'This template requires payment',
+            price_kobo: tpl.price_kobo,
+          });
+        }
+      }
+    }
     const definition = tpl.definition as {
       columns: BuiltinTemplateColumn[];
       tasks: BuiltinTemplateTask[];
@@ -368,5 +441,195 @@ export const unpublishTemplate = async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Error unpublishing template:', error);
     res.status(500).json({ error: 'Failed to remove template' });
+  }
+};
+
+
+/* ====================================================================== */
+/* Feature 5.6b - paid templates                                          */
+/* ====================================================================== */
+
+/**
+ * POST /api/templates/marketplace/:id/checkout.
+ *
+ * Starts a one-off transaction to buy a paid template. Requires the
+ * author to have an active publisher subaccount; otherwise there is no
+ * bank to route the 70% to. Free users can call this - purchase is not
+ * gated on templates.publish, only on payment.
+ */
+export const checkoutMarketplaceTemplate = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    const email = req.user?.email;
+    const { id } = req.params;
+
+    if (!userId || !email) return res.status(401).json({ error: 'Unauthorized' });
+    if (!isValidUuid(id)) return res.status(400).json({ error: 'Invalid template id' });
+
+    const tplRow = await pool.query(
+      'SELECT id, author_id, price_kobo::int AS price_kobo, status ' +
+        'FROM marketplace_templates WHERE id = $1',
+      [id]
+    );
+    if (tplRow.rows.length === 0) return res.status(404).json({ error: 'Template not found' });
+    const tpl = tplRow.rows[0];
+
+    if (tpl.status !== 'approved') {
+      return res.status(404).json({ error: 'Template not available' });
+    }
+    if (tpl.price_kobo === 0) {
+      return res.status(400).json({ error: 'This template is free - use install directly' });
+    }
+    if (tpl.author_id === userId) {
+      return res.status(400).json({ error: 'You cannot buy your own template' });
+    }
+
+    // Block if the buyer already owns it.
+    const existing = await pool.query(
+      'SELECT status FROM template_purchases WHERE template_id = $1 AND buyer_id = $2',
+      [id, userId]
+    );
+    if (existing.rows.length > 0) {
+      const status = existing.rows[0].status as string;
+      if (status === 'success') {
+        return res.status(409).json({ error: 'You already own this template' });
+      }
+      if (status === 'refunded') {
+        return res.status(409).json({ error: 'This purchase was already refunded' });
+      }
+    }
+
+    // Look up the publisher subaccount.
+    const profile = await pool.query(
+      'SELECT subaccount_code, payout_status FROM publisher_profiles WHERE user_id = $1',
+      [tpl.author_id]
+    );
+    if (profile.rows.length === 0 || profile.rows[0].payout_status !== 'active') {
+      return res
+        .status(503)
+        .json({ error: 'This publisher is not currently accepting payments' });
+    }
+
+    const appUrl = process.env.APP_URL ?? 'http://localhost:5173';
+
+    const init = await initializeTransaction({
+      email,
+      amount: tpl.price_kobo,
+      callback_url: appUrl + '/templates/callback',
+      subaccount: profile.rows[0].subaccount_code,
+      metadata: {
+        userId,
+        purpose: 'template_purchase',
+        template_id: id,
+      },
+    });
+
+    // Either insert a new pending row or refresh an existing pending row.
+    if (existing.rows.length > 0) {
+      await pool.query(
+        'UPDATE template_purchases SET reference = $1, amount_kobo = $2, updated_at = NOW() WHERE template_id = $3 AND buyer_id = $4',
+        [init.reference, tpl.price_kobo, id, userId]
+      );
+    } else {
+      await pool.query(
+        'INSERT INTO template_purchases (template_id, buyer_id, reference, amount_kobo, status) ' +
+          'VALUES ($1, $2, $3, $4, \'pending\')',
+        [id, userId, init.reference, tpl.price_kobo]
+      );
+    }
+
+    res.json({
+      access_code: init.access_code,
+      authorization_url: init.authorization_url,
+      reference: init.reference,
+      amount_kobo: tpl.price_kobo,
+    });
+  } catch (error) {
+    if (error instanceof PaystackError) {
+      return res.status(error.statusCode).json({ error: error.message });
+    }
+    console.error('Error starting template purchase:', error);
+    res.status(500).json({ error: 'Failed to start the purchase' });
+  }
+};
+
+/**
+ * GET /api/templates/purchases/mine.
+ *
+ * The buyer's purchase history, for the refund UI and for the picker
+ * to know which paid templates are already owned.
+ */
+export const listMyPurchases = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+    const result = await pool.query(
+      `SELECT p.id, p.reference, p.amount_kobo, p.status, p.created_at, p.refunded_at,
+              m.id as template_id, m.name as template_name
+       FROM template_purchases p
+       JOIN marketplace_templates m ON m.id = p.template_id
+       WHERE p.buyer_id = $1
+       ORDER BY p.created_at DESC`,
+      [userId]
+    );
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error listing purchases:', error);
+    res.status(500).json({ error: 'Failed to fetch purchases' });
+  }
+};
+
+/**
+ * POST /api/templates/purchases/:reference/refund.
+ *
+ * Buyer asks for their money back. Only successful purchases can be
+ * refunded, and only by the buyer. Paystack processes the refund (which
+ * also reverses the 30/70 split); our row flips to refunded once Paystack
+ * accepts the request.
+ */
+export const refundPurchase = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    const { reference } = req.params;
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+    if (typeof reference !== 'string' || reference.length === 0 || reference.length > 128) {
+      return res.status(400).json({ error: 'Invalid reference' });
+    }
+
+    const row = await pool.query(
+      'SELECT id, status FROM template_purchases WHERE reference = $1 AND buyer_id = $2',
+      [reference, userId]
+    );
+    if (row.rows.length === 0) return res.status(404).json({ error: 'Purchase not found' });
+
+    const purchase = row.rows[0];
+    if (purchase.status === 'refunded') {
+      return res.status(409).json({ error: 'Already refunded' });
+    }
+    if (purchase.status !== 'success') {
+      return res.status(400).json({ error: 'Only completed purchases can be refunded' });
+    }
+
+    try {
+      const refund = await refundTransaction(reference);
+      if (refund.status === 'processed' || refund.status === 'pending' || refund.status === 'processing') {
+        await pool.query(
+          'UPDATE template_purchases SET status = \'refunded\', refunded_at = NOW(), updated_at = NOW() ' +
+            'WHERE id = $1',
+          [purchase.id]
+        );
+        return res.json({ ok: true, status: 'refunded' });
+      }
+      return res.status(500).json({ error: 'Refund could not be processed' });
+    } catch (err) {
+      if (err instanceof PaystackError) {
+        return res.status(err.statusCode).json({ error: err.message });
+      }
+      throw err;
+    }
+  } catch (error) {
+    console.error('Error refunding purchase:', error);
+    res.status(500).json({ error: 'Failed to process refund' });
   }
 };

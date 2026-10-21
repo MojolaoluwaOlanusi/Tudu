@@ -521,3 +521,48 @@ CREATE TABLE IF NOT EXISTS template_installs (
   installed_at TIMESTAMP DEFAULT NOW(),
   PRIMARY KEY (template_id, user_id)
 );
+
+
+-- =====================================================================
+-- Phase 5.6b - paid templates with Paystack subaccount payouts.
+--
+-- A publisher_profile holds the bank details Paystack needs to pay a
+-- user for their sold templates. The subaccount_code is created once,
+-- on first save; later saves replace it (and Paystack keeps the old one
+-- around as an inactive record).
+--
+-- template_purchases tracks each attempted buy of a paid template.
+-- The (template_id, buyer_id) unique key prevents accidental double
+-- purchases. Refunded rows are kept for audit - the status flips to
+-- "refunded" and refunded_at is set.
+-- =====================================================================
+CREATE TABLE IF NOT EXISTS publisher_profiles (
+  user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  business_name VARCHAR(255) NOT NULL,
+  bank_code VARCHAR(20) NOT NULL,
+  bank_name VARCHAR(255) NOT NULL,
+  account_number VARCHAR(20) NOT NULL,
+  account_name VARCHAR(255) NOT NULL,
+  subaccount_code VARCHAR(64) NOT NULL,
+  payout_status VARCHAR(20) NOT NULL DEFAULT 'active',
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS template_purchases (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  template_id UUID NOT NULL REFERENCES marketplace_templates(id) ON DELETE CASCADE,
+  buyer_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  reference VARCHAR(128) NOT NULL UNIQUE,
+  amount_kobo BIGINT NOT NULL,
+  status VARCHAR(20) NOT NULL DEFAULT 'pending'
+    CHECK (status IN ('pending', 'success', 'failed', 'refunded')),
+  refunded_at TIMESTAMP,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW(),
+  UNIQUE (template_id, buyer_id)
+);
+CREATE INDEX IF NOT EXISTS idx_template_purchases_buyer ON template_purchases(buyer_id);
+CREATE INDEX IF NOT EXISTS idx_template_purchases_template ON template_purchases(template_id);
+
+ALTER TABLE marketplace_templates ADD COLUMN IF NOT EXISTS price_kobo BIGINT NOT NULL DEFAULT 0;

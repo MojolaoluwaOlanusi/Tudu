@@ -63,12 +63,25 @@ export interface PaystackInitData {
  * used for AI credit bundles). Exactly one of plan or amount must be
  * provided; we do not trust both.
  */
+/**
+ * Initialise a transaction.
+ *
+ * Modes:
+ *   - plan            subscription (Paystack uses the plan amount)
+ *   - amount alone    one-off (AI credit bundles)
+ *   - amount + subaccount  one-off split (paid template purchases)
+ *
+ * subaccount is the publisher profile's ACCT_ code. The split percentage
+ * is taken from that subaccount (30% to Tudu, 70% to publisher - see
+ * publisherController for the percentage_charge direction).
+ */
 export const initializeTransaction = async (params: {
   email: string;
   plan?: string;
   amount?: number;
   callback_url: string;
   metadata?: Record<string, unknown>;
+  subaccount?: string;
 }): Promise<PaystackInitData> => {
   const body: Record<string, unknown> = {
     email: params.email,
@@ -77,6 +90,7 @@ export const initializeTransaction = async (params: {
   if (params.plan) body.plan = params.plan;
   if (typeof params.amount === 'number') body.amount = params.amount;
   if (params.metadata) body.metadata = params.metadata;
+  if (params.subaccount) body.subaccount = params.subaccount;
   return request<PaystackInitData>('POST', '/transaction/initialize', body);
 };
 
@@ -104,3 +118,65 @@ export const disableSubscription = async (
     token: emailToken,
   });
 };
+
+
+/* ------------------------------------------------------------------ */
+/* Subaccounts and banks - paid template payouts                       */
+/* ------------------------------------------------------------------ */
+
+export interface PaystackSubaccountData {
+  subaccount_code: string;
+  business_name: string;
+  account_number: string;
+  account_name: string;
+  bank: number;
+  currency: string;
+  percentage_charge: number;
+}
+
+/**
+ * Create a subaccount.
+ *
+ * percentage_charge is the amount the parent account (Tudu) takes from
+ * the subaccount owner's settlement. 30 means Tudu gets 30% and the
+ * publisher gets 70%. If Paystack reverses this at any point, change
+ * the value here (and only here).
+ */
+export const createSubaccount = async (params: {
+  business_name: string;
+  bank_code: string;
+  account_number: string;
+  percentage_charge: number;
+  description?: string;
+}): Promise<PaystackSubaccountData> =>
+  request<PaystackSubaccountData>('POST', '/subaccount', {
+    business_name: params.business_name,
+    bank_code: params.bank_code,
+    account_number: params.account_number,
+    percentage_charge: params.percentage_charge,
+    description: params.description,
+  });
+
+export interface PaystackBank {
+  id: number;
+  name: string;
+  code: string;
+  slug: string;
+  country: string;
+  currency: string;
+  type: string;
+}
+
+export const listBanks = async (): Promise<PaystackBank[]> =>
+  request<PaystackBank[]>('GET', '/bank?country=nigeria&currency=NGN');
+
+export interface PaystackRefundData {
+  id: number;
+  status: string;
+  amount: number;
+  reference: string;
+  transaction: { reference: string };
+}
+
+export const refundTransaction = async (reference: string): Promise<PaystackRefundData> =>
+  request<PaystackRefundData>('POST', '/refund', { transaction: reference });

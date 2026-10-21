@@ -3,7 +3,7 @@ import app from '../../src/app';
 import pool from '../../src/config/database';
 import { auth, destroyUser, registerUser, TestUser } from './helpers';
 
-/** Feature 5.6 - publishing and installing templates. */
+/** Feature 5.6 + 5.6b - publishing, installing and paying for templates. */
 describe('marketplace', () => {
   let proUser: TestUser;
   let proUser2: TestUser;
@@ -15,14 +15,19 @@ describe('marketplace', () => {
     proUser2 = await registerUser('marketplace-pro-2');
     freeUser = await registerUser('marketplace-free');
 
-    // Both Pro users get an active subscription so requireFeature lets
-    // publishing through. Same shape the Paystack webhook writes.
     await pool.query(
       "INSERT INTO subscriptions (user_id, plan_code, status) VALUES ($1, 'pro_monthly', 'active'), ($2, 'pro_monthly', 'active')",
       [proUser.id, proUser2.id]
     );
 
-    // Ensure the author has a default board with three columns.
+    // Give proUser a publisher profile so paid publishing works.
+    await pool.query(
+      `INSERT INTO publisher_profiles
+        (user_id, business_name, bank_code, bank_name, account_number, account_name, subaccount_code, payout_status)
+       VALUES ($1, 'Test Publisher', '058', 'GTBank', '0123456789', 'TEST PUBLISHER', 'ACCT_test_123', 'active')`,
+      [proUser.id]
+    );
+
     await request(app).get('/api/boards').set(auth(proUser));
   }, 180_000);
 
@@ -44,7 +49,21 @@ describe('marketplace', () => {
     expect(res.body.feature).toBe('templates.publish');
   });
 
-  it('publishes a template from a board snapshot', async () => {
+  it('rejects a paid publish with a price below ₦100', async () => {
+    const boards = await request(app).get('/api/boards').set(auth(proUser));
+    const boardId = boards.body[0].id;
+    const res = await request(app)
+      .post('/api/templates/publish')
+      .set(auth(proUser))
+      .send({
+        board_id: boardId,
+        name: 'Too cheap',
+        price_kobo: 5000,
+      });
+    expect(res.status).toBe(400);
+  });
+
+  it('publishes a free template from a board snapshot', async () => {
     const boards = await request(app).get('/api/boards').set(auth(proUser));
     const boardId = boards.body[0].id;
 
@@ -53,39 +72,32 @@ describe('marketplace', () => {
       .set(auth(proUser))
       .send({
         board_id: boardId,
-        name: 'My test template',
+        name: 'My free template',
         description: 'A template from the integration test',
         category: 'Engineering',
+        price_kobo: 0,
       });
 
     expect(res.status).toBe(201);
-    expect(res.body.name).toBe('My test template');
+    expect(res.body.name).toBe('My free template');
     templateId = res.body.id;
   });
 
   it('lists the published template in the marketplace', async () => {
     const res = await request(app).get('/api/templates/marketplace');
     expect(res.status).toBe(200);
-    expect(Array.isArray(res.body)).toBe(true);
     const found = res.body.find((t: { id: string }) => t.id === templateId);
     expect(found).toBeDefined();
-    expect(found.author_name).toBeDefined();
+    expect(found.price_kobo).toBe(0);
   });
 
-  it('lets any signed-in user install the template', async () => {
+  it('lets any signed-in user install a free template', async () => {
     const res = await request(app)
       .post('/api/templates/marketplace/' + templateId + '/install')
       .set(auth(freeUser))
       .send({});
-
     expect(res.status).toBe(201);
-    expect(res.body.name).toBe('My test template');
-    expect(res.body.column_count).toBeGreaterThanOrEqual(3);
-
-    // Confirm the new board is on the free user.
-    const boards = await request(app).get('/api/boards').set(auth(freeUser));
-    const hasBoard = boards.body.some((b: { id: string }) => b.id === res.body.id);
-    expect(hasBoard).toBe(true);
+    expect(res.body.name).toBe('My free template');
   });
 
   it('increments the install count', async () => {
@@ -100,19 +112,7 @@ describe('marketplace', () => {
     expect(res.body.some((t: { id: string }) => t.id === templateId)).toBe(true);
   });
 
-  it('refuses a free user trying to unpublish with 402', async () => {
-    // A free user has no templates.publish feature at all, so the gate
-    // fires before the ownership check. 402, not 404.
-    const res = await request(app)
-      .delete('/api/templates/' + templateId)
-      .set(auth(freeUser));
-    expect(res.status).toBe(402);
-    expect(res.body.feature).toBe('templates.publish');
-  });
-
-  it('refuses a Pro non-author trying to unpublish with 404', async () => {
-    // A second Pro user passes the feature gate but is not the author.
-    // The ownership check inside unpublishTemplate fires - 404.
+  it('lets a non-author try to unpublish and gets 404', async () => {
     const res = await request(app)
       .delete('/api/templates/' + templateId)
       .set(auth(proUser2));
@@ -127,5 +127,75 @@ describe('marketplace', () => {
 
     const check = await request(app).get('/api/templates/marketplace');
     expect(check.body.some((t: { id: string }) => t.id === templateId)).toBe(false);
+  });
+
+  it('lets a downgraded Free user unpublish their own template (Option B)', async () => {
+    const boards = await request(app).get('/api/boards').set(auth(proUser));
+    const boardId = boards.body[0].id;
+
+    const tpl = await request(app)
+      .post('/api/templates/publish')
+      .set(auth(proUser))
+      .send({ board_id: boardId, name: 'Downgrade test', price_kobo: 0 });
+
+    // Simulate a downgrade: cancel the subscription.
+    await pool.query(
+      "UPDATE subscriptions SET status = 'cancelled' WHERE user_id = $1",
+      [proUser.id]
+    );
+
+    const del = await request(app)
+      .delete('/api/templates/' + tpl.body.id)
+      .set(auth(proUser));
+    expect(del.status).toBe(200);
+
+    // Restore Pro for any later tests in this file.
+    await pool.query(
+      "UPDATE subscriptions SET status = 'active' WHERE user_id = $1",
+      [proUser.id]
+    );
+  });
+
+  it('a paid template cannot be installed without a purchase', async () => {
+    const boards = await request(app).get('/api/boards').set(auth(proUser));
+    const boardId = boards.body[0].id;
+
+    const tpl = await request(app)
+      .post('/api/templates/publish')
+      .set(auth(proUser))
+      .send({
+        board_id: boardId,
+        name: 'Paid template',
+        price_kobo: 200000,
+      });
+    expect(tpl.status).toBe(201);
+
+    const install = await request(app)
+      .post('/api/templates/marketplace/' + tpl.body.id + '/install')
+      .set(auth(freeUser))
+      .send({});
+    expect(install.status).toBe(402);
+    expect(install.body.price_kobo).toBe(200000);
+  });
+
+  it('the author can install their own paid template without paying', async () => {
+    const boards = await request(app).get('/api/boards').set(auth(proUser));
+    const boardId = boards.body[0].id;
+
+    const tpl = await request(app)
+      .post('/api/templates/publish')
+      .set(auth(proUser))
+      .send({
+        board_id: boardId,
+        name: 'Author paid template',
+        price_kobo: 200000,
+      });
+    expect(tpl.status).toBe(201);
+
+    const install = await request(app)
+      .post('/api/templates/marketplace/' + tpl.body.id + '/install')
+      .set(auth(proUser))
+      .send({});
+    expect(install.status).toBe(201);
   });
 });

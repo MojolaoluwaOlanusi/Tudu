@@ -7,6 +7,9 @@ import {
   useBuyCredits,
 } from '../hooks/useBilling';
 import { useUiStore } from '../store/uiStore';
+import PublisherSettings from '../components/settings/PublisherSettings';
+import PurchasesList from '../components/settings/PurchasesList';
+
 
 const formatDate = (iso: string | null): string => {
   if (!iso) return '—';
@@ -179,6 +182,12 @@ const BillingSettings: React.FC = () => {
           </div>
         </section>
       )}
+
+      {/* ---------------------- Sell templates ---------------------- */}
+      <PublisherSettings enabled={!!isPro} />
+
+      {/* ---------------------- Your template purchases ---------------------- */}
+      <PurchasesList />
 
       {/* ---------------------- Buy more AI credits ---------------------- */}
       {isPro && (

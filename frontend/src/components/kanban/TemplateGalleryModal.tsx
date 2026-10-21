@@ -1,12 +1,10 @@
 import React, { useState } from 'react';
 import TemplatePicker from '../templates/TemplatePicker';
 import MarketplacePicker from '../templates/MarketplacePicker';
-import {
-  useInstallTemplate,
-  useInstallMarketplaceTemplate,
-} from '../../hooks/useTemplates';
+import { useInstallTemplate } from '../../hooks/useTemplates';
 import { useBoardStore } from '../../store/boardStore';
 import { useUiStore } from '../../store/uiStore';
+import type { Board } from '../../types/board';
 
 interface TemplateGalleryModalProps {
   onClose: () => void;
@@ -16,13 +14,13 @@ interface TemplateGalleryModalProps {
  * "Create a board from a template".
  *
  * Two tabs. Built-in uses the static catalogue from 4.9; Marketplace
- * fetches published templates from the API. Both call the same board
- * creation flow on the backend, so the user experience is identical.
+ * fetches published templates from the API. The marketplace picker
+ * manages its own install flow (including the paid-template checkout),
+ * so this modal only needs to react to a completed install.
  */
 const TemplateGalleryModal: React.FC<TemplateGalleryModalProps> = ({ onClose }) => {
   const [tab, setTab] = useState<'builtin' | 'marketplace'>('builtin');
   const install = useInstallTemplate();
-  const installMarketplace = useInstallMarketplaceTemplate();
   const setActiveBoard = useBoardStore((s) => s.setActiveBoard);
   const pushToast = useUiStore((s) => s.pushToast);
   const [picking, setPicking] = useState<string | null>(null);
@@ -46,26 +44,11 @@ const TemplateGalleryModal: React.FC<TemplateGalleryModalProps> = ({ onClose }) 
     );
   };
 
-  const handleSelectMarketplace = (id: string) => {
-    setPicking(id);
-    installMarketplace.mutate(
-      { id },
-      {
-        onSuccess: (board) => {
-          setActiveBoard(board.id);
-          pushToast('Board ' + JSON.stringify(board.name) + ' created from marketplace', 'success');
-          onClose();
-        },
-        onError: (err) => {
-          const detail = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
-          pushToast(detail || 'Could not create the board', 'error');
-          setPicking(null);
-        },
-      }
-    );
+  const handleInstalled = (board: Board) => {
+    setActiveBoard(board.id);
+    pushToast('Board ' + JSON.stringify(board.name) + ' created from template', 'success');
+    onClose();
   };
-
-  const busy = install.isPending || installMarketplace.isPending;
 
   return (
     <div
@@ -126,12 +109,12 @@ const TemplateGalleryModal: React.FC<TemplateGalleryModalProps> = ({ onClose }) 
         </div>
 
         {tab === 'builtin' ? (
-          <TemplatePicker onSelect={handleSelectBuiltin} disabled={busy} />
+          <TemplatePicker onSelect={handleSelectBuiltin} disabled={install.isPending} />
         ) : (
-          <MarketplacePicker onSelect={handleSelectMarketplace} disabled={busy} />
+          <MarketplacePicker onInstalled={handleInstalled} disabled={false} />
         )}
 
-        {picking && (
+        {picking && tab === 'builtin' && (
           <p className="mt-4 text-xs text-ink-muted" aria-live="polite">
             Setting up {picking}...
           </p>
