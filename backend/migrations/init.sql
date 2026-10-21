@@ -584,3 +584,26 @@ ALTER TABLE marketplace_templates ADD COLUMN IF NOT EXISTS version INTEGER NOT N
 ALTER TABLE template_purchases ADD COLUMN IF NOT EXISTS version_bought INTEGER NOT NULL DEFAULT 1;
 ALTER TABLE template_purchases ADD COLUMN IF NOT EXISTS price_paid_kobo BIGINT NOT NULL DEFAULT 0;
 ALTER TABLE template_purchases ADD COLUMN IF NOT EXISTS rental_days_paid INTEGER NOT NULL DEFAULT 0;
+
+
+-- =====================================================================
+-- Phase 5.7 - GitHub Integration.
+-- =====================================================================
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS short_id SERIAL UNIQUE;
+
+CREATE TABLE IF NOT EXISTS github_integrations (
+  user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  access_token TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS github_mappings (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  board_id UUID NOT NULL REFERENCES boards(id) ON DELETE CASCADE,
+  repo_full_name VARCHAR(255) NOT NULL,
+  pr_opened_column_id UUID NOT NULL REFERENCES board_columns(id) ON DELETE CASCADE,
+  pr_merged_column_id UUID NOT NULL REFERENCES board_columns(id) ON DELETE CASCADE,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_github_mappings_repo ON github_mappings(repo_full_name);

@@ -9,6 +9,8 @@ import Login from './components/auth/Login';
 import Pricing from './routes/Pricing';
 import BillingSettings from './routes/BillingSettings';
 import LicenseSettings from './routes/LicenseSettings';
+import IntegrationsSettings from './routes/IntegrationsSettings';
+
 import BillingCallback from './routes/BillingCallback';
 import AuthCallback from './components/auth/AuthCallback';
 import ProtectedRoute from './components/common/ProtectedRoute';
@@ -144,6 +146,16 @@ function App() {
               <ProtectedRoute>
                 <Shell>
                   <LicenseSettings />
+                </Shell>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/settings/integrations"
+            element={
+              <ProtectedRoute>
+                <Shell>
+                  <IntegrationsSettings />
                 </Shell>
               </ProtectedRoute>
             }
