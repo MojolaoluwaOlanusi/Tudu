@@ -17,9 +17,25 @@ export interface MarketplaceTemplate {
   install_count: number;
   price_kobo: number;
   rental_days: number;
+  version: number;
+  author_id: string;
   created_at: string;
   author_name?: string;
   status?: string;
+}
+
+export interface TemplatePurchase {
+  id: string;
+  reference: string;
+  amount_kobo: number;
+  status: string;
+  created_at: string;
+  refunded_at: string | null;
+  template_id: string;
+  template_name: string;
+  version_bought: number;
+  price_paid_kobo: number;
+  rental_days_paid: number;
 }
 
 export interface TemplatePurchase {
@@ -84,6 +100,18 @@ export const templateService = {
         { headers: auth(token) }
       )
     ).data,
+
+  updateMarketplace: async (
+    token: string,
+    id: string,
+    data: { name?: string; description?: string; price_kobo?: number; rental_days?: number; definition_board_id?: string }
+  ): Promise<void> => {
+    await axios.put(API_URL + '/api/templates/marketplace/' + id, data, { headers: auth(token) });
+  },
+
+  syncMarketplace: async (token: string, id: string): Promise<void> => {
+    await axios.post(API_URL + '/api/templates/marketplace/' + id + '/sync', {}, { headers: auth(token) });
+  },
 
   listMyPurchases: async (token: string): Promise<TemplatePurchase[]> =>
     (await axios.get(API_URL + '/api/templates/purchases/mine', { headers: auth(token) })).data,

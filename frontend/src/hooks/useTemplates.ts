@@ -102,3 +102,31 @@ export const useRefundTemplatePurchase = () => {
     },
   });
 };
+
+export const useUpdateMarketplaceTemplate = () => {
+  const { token } = useAuthStore();
+  const queryClient = useQueryClient();
+  return useMutation<
+    void,
+    unknown,
+    { id: string; data: { name?: string; description?: string; price_kobo?: number; rental_days?: number; definition_board_id?: string } }
+  >({
+    mutationFn: ({ id, data }) => templateService.updateMarketplace(token!, id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['marketplace-templates'] });
+    },
+  });
+};
+
+export const useSyncMarketplaceTemplate = () => {
+  const { token } = useAuthStore();
+  const queryClient = useQueryClient();
+  return useMutation<void, unknown, string>({
+    mutationFn: (id) => templateService.syncMarketplace(token!, id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.boards.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all });
+      queryClient.invalidateQueries({ queryKey: ['template-purchases'] });
+    },
+  });
+};

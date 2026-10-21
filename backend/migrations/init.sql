@@ -574,3 +574,13 @@ ALTER TABLE marketplace_templates ADD COLUMN IF NOT EXISTS price_kobo BIGINT NOT
 ALTER TABLE marketplace_templates ADD COLUMN IF NOT EXISTS rental_days INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE template_purchases ADD COLUMN IF NOT EXISTS board_id UUID REFERENCES boards(id) ON DELETE SET NULL;
 ALTER TABLE template_purchases ADD COLUMN IF NOT EXISTS expires_at TIMESTAMP;
+
+
+-- =====================================================================
+-- Phase 5.6d - Marketplace sync, versioning, and rentals.
+-- =====================================================================
+ALTER TABLE marketplace_templates ADD COLUMN IF NOT EXISTS version INTEGER NOT NULL DEFAULT 1;
+
+ALTER TABLE template_purchases ADD COLUMN IF NOT EXISTS version_bought INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE template_purchases ADD COLUMN IF NOT EXISTS price_paid_kobo BIGINT NOT NULL DEFAULT 0;
+ALTER TABLE template_purchases ADD COLUMN IF NOT EXISTS rental_days_paid INTEGER NOT NULL DEFAULT 0;
