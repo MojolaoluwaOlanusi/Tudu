@@ -508,11 +508,9 @@ export const checkoutMarketplaceTemplate = async (req: Request, res: Response) =
     if (existing.rows.length > 0) {
       const status = existing.rows[0].status as string;
       const expiresAt = existing.rows[0].expires_at ? new Date(existing.rows[0].expires_at).getTime() : null;
+      // Only block if it's a successful, active purchase.
       if (status === 'success' && (!expiresAt || expiresAt > Date.now())) {
         return res.status(409).json({ error: 'You already own this template' });
-      }
-      if (status === 'refunded' || status === 'failed' || (status === 'success' && expiresAt && expiresAt <= Date.now())) {
-        await pool.query('DELETE FROM template_purchases WHERE template_id = $1 AND buyer_id = $2', [id, userId]);
       }
     }
 
@@ -542,10 +540,10 @@ export const checkoutMarketplaceTemplate = async (req: Request, res: Response) =
       },
     });
 
-    // Either insert a new pending row or refresh an existing pending row.
+    // Either insert a new pending row or refresh an existing one (expired/refunded).
     if (existing.rows.length > 0) {
       await pool.query(
-        'UPDATE template_purchases SET reference = $1, amount_kobo = $2, updated_at = NOW() WHERE template_id = $3 AND buyer_id = $4',
+        'UPDATE template_purchases SET reference = $1, amount_kobo = $2, status = \'pending\', updated_at = NOW() WHERE template_id = $3 AND buyer_id = $4',
         [init.reference, tpl.price_kobo, id, userId]
       );
     } else {

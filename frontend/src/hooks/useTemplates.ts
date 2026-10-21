@@ -130,3 +130,15 @@ export const useSyncMarketplaceTemplate = () => {
     },
   });
 };
+
+export const useDeleteMarketplaceTemplate = () => {
+  const { token } = useAuthStore();
+  const queryClient = useQueryClient();
+  return useMutation<void, unknown, string>({
+    mutationFn: (id) => templateService.unpublish(token!, id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['marketplace-templates'] });
+      queryClient.invalidateQueries({ queryKey: ['template-purchases'] });
+    },
+  });
+};
