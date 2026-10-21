@@ -16,6 +16,7 @@ export interface MarketplaceTemplate {
   category: string;
   install_count: number;
   price_kobo: number;
+  rental_days: number;
   created_at: string;
   author_name?: string;
   status?: string;
@@ -50,6 +51,7 @@ export const templateService = {
       description: string;
       category: string;
       price_kobo: number;
+      rental_days: number;
     }
   ): Promise<MarketplaceTemplate> =>
     (

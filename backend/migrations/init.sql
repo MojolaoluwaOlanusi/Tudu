@@ -566,3 +566,11 @@ CREATE INDEX IF NOT EXISTS idx_template_purchases_buyer ON template_purchases(bu
 CREATE INDEX IF NOT EXISTS idx_template_purchases_template ON template_purchases(template_id);
 
 ALTER TABLE marketplace_templates ADD COLUMN IF NOT EXISTS price_kobo BIGINT NOT NULL DEFAULT 0;
+
+
+-- =====================================================================
+-- Phase 5.6c - Refund fixes, board cleanup, and rentals.
+-- =====================================================================
+ALTER TABLE marketplace_templates ADD COLUMN IF NOT EXISTS rental_days INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE template_purchases ADD COLUMN IF NOT EXISTS board_id UUID REFERENCES boards(id) ON DELETE SET NULL;
+ALTER TABLE template_purchases ADD COLUMN IF NOT EXISTS expires_at TIMESTAMP;

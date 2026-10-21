@@ -61,6 +61,7 @@ export const usePublishTemplate = () => {
       description: string;
       category: string;
       price_kobo: number;
+      rental_days: number;
     }
   >({
     mutationFn: (data) => templateService.publish(token!, data),
