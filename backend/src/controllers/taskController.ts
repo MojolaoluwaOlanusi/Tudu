@@ -8,6 +8,7 @@ import {
   broadcastTaskDeleted,
   notifyCollaborators,
 } from '../services/realtimeService';
+import { triggerWebhooks } from '../services/webhookService';
 import { CreateTaskInput, UpdateTaskInput, TaskFilters, Status } from '../types/task';
 import { SOCKET_EVENTS } from '../types/socket';
 import { parseQuery, buildFilterFragment, buildOrderClause } from '../services/taskQueryBuilder';
@@ -294,6 +295,7 @@ export const createTask = async (req: Request, res: Response) => {
     const created = result.rows[0];
     await logActivity(userId, 'task_created', created.id, { title: created.title });
     await broadcastTask(SOCKET_EVENTS.taskCreate, userId, created);
+    await triggerWebhooks(userId, 'task.created', { task: created });
 
     res.status(201).json(created);
   } catch (error) {
@@ -410,6 +412,7 @@ export const updateTask = async (req: Request, res: Response) => {
     }
 
     await broadcastTask(SOCKET_EVENTS.taskUpdate, userId, updated);
+    await triggerWebhooks(userId, 'task.updated', { task: updated });
 
     res.json(updated);
   } catch (error) {
@@ -556,6 +559,7 @@ export const updateTaskStatus = async (req: Request, res: Response) => {
     await notifyCollaborators(id, task.user_id, 'shared-task-updated', { task });
 
     await broadcastTask(SOCKET_EVENTS.taskMove, userId, task);
+    await triggerWebhooks(userId, 'task.moved', { task });
 
     res.json(task);
   } catch (error) {
@@ -687,6 +691,7 @@ export const batchUpdateTaskStatus = async (req: Request, res: Response) => {
       );
       await notifyCollaborators(task.id, task.user_id, 'shared-task-updated', { task });
       await broadcastTask(SOCKET_EVENTS.taskMove, userId, task);
+      await triggerWebhooks(userId, 'task.moved', { task });
     }
 
     res.json({ updated: result.rows.length, tasks: result.rows });
@@ -727,6 +732,7 @@ export const deleteTask = async (req: Request, res: Response) => {
     // task_id is deliberately null: activity_log cascades with the task, so
     // the entry keeps the title in its details instead of disappearing.
     await logActivity(userId, 'task_deleted', null, { title: task.title });
+    await triggerWebhooks(userId, 'task.deleted', { task_id: task.id, title: task.title });
 
     res.json({ message: 'Task deleted successfully', deleted_at: task.deleted_at });
   } catch (error) {
@@ -774,6 +780,7 @@ export const restoreTask = async (req: Request, res: Response) => {
     const task = result.rows[0];
     await notifyCollaborators(id, task.user_id, 'shared-task-updated', { task });
     await broadcastTask(SOCKET_EVENTS.taskUpdate, userId, task);
+    await triggerWebhooks(userId, 'task.updated', { task });
 
     res.json(task);
   } catch (error) {
@@ -826,6 +833,7 @@ export const batchDeleteTasks = async (req: Request, res: Response) => {
       });
       await broadcastTaskDeleted(task.id, task.user_id, userId, task.board_id);
       await logActivity(userId, 'task_deleted', null, { title: task.title });
+      await triggerWebhooks(userId, 'task.deleted', { task_id: task.id, title: task.title });
     }
 
     res.json({
@@ -908,6 +916,7 @@ export const batchAssignTasks = async (req: Request, res: Response) => {
         fields: ['assignee'],
       });
       await broadcastTask(SOCKET_EVENTS.taskUpdate, userId, task);
+      await triggerWebhooks(userId, 'task.updated', { task });
     }
 
     res.json({ updated: result.rows.length, tasks: result.rows });

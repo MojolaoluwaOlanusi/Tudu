@@ -15,6 +15,7 @@ import { tierHasFeature } from '../config/features';
 import { parseTaskText } from '../services/nlpService';
 import { logActivity } from '../services/activityService';
 import { broadcastTask } from '../services/realtimeService';
+import { triggerWebhooks } from '../services/webhookService';
 import { ensureDefaultBoard } from './boardController';
 import { SOCKET_EVENTS } from '../types/socket';
 
@@ -421,6 +422,7 @@ export const handleCommand = async (req: Request, res: Response) => {
     const task = inserted.rows[0];
     await logActivity(integration.user_id, 'task_created', task.id, { title: task.title });
     await broadcastTask(SOCKET_EVENTS.taskCreate, integration.user_id, task);
+    await triggerWebhooks(integration.user_id, 'task.created', { task });
 
     const due = task.due_date
       ? ' — due ' + new Date(task.due_date).toLocaleDateString(undefined, {
