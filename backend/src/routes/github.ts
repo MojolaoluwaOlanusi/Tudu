@@ -1,15 +1,29 @@
 import express from 'express';
 import { authenticate } from '../middleware/auth';
-import { connectGitHub, getRepos, saveMapping, handleWebhook } from '../controllers/githubController';
+import {
+  startOAuth,
+  getStatus,
+  getRepos,
+  listMappings,
+  saveMapping,
+  deleteMapping,
+  disconnectGitHub,
+  handleWebhook,
+} from '../controllers/githubController';
 
 const router = express.Router();
 
-// Webhook is public (GitHub calls it), but we expect a valid signature in production.
+// Webhook is public (GitHub calls it).
 router.post('/webhook', handleWebhook);
 
 router.use(authenticate);
-router.post('/connect', connectGitHub);
+
+router.get('/oauth/start', startOAuth);
+router.get('/status', getStatus);
 router.get('/repos', getRepos);
+router.get('/mappings', listMappings);
 router.post('/mapping', saveMapping);
+router.delete('/mapping/:id', deleteMapping);
+router.post('/disconnect', disconnectGitHub);
 
 export default router;

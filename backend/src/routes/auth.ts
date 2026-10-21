@@ -2,6 +2,7 @@ import express from 'express';
 import passport from '../config/passport';
 import * as authController from '../controllers/authController';
 import { authenticate } from '../middleware/auth';
+import { handleIntegrationCallback } from '../controllers/githubController';
 
 const router = express.Router();
 
@@ -21,6 +22,14 @@ router.get(
 router.get('/github', passport.authenticate('github', { scope: ['user:email'] }));
 router.get(
   '/github/callback',
+  (req, res, next) => {
+    const state = req.query.state;
+    if (typeof state === 'string' && state.startsWith('tudu-int.')) {
+      void handleIntegrationCallback(req, res);
+      return;
+    }
+    next();
+  },
   passport.authenticate('github', { failureRedirect: `${process.env.FRONTEND_URL}/login?error=auth_failed` }),
   authController.githubCallback
 );

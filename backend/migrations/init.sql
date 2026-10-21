@@ -607,3 +607,38 @@ CREATE TABLE IF NOT EXISTS github_mappings (
   created_at TIMESTAMP DEFAULT NOW()
 );
 CREATE INDEX IF NOT EXISTS idx_github_mappings_repo ON github_mappings(repo_full_name);
+
+
+-- =====================================================================
+-- Phase 5.7 fix - github_mappings ownership and unique key.
+--
+-- The original 5.7 migration created github_mappings without a user_id
+-- column and without a unique constraint. Every save went through
+-- ON CONFLICT (repo_full_name), which had no constraint to attach to,
+-- so Postgres returned "there is no unique or exclusion constraint
+-- matching the ON CONFLICT specification" and the request 500'd.
+--
+-- This migration:
+--   * adds user_id (backfilled from the board owner),
+--   * adds a unique per-user key on (user_id, repo_full_name),
+--   * adds github_login to github_integrations so the UI can say
+--     "Connected as @octocat" without an extra API call.
+-- =====================================================================
+ALTER TABLE github_integrations ADD COLUMN IF NOT EXISTS github_login VARCHAR(255);
+
+ALTER TABLE github_mappings ADD COLUMN IF NOT EXISTS user_id UUID;
+UPDATE github_mappings m
+   SET user_id = b.user_id
+  FROM boards b
+ WHERE m.board_id = b.id AND m.user_id IS NULL;
+DELETE FROM github_mappings WHERE user_id IS NULL;
+ALTER TABLE github_mappings ALTER COLUMN user_id SET NOT NULL;
+
+DO $$ BEGIN
+  ALTER TABLE github_mappings ADD CONSTRAINT github_mappings_user_id_fkey
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DROP INDEX IF EXISTS idx_github_mappings_repo;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_github_mappings_user_repo
+  ON github_mappings(user_id, repo_full_name);
