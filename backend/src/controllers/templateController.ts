@@ -189,7 +189,7 @@ export const listMyTemplates = async (req: Request, res: Response) => {
 export const publishTemplate = async (req: Request, res: Response) => {
   try {
     const userId = req.user?.userId;
-    const { board_id, name, description, category, price_kobo } = (req.body ?? {}) as Record<
+    const { board_id, name, description, category, price_kobo, rental_days } = (req.body ?? {}) as Record<
       string,
       unknown
     >;
@@ -206,6 +206,10 @@ export const publishTemplate = async (req: Request, res: Response) => {
     const priceKobo =
       typeof price_kobo === 'number' && Number.isFinite(price_kobo)
         ? Math.floor(price_kobo)
+        : 0;
+    const rentalDays =
+      typeof rental_days === 'number' && Number.isFinite(rental_days)
+        ? Math.floor(rental_days)
         : 0;
     if (priceKobo !== 0 && priceKobo < 10000) {
       return res.status(400).json({ error: 'Minimum price is ₦100' });
@@ -251,10 +255,10 @@ export const publishTemplate = async (req: Request, res: Response) => {
 
     const result = await pool.query(
       'INSERT INTO marketplace_templates ' +
-        '(author_id, name, description, category, definition, price_kobo) ' +
-        'VALUES ($1, $2, $3, $4, $5, $6) ' +
-        'RETURNING id, name, status, created_at, price_kobo',
-      [userId, tplName, tplDesc, tplCat, JSON.stringify(definition), priceKobo]
+        '(author_id, name, description, category, definition, price_kobo, rental_days) ' +
+        'VALUES ($1, $2, $3, $4, $5, $6, $7) ' +
+        'RETURNING id, name, status, created_at, price_kobo, rental_days',
+      [userId, tplName, tplDesc, tplCat, JSON.stringify(definition), priceKobo, rentalDays]
     );
 
     res.status(201).json(result.rows[0]);
@@ -286,7 +290,7 @@ export const installMarketplaceTemplate = async (req: Request, res: Response) =>
 
     const tplRow = await pool.query(
       'SELECT id, author_id, name, definition, status, install_count, ' +
-        '       price_kobo::int AS price_kobo ' +
+        '       price_kobo::int AS price_kobo, rental_days ' +
         'FROM marketplace_templates WHERE id = $1 AND status = \'approved\'',
       [id]
     );
@@ -296,12 +300,18 @@ export const installMarketplaceTemplate = async (req: Request, res: Response) =>
     // Paid template: verify purchase (or exempt the author).
     if (tpl.price_kobo > 0 && tpl.author_id !== userId) {
       const existing = await pool.query(
-        `SELECT 1 FROM template_purchases
+        `SELECT expires_at FROM template_purchases
          WHERE template_id = $1 AND buyer_id = $2 AND status = 'success'`,
         [id, userId]
       );
 
-      if (existing.rows.length === 0) {
+      if (existing.rows.length > 0 && tpl.rental_days > 0) {
+         // If it's a rental, check if it has expired.
+         const expiresAt = new Date(existing.rows[0].expires_at).getTime();
+         if (expiresAt < Date.now()) {
+            return res.status(402).json({ error: 'Your rental has expired', price_kobo: tpl.price_kobo });
+         }
+      } else if (existing.rows.length === 0) {
         if (typeof reference === 'string' && reference.length > 0 && reference.length < 128) {
           try {
             const verified = await verifyTransaction(reference);
@@ -401,6 +411,11 @@ export const installMarketplaceTemplate = async (req: Request, res: Response) =>
         'INSERT INTO template_installs (template_id, user_id) ' +
           'VALUES ($1, $2) ON CONFLICT DO NOTHING',
         [id, userId]
+      );
+      await client.query(
+        'UPDATE template_purchases SET board_id = $1 ' +
+          'WHERE template_id = $2 AND buyer_id = $3 AND status = \'success\'',
+        [boardId, id, userId]
       );
 
       await client.query('COMMIT');
@@ -517,6 +532,7 @@ export const checkoutMarketplaceTemplate = async (req: Request, res: Response) =
       amount: tpl.price_kobo,
       callback_url: appUrl + '/templates/callback',
       subaccount: profile.rows[0].subaccount_code,
+      bearer: 'subaccount', // Publisher pays Paystack fees and VAT
       metadata: {
         userId,
         purpose: 'template_purchase',
@@ -607,6 +623,9 @@ export const refundPurchase = async (req: Request, res: Response) => {
     if (purchase.status === 'refunded') {
       return res.status(409).json({ error: 'Already refunded' });
     }
+    if (Date.now() - new Date(purchase.created_at).getTime() > 14 * 24 * 3600 * 1000) {
+      return res.status(400).json({ error: 'Refunds are only available within 14 days of purchase' });
+    }
     if (purchase.status !== 'success') {
       return res.status(400).json({ error: 'Only completed purchases can be refunded' });
     }
@@ -619,6 +638,10 @@ export const refundPurchase = async (req: Request, res: Response) => {
             'WHERE id = $1',
           [purchase.id]
         );
+        // Delete the board created by this purchase.
+        if (purchase.board_id) {
+          await pool.query('DELETE FROM boards WHERE id = $1 AND user_id = $2', [purchase.board_id, userId]);
+        }
         return res.json({ ok: true, status: 'refunded' });
       }
       return res.status(500).json({ error: 'Refund could not be processed' });

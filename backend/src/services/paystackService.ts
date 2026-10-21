@@ -82,6 +82,7 @@ export const initializeTransaction = async (params: {
   callback_url: string;
   metadata?: Record<string, unknown>;
   subaccount?: string;
+  bearer?: 'account' | 'subaccount';
 }): Promise<PaystackInitData> => {
   const body: Record<string, unknown> = {
     email: params.email,
@@ -91,6 +92,7 @@ export const initializeTransaction = async (params: {
   if (typeof params.amount === 'number') body.amount = params.amount;
   if (params.metadata) body.metadata = params.metadata;
   if (params.subaccount) body.subaccount = params.subaccount;
+  if (params.bearer) body.bearer = params.bearer;
   return request<PaystackInitData>('POST', '/transaction/initialize', body);
 };
 

@@ -17,8 +17,12 @@ const formatDate = (iso: string | null): string => {
 
 /**
  * The buyer's template purchase history with a refund button on
- * purchases that are still eligible (status = success). Refunded
- * purchases are shown greyed out with the refund date.
+ * purchases that are still eligible (status = success, within 14 days).
+ * 
+ * Refunded purchases are shown greyed out with the refund date. 
+ * Purchases older than 14 days show a friendly "Refund window expired" 
+ * message instead of the button, so users don't have to trigger a 400 
+ * error to find out they missed the deadline.
  */
 const PurchasesList: React.FC = () => {
   const { data: purchases = [], isLoading } = useMyTemplatePurchases();
@@ -44,7 +48,14 @@ const PurchasesList: React.FC = () => {
       <h2 className="mb-3 font-handwritten text-xl text-ink">Your template purchases</h2>
       <ul className="space-y-2">
         {purchases.map((p) => {
-          const refundable = p.status === 'success';
+          const isSuccess = p.status === 'success';
+          
+          // Calculate if 14 days have passed since the purchase.
+          const fourteenDaysMs = 14 * 24 * 60 * 60 * 1000;
+          const isExpired = Date.now() - new Date(p.created_at).getTime() > fourteenDaysMs;
+          
+          const canRefund = isSuccess && !isExpired;
+
           return (
             <li
               key={p.id}
@@ -59,7 +70,8 @@ const PurchasesList: React.FC = () => {
                   )}
                 </p>
               </div>
-              {refundable && (
+              
+              {canRefund && (
                 <button
                   type="button"
                   onClick={() => handleRefund(p.reference, p.amount_kobo)}
@@ -68,6 +80,12 @@ const PurchasesList: React.FC = () => {
                 >
                   {refund.isPending ? 'Refunding...' : 'Refund'}
                 </button>
+              )}
+
+              {isSuccess && isExpired && (
+                <span className="shrink-0 text-[11px] italic text-ink-muted">
+                  Refund window expired
+                </span>
               )}
             </li>
           );
