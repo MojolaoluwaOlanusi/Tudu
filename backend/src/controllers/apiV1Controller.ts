@@ -195,3 +195,168 @@ export const getTaskV1 = async (req: Request, res: Response) => {
     res.status(500).json({ error: 'Failed to fetch the task' });
   }
 };
+import { CreateTaskSchema, UpdateTaskSchema, zodError } from './apiV1WriteSchemas';
+import { parseTaskText } from '../services/nlpService';
+import { logActivity } from '../services/activityService';
+import { broadcastTask } from '../services/realtimeService';
+import { getBoardRole, roleAtLeast, resolveColumn } from '../services/boardAccess';
+import { triggerWebhooks } from '../services/webhookService';
+import { SOCKET_EVENTS } from '../types/socket';
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const isValidUuid = (value: unknown): value is string =>
+  typeof value === 'string' && UUID_RE.test(value);
+
+/**
+ * POST /api/v1/tasks - create a task via the public API.
+ *
+ * Shares the same core as POST /api/tasks (NLP parse, board/column
+ * resolution, activity log, socket broadcast), but validates the body
+ * with Zod first and triggers outbound webhooks. Deliberately does not
+ * call the controller's handler - the two have different auth and error
+ * shapes, and keeping the shared core small is safer than threading a
+ * "which auth mode" flag through it.
+ */
+export const createTaskV1 = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+    const parsedBody = CreateTaskSchema.safeParse(req.body ?? {});
+    if (!parsedBody.success) return res.status(400).json(zodError(parsedBody.error));
+
+    const input = parsedBody.data;
+    let title = input.title;
+    let category = input.category;
+    let priority = input.priority;
+    let due_date = input.due_date;
+
+    if (input.naturalLanguage !== false) {
+      const parsed = parseTaskText(title);
+      title = parsed.title || title.trim();
+      category = category ?? parsed.category ?? undefined;
+      priority = priority ?? parsed.priority ?? undefined;
+      due_date = due_date ?? parsed.dueDate ?? undefined;
+    }
+
+    let boardId: string | null = null;
+    let columnId: string | null = null;
+    if (input.column_id) {
+      if (!isValidUuid(input.column_id)) {
+        return res.status(400).json({ error: 'Invalid column id' });
+      }
+      const column = await resolveColumn(userId, input.column_id, 'member');
+      if (!column) return res.status(404).json({ error: 'Column not found' });
+      columnId = input.column_id;
+      boardId = column.board_id;
+    } else if (input.board_id) {
+      if (!isValidUuid(input.board_id)) {
+        return res.status(400).json({ error: 'Invalid board id' });
+      }
+      if (!roleAtLeast(await getBoardRole(userId, input.board_id), 'member')) {
+        return res.status(404).json({ error: 'Board not found' });
+      }
+      boardId = input.board_id;
+    }
+
+    const result = await pool.query(
+      'INSERT INTO tasks (user_id, title, description, category, priority, due_date, board_id, column_id) ' +
+        'VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
+      [userId, title, input.description ?? null, category ?? null, priority ?? null, due_date ?? null, boardId, columnId]
+    );
+    const task = result.rows[0];
+
+    await logActivity(userId, 'task_created', task.id, { title: task.title });
+    await broadcastTask(SOCKET_EVENTS.taskCreate, userId, task);
+    await triggerWebhooks(userId, 'task.created', { task });
+
+    res.status(201).json(task);
+  } catch (error) {
+    console.error('Error creating task (v1):', error);
+    res.status(500).json({ error: 'Failed to create the task' });
+  }
+};
+
+/** PUT /api/v1/tasks/:id - partial update. */
+export const updateTaskV1 = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    const { id } = req.params;
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+    if (!isValidUuid(id)) return res.status(400).json({ error: 'Invalid task id' });
+
+    const parsedBody = UpdateTaskSchema.safeParse(req.body ?? {});
+    if (!parsedBody.success) return res.status(400).json(zodError(parsedBody.error));
+
+    const input = parsedBody.data;
+    const updates: string[] = [];
+    const values: unknown[] = [];
+
+    const set = (column: string, value: unknown) => {
+      values.push(value);
+      updates.push(column + ' = $' + values.length);
+    };
+
+    if (input.title !== undefined) set('title', input.title);
+    if (input.description !== undefined) set('description', input.description);
+    if (input.category !== undefined) set('category', input.category);
+    if (input.priority !== undefined) set('priority', input.priority);
+    if (input.due_date !== undefined) set('due_date', input.due_date);
+    if (input.status !== undefined) set('status', input.status);
+
+    updates.push('updated_at = NOW()');
+    values.push(id);
+    values.push(userId);
+
+    const result = await pool.query(
+      'UPDATE tasks SET ' + updates.join(', ') +
+        ' WHERE tasks.id = $' + (values.length - 1) + ' AND tasks.deleted_at IS NULL ' +
+        ' AND tasks.user_id = $' + values.length + ' RETURNING *',
+      values
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Task not found' });
+    }
+
+    const task = result.rows[0];
+    await logActivity(userId, input.status === 'done' ? 'task_completed' : 'task_updated', id, {
+      title: task.title,
+      fields: Object.keys(input),
+    });
+    await broadcastTask(SOCKET_EVENTS.taskUpdate, userId, task);
+    await triggerWebhooks(userId, 'task.updated', { task });
+
+    res.json(task);
+  } catch (error) {
+    console.error('Error updating task (v1):', error);
+    res.status(500).json({ error: 'Failed to update the task' });
+  }
+};
+
+/** DELETE /api/v1/tasks/:id - soft delete. */
+export const deleteTaskV1 = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    const { id } = req.params;
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+    if (!isValidUuid(id)) return res.status(400).json({ error: 'Invalid task id' });
+
+    const result = await pool.query(
+      'UPDATE tasks SET deleted_at = NOW(), updated_at = NOW() ' +
+        'WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL RETURNING id, title, board_id',
+      [id, userId]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Task not found' });
+    }
+
+    const task = result.rows[0];
+    await logActivity(userId, 'task_deleted', null, { title: task.title });
+    await triggerWebhooks(userId, 'task.deleted', { task_id: task.id, title: task.title });
+
+    res.json({ message: 'Task deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting task (v1):', error);
+    res.status(500).json({ error: 'Failed to delete the task' });
+  }
+};

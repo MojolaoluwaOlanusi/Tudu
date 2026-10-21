@@ -1,6 +1,12 @@
 import express from 'express';
 import rateLimit from 'express-rate-limit';
 import { authenticateApiToken } from '../middleware/apiToken';
+import { requireFeature } from '../middleware/requireFeature';
+import {
+  createTaskV1,
+  updateTaskV1,
+  deleteTaskV1,
+} from '../controllers/apiV1Controller';
 import {
   meV1,
   listBoardsV1,
@@ -43,5 +49,9 @@ router.get('/boards', listBoardsV1);
 router.get('/boards/:id', getBoardV1);
 router.get('/tasks', listTasksV1);
 router.get('/tasks/:id', getTaskV1);
+// Writes are Pro-only, gated server-side. The read routes above stay open.
+router.post('/tasks', requireFeature('api.public.write'), createTaskV1);
+router.put('/tasks/:id', requireFeature('api.public.write'), updateTaskV1);
+router.delete('/tasks/:id', requireFeature('api.public.write'), deleteTaskV1);
 
 export default router;

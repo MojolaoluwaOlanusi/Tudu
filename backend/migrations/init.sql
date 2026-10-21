@@ -674,3 +674,51 @@ CREATE TABLE IF NOT EXISTS slack_integrations (
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_slack_integrations_team
   ON slack_integrations(team_id);
+
+
+-- =====================================================================
+-- Phase 5.9 - public write API and outbound webhooks.
+--
+-- webhook_deliveries is the transactional outbox: every task mutation
+-- writes a row here in the same transaction as the mutation itself,
+-- so a process crash between the DB write and the HTTP send cannot
+-- lose the event. A background worker drains the table.
+--
+-- status:
+--   pending   - queued, waiting for next_attempt_at
+--   success   - 2xx response received
+--   failed    - attempted, not yet exhausted (still retried)
+--   dead      - 6 attempts done, needs manual retry from the UI
+-- =====================================================================
+CREATE TABLE IF NOT EXISTS webhook_endpoints (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  url TEXT NOT NULL,
+  description VARCHAR(255),
+  secret VARCHAR(64) NOT NULL,
+  events TEXT[] NOT NULL DEFAULT ARRAY['task.created', 'task.updated', 'task.moved', 'task.deleted']::text[],
+  is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_webhook_endpoints_user ON webhook_endpoints(user_id);
+
+CREATE TABLE IF NOT EXISTS webhook_deliveries (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  endpoint_id UUID NOT NULL REFERENCES webhook_endpoints(id) ON DELETE CASCADE,
+  event_type VARCHAR(64) NOT NULL,
+  payload JSONB NOT NULL,
+  status VARCHAR(20) NOT NULL DEFAULT 'pending'
+    CHECK (status IN ('pending', 'success', 'failed', 'dead')),
+  attempt_count INTEGER NOT NULL DEFAULT 0,
+  next_attempt_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  last_attempt_at TIMESTAMP,
+  last_response_status INTEGER,
+  last_response_body TEXT,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_webhook_deliveries_pending
+  ON webhook_deliveries(status, next_attempt_at)
+  WHERE status IN ('pending', 'failed');
+CREATE INDEX IF NOT EXISTS idx_webhook_deliveries_endpoint
+  ON webhook_deliveries(endpoint_id, created_at DESC);
