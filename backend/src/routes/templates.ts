@@ -12,6 +12,8 @@ import {
   checkoutMarketplaceTemplate,
   listMyPurchases,
   refundPurchase,
+  updateMarketplaceTemplate,
+  syncMarketplaceTemplate,
 } from '../controllers/templateController';
 
 /** Mounted at /api/templates. */
@@ -29,6 +31,8 @@ router.get('/mine', listMyTemplates);
 router.post('/publish', requireFeature('templates.publish'), publishTemplate);
 
 // Paid templates: free users can buy, only successful purchases unlock install.
+router.put('/marketplace/:id', requireFeature('templates.publish'), updateMarketplaceTemplate);
+router.post('/marketplace/:id/sync', syncMarketplaceTemplate);
 router.post('/marketplace/:id/checkout', checkoutMarketplaceTemplate);
 router.post('/marketplace/:id/install', installMarketplaceTemplate);
 

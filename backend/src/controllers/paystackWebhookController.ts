@@ -77,9 +77,17 @@ const handleChargeSuccess = async (data: Record<string, unknown>) => {
     const templateId = metadata.template_id as string | undefined;
     if (templateId) {
       await pool.query(
-        'UPDATE template_purchases SET status = \'success\', updated_at = NOW() ' +
-          'WHERE reference = $1 AND status = \'pending\'',
-        [reference]
+        `UPDATE template_purchases p
+         SET status = 'success', 
+             expires_at = CASE WHEN (SELECT rental_days FROM marketplace_templates WHERE id = $2) > 0 
+                               THEN NOW() + (SELECT rental_days * INTERVAL '1 day' FROM marketplace_templates WHERE id = $2) 
+                               ELSE NULL END,
+             version_bought = (SELECT version FROM marketplace_templates WHERE id = $2),
+             price_paid_kobo = (SELECT price_kobo FROM marketplace_templates WHERE id = $2),
+             rental_days_paid = (SELECT rental_days FROM marketplace_templates WHERE id = $2),
+             updated_at = NOW()
+         WHERE p.reference = $1 AND p.status = 'pending'`,
+        [reference, templateId]
       );
     }
   }

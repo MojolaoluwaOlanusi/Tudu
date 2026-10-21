@@ -147,8 +147,8 @@ export const listMarketplace = async (_req: Request, res: Response) => {
   try {
     const result = await pool.query(
       'SELECT m.id, m.name, m.description, m.category, m.install_count, ' +
-        '       m.price_kobo::int AS price_kobo, ' +
-        '       m.created_at, u.name AS author_name ' +
+        '       m.price_kobo::int AS price_kobo, m.rental_days, m.version, ' +
+        '       m.author_id, m.created_at, u.name AS author_name ' +
         'FROM marketplace_templates m ' +
         'JOIN users u ON u.id = m.author_id ' +
         'WHERE m.status = \'approved\' ' +
@@ -257,7 +257,7 @@ export const publishTemplate = async (req: Request, res: Response) => {
       'INSERT INTO marketplace_templates ' +
         '(author_id, name, description, category, definition, price_kobo, rental_days) ' +
         'VALUES ($1, $2, $3, $4, $5, $6, $7) ' +
-        'RETURNING id, name, status, created_at, price_kobo, rental_days',
+        'RETURNING id, name, status, created_at, price_kobo, rental_days, version',
       [userId, tplName, tplDesc, tplCat, JSON.stringify(definition), priceKobo, rentalDays]
     );
 
@@ -307,7 +307,7 @@ export const installMarketplaceTemplate = async (req: Request, res: Response) =>
 
       if (existing.rows.length > 0 && tpl.rental_days > 0) {
          // If it's a rental, check if it has expired.
-         const expiresAt = new Date(existing.rows[0].expires_at).getTime();
+         const expiresAt = existing.rows[0].expires_at ? new Date(existing.rows[0].expires_at).getTime() : 0;
          if (expiresAt < Date.now()) {
             return res.status(402).json({ error: 'Your rental has expired', price_kobo: tpl.price_kobo });
          }
@@ -320,13 +320,14 @@ export const installMarketplaceTemplate = async (req: Request, res: Response) =>
                 .status(402)
                 .json({ error: 'Payment not confirmed yet', price_kobo: tpl.price_kobo });
             }
+            const expiresAt = tpl.rental_days > 0 ? new Date(Date.now() + tpl.rental_days * 24 * 3600 * 1000) : null;
             const updated = await pool.query(
               `UPDATE template_purchases
-               SET status = 'success', updated_at = NOW()
+               SET status = 'success', expires_at = $4, version_bought = $5, price_paid_kobo = $6, rental_days_paid = $7, updated_at = NOW()
                WHERE reference = $1 AND template_id = $2 AND buyer_id = $3
                  AND status = 'pending'
                RETURNING id`,
-              [reference, id, userId]
+              [reference, id, userId, expiresAt, tpl.version, tpl.price_kobo, tpl.rental_days]
             );
             if (updated.rows.length === 0) {
               return res
@@ -501,16 +502,17 @@ export const checkoutMarketplaceTemplate = async (req: Request, res: Response) =
 
     // Block if the buyer already owns it.
     const existing = await pool.query(
-      'SELECT status FROM template_purchases WHERE template_id = $1 AND buyer_id = $2',
+      'SELECT status, expires_at FROM template_purchases WHERE template_id = $1 AND buyer_id = $2',
       [id, userId]
     );
     if (existing.rows.length > 0) {
       const status = existing.rows[0].status as string;
-      if (status === 'success') {
+      const expiresAt = existing.rows[0].expires_at ? new Date(existing.rows[0].expires_at).getTime() : null;
+      if (status === 'success' && (!expiresAt || expiresAt > Date.now())) {
         return res.status(409).json({ error: 'You already own this template' });
       }
-      if (status === 'refunded') {
-        return res.status(409).json({ error: 'This purchase was already refunded' });
+      if (status === 'refunded' || status === 'failed' || (status === 'success' && expiresAt && expiresAt <= Date.now())) {
+        await pool.query('DELETE FROM template_purchases WHERE template_id = $1 AND buyer_id = $2', [id, userId]);
       }
     }
 
@@ -654,5 +656,190 @@ export const refundPurchase = async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Error refunding purchase:', error);
     res.status(500).json({ error: 'Failed to process refund' });
+  }
+};
+
+
+/* ====================================================================== */
+/* Feature 5.6d - update and sync                                          */
+/* ====================================================================== */
+
+/**
+ * PUT /api/templates/marketplace/:id.
+ *
+ * Publisher updates their template. Bumps the version so buyers see
+ * an "Update Available" badge. If definition_board_id is passed, it
+ * snapshots that board to overwrite the template contents.
+ */
+export const updateMarketplaceTemplate = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    const { id } = req.params;
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+    if (!isValidUuid(id)) return res.status(400).json({ error: 'Invalid template id' });
+
+    const { name, description, price_kobo, rental_days, definition_board_id } = (req.body ?? {}) as Record<string, unknown>;
+
+    const tplRow = await pool.query(
+      'SELECT author_id FROM marketplace_templates WHERE id = $1',
+      [id]
+    );
+    if (tplRow.rows.length === 0 || tplRow.rows[0].author_id !== userId) {
+      return res.status(404).json({ error: 'Template not found' });
+    }
+
+    let newDefinition: string | null = null;
+    if (typeof definition_board_id === 'string' && isValidUuid(definition_board_id)) {
+      const role = await getBoardRole(userId, definition_board_id);
+      if (!roleAtLeast(role, 'member')) {
+        return res.status(404).json({ error: 'Definition board not found' });
+      }
+      const columns = await pool.query(
+        'SELECT name, stage, color FROM board_columns WHERE board_id = $1 ORDER BY position ASC',
+        [definition_board_id]
+      );
+      const tasks = await pool.query(
+        'SELECT t.title, t.priority, c.name AS column FROM tasks t ' +
+          'JOIN board_columns c ON t.column_id = c.id ' +
+          'WHERE t.board_id = $1 AND t.deleted_at IS NULL LIMIT 15',
+        [definition_board_id]
+      );
+      newDefinition = JSON.stringify({ columns: columns.rows, tasks: tasks.rows });
+    }
+
+    const priceKobo = typeof price_kobo === 'number' ? Math.floor(price_kobo) : null;
+    const rentalDays = typeof rental_days === 'number' ? Math.floor(rental_days) : null;
+    if (priceKobo !== null && priceKobo !== 0 && priceKobo < 10000) {
+      return res.status(400).json({ error: 'Minimum price is ₦100' });
+    }
+
+    await pool.query(
+      `UPDATE marketplace_templates SET
+         name = COALESCE($1, name),
+         description = COALESCE($2, description),
+         price_kobo = COALESCE($3, price_kobo),
+         rental_days = COALESCE($4, rental_days),
+         definition = COALESCE($5, definition),
+         version = version + 1,
+         updated_at = NOW()
+       WHERE id = $6`
+      , [
+        typeof name === 'string' ? name.trim().slice(0, 255) : null,
+        typeof description === 'string' ? description.slice(0, 500) : null,
+        priceKobo,
+        rentalDays,
+        newDefinition,
+        id,
+      ]
+    );
+
+    res.json({ ok: true });
+  } catch (error) {
+    console.error('Error updating template:', error);
+    res.status(500).json({ error: 'Failed to update template' });
+  }
+};
+
+/**
+ * POST /api/templates/marketplace/:id/sync.
+ *
+ * Buyer applies an update to their board. Only allowed if they own a
+ * successful purchase, and the price/rental terms have not gotten worse.
+ * If the terms got worse, returns 402 with a specific error message so
+ * the UI can explain why they must re-buy.
+ */
+export const syncMarketplaceTemplate = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    const { id } = req.params;
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+    if (!isValidUuid(id)) return res.status(400).json({ error: 'Invalid template id' });
+
+    const tplRow = await pool.query(
+      'SELECT * FROM marketplace_templates WHERE id = $1',
+      [id]
+    );
+    if (tplRow.rows.length === 0) return res.status(404).json({ error: 'Template not found' });
+    const tpl = tplRow.rows[0];
+
+    const purchaseRow = await pool.query(
+      `SELECT id, board_id, price_paid_kobo, rental_days_paid, expires_at
+       FROM template_purchases
+       WHERE template_id = $1 AND buyer_id = $2 AND status = 'success'`,
+      [id, userId]
+    );
+    if (purchaseRow.rows.length === 0) {
+      return res.status(402).json({ error: 'You do not own this template' });
+    }
+    const p = purchaseRow.rows[0];
+
+    // Check if terms got worse.
+    if (tpl.price_kobo > p.price_paid_kobo) {
+      return res.status(402).json({ error: 'The publisher increased the price. You must buy it again to update.' });
+    }
+    if (tpl.rental_days !== p.rental_days_paid) {
+      return res.status(402).json({ error: 'The publisher changed the rental terms. You must buy it again to update.' });
+    }
+    if (tpl.rental_days > 0 && p.expires_at && new Date(p.expires_at).getTime() < Date.now()) {
+      return res.status(402).json({ error: 'Your rental has expired. You must rent it again to update.' });
+    }
+
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      // Delete old board
+      if (p.board_id) {
+        await client.query('DELETE FROM boards WHERE id = $1 AND user_id = $2', [p.board_id, userId]);
+      }
+
+      // Create new board
+      const position = await client.query(
+        'SELECT COALESCE(MAX(position), -1) + 1 AS next FROM boards WHERE user_id = $1 AND workspace_id IS NULL',
+        [userId]
+      );
+      const created = await client.query(
+        'INSERT INTO boards (user_id, name, position) VALUES ($1, $2, $3) RETURNING id',
+        [userId, tpl.name + ' (Updated)', position.rows[0].next]
+      );
+      const newBoardId = created.rows[0].id;
+
+      const columnIds = new Map<string, { id: string; stage: string }>();
+      const def = tpl.definition;
+      for (let i = 0; i < def.columns.length; i += 1) {
+        const c = def.columns[i];
+        const inserted = await client.query(
+          'INSERT INTO board_columns (board_id, name, position, color, stage) VALUES ($1, $2, $3, $4, $5) RETURNING id',
+          [newBoardId, c.name, i, c.color, c.stage]
+        );
+        columnIds.set(c.name, { id: inserted.rows[0].id, stage: c.stage });
+      }
+
+      for (const t of def.tasks) {
+        const col = columnIds.get(t.column);
+        if (!col) continue;
+        await client.query(
+          'INSERT INTO tasks (user_id, title, priority, status, board_id, column_id) VALUES ($1, $2, $3, $4, $5, $6)',
+          [userId, t.title, t.priority, col.stage, newBoardId, col.id]
+        );
+      }
+
+      // Update purchase
+      await client.query(
+        'UPDATE template_purchases SET board_id = $1, version_bought = $2 WHERE id = $3',
+        [newBoardId, tpl.version, p.id]
+      );
+
+      await client.query('COMMIT');
+      res.json({ ok: true, board_id: newBoardId });
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    console.error('Error syncing template:', error);
+    res.status(500).json({ error: 'Failed to sync template' });
   }
 };
