@@ -27,6 +27,7 @@ import licenseRoutes from './routes/license';
 import publisherRoutes from './routes/publisher';
 import githubRoutes from './routes/github';
 import slackRoutes, { slackCommandsRouter } from './routes/slack';
+import webhookRoutes from './routes/webhooks';
 
 
 import pushRoutes from './routes/push';
@@ -169,6 +170,7 @@ app.use('/api/onboarding', onboardingRoutes);
 app.use('/api/templates', templateRoutes);
 app.use('/api/tokens', apiTokensRoutes);
 app.use('/api/v1', apiV1Routes);
+app.use('/api/webhooks', webhookRoutes);
 app.use('/api/reminders', reminderRoutes);
 app.use('/api/users/me/notifications', notificationRoutes);
 app.use('/api/billing', billingRoutes);
