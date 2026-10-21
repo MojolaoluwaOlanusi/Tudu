@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useBoards } from '../../hooks/useBoards';
-import { useUpdateMarketplaceTemplate } from '../../hooks/useTemplates';
+import { useUpdateMarketplaceTemplate, useDeleteMarketplaceTemplate } from '../../hooks/useTemplates';
 import { useUiStore } from '../../store/uiStore';
 import type { MarketplaceTemplate } from '../../services/templateService';
 
@@ -12,6 +12,7 @@ interface EditTemplateModalProps {
 const EditTemplateModal: React.FC<EditTemplateModalProps> = ({ template, onClose }) => {
   const { data: boards = [] } = useBoards();
   const update = useUpdateMarketplaceTemplate();
+  const del = useDeleteMarketplaceTemplate();
   const pushToast = useUiStore((s) => s.pushToast);
 
   const [name, setName] = useState(template.name);
@@ -37,10 +38,28 @@ const EditTemplateModal: React.FC<EditTemplateModalProps> = ({ template, onClose
     );
   };
 
+  const handleDelete = () => {
+    if (!window.confirm(`Permanently delete "${template.name}" from the marketplace? Anyone who already bought it will keep their copy.`)) return;
+    del.mutate(template.id, {
+      onSuccess: () => {
+        pushToast('Template deleted', 'success');
+        onClose();
+      },
+      onError: () => pushToast('Could not delete template', 'error'),
+    });
+  };
+
+  const busy = update.isPending || del.isPending;
+
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4" onClick={onClose} role="presentation">
       <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl border border-hairline bg-surface p-5 shadow-xl" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
-        <h2 className="mb-4 font-handwritten text-2xl text-ink">Edit Template</h2>
+        <div className="flex items-start justify-between">
+          <h2 className="mb-4 font-handwritten text-2xl text-ink">Edit Template</h2>
+          <button type="button" onClick={handleDelete} disabled={busy} className="text-xs font-semibold text-red-500 hover:text-red-600 disabled:opacity-50">
+            Delete Template
+          </button>
+        </div>
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
             <label className="mb-1 block text-xs font-medium text-ink-muted">Name</label>
@@ -69,8 +88,8 @@ const EditTemplateModal: React.FC<EditTemplateModalProps> = ({ template, onClose
             <p className="mt-1 text-[11px] text-ink-muted">If you select a board, its columns and tasks will replace the template's contents.</p>
           </div>
           <div className="flex justify-end gap-2 pt-2">
-            <button type="button" onClick={onClose} className="btn-ghost">Cancel</button>
-            <button type="submit" disabled={update.isPending} className="btn-accent">Save Changes</button>
+            <button type="button" onClick={onClose} disabled={busy} className="btn-ghost">Cancel</button>
+            <button type="submit" disabled={busy} className="btn-accent">Save Changes</button>
           </div>
         </form>
       </div>
