@@ -14,6 +14,7 @@ import { Task } from '../../types/task';
 import { useKanbanTasks, useMoveTasks } from '../../hooks/useKanban';
 import { useActiveBoardId, useBoardColumns } from '../../hooks/useBoards';
 import { useUiStore } from '../../store/uiStore';
+import { isNetworkError, shouldShowQueuedToast } from '../../lib/offlineQueue';
 import KanbanColumn from './KanbanColumn';
 import ColumnManager from './ColumnManager';
 import { KanbanCardBody } from './KanbanCard';
@@ -135,7 +136,17 @@ const KanbanBoard: React.FC = () => {
     if (updates.length === 0) return;
 
     moveTasks(updates, {
-      onError: () => pushToast('Could not move the task. It was put back.', 'error'),
+      onError: (err) => {
+        // Network errors are queued by the mutation; suppress the
+        // "put back" toast and reassure instead.
+        if (isNetworkError(err)) {
+          if (shouldShowQueuedToast()) {
+            pushToast('Saved offline — will sync when you reconnect', 'info');
+          }
+          return;
+        }
+        pushToast('Could not move the task. It was put back.', 'error');
+      },
       // Only celebrate once the server has actually accepted the move.
       onSuccess: () => {
         if (targetColumn.stage === 'done') burst();
