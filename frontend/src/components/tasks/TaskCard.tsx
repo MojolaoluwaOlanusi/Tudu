@@ -4,6 +4,8 @@ import { format } from 'date-fns';
 import SubtaskList from './SubtaskList';
 import TaskActivity from '../activity/TaskActivity';
 import StartPomodoroButton from '../pomodoro/StartPomodoroButton';
+import StartTimerButton from '../time/StartTimerButton';
+import { useFeatureFlag } from '../../hooks/useFeatureFlag';
 import PomodoroTimer from '../pomodoro/PomodoroTimer';
 import CheckPop from '../common/CheckPop';
 import { usePomodoroStore } from '../../store/pomodoroStore';
@@ -40,6 +42,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onEdit, onDelete, onStatusCha
   const [showActivity, setShowActivity] = useState(false);
   const activeTaskId = usePomodoroStore((state) => state.taskId);
   const sessionActive = usePomodoroStore((state) => state.sessionId !== null);
+  const hasTimeTracking = useFeatureFlag('time.tracking');
 
   const subtaskTotal = task.subtask_count ?? 0;
   const subtaskDone = task.subtasks_completed ?? 0;
@@ -197,6 +200,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onEdit, onDelete, onStatusCha
       {!readOnlySubtasks && (
         <div className="mb-3 flex flex-wrap items-center gap-2">
           <StartPomodoroButton taskId={task.id} />
+          {hasTimeTracking && <StartTimerButton taskId={task.id} taskTitle={task.title} />}
           {sessionActive && activeTaskId === task.id && <PomodoroTimer />}
         </div>
       )}

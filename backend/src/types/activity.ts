@@ -11,7 +11,9 @@ export type ActivityAction =
   | 'list_shared'
   | 'share_accepted'
   | 'share_declined'
-  | 'pomodoro_completed';
+  | 'pomodoro_completed'
+  | 'timer_started'
+  | 'timer_stopped';
 
 export interface ActivityDetails {
   title?: string;
@@ -24,6 +26,10 @@ export interface ActivityDetails {
   subtaskTitle?: string;
   /** Length of a completed focus session, in minutes. */
   duration?: number;
+  /** The time_entries row this action refers to. */
+  entryId?: string;
+  /** Title of the task the timer was started/stopped against. */
+  taskTitle?: string | null;
 }
 
 export interface Activity {

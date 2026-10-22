@@ -10,7 +10,8 @@ import Wordmark from '../common/Wordmark';
 import SyncIndicator from '../common/SyncIndicator';
 import TourButton from '../onboarding/TourButton';
 import { NavLink as RouterNavLink } from 'react-router-dom';
-
+import Timer from '../time/Timer';
+import { useFeatureFlag } from '../../hooks/useFeatureFlag';
 import PomodoroTimerHeader from '../pomodoro/PomodoroTimerHeader';
 
 const navClass = ({ isActive }: { isActive: boolean }) =>
@@ -28,6 +29,7 @@ const Header: React.FC = () => {
   const initial = user?.name?.trim()?.charAt(0)?.toUpperCase() || '?';
   const { data: entitlements } = useEntitlements();
   const isFree = !entitlements || entitlements.tier === 'free';
+  const hasTimeTracking = useFeatureFlag('time.tracking');
 
   const Avatar = ({ size }: { size: string }) =>
     user?.avatar_url ? (
@@ -70,6 +72,7 @@ const Header: React.FC = () => {
         <div className="flex min-w-0 max-w-full flex-wrap items-center justify-end gap-2 sm:flex-nowrap sm:gap-3">
           {user && <SyncIndicator />}
           {user && <PomodoroTimerHeader />}
+          {hasTimeTracking && <Timer />}
           <ThemeToggle />
 
           {user && (
