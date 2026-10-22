@@ -59,6 +59,11 @@ const tx = async (
 
 export const enqueue = async (op: QueuedOperation): Promise<void> => {
   await tx(STORE, 'readwrite', (store) => store.put(op));
+  // Notify listeners (the OfflineIndicator pill) so it refreshes
+  // the count immediately rather than waiting for a poll.
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('tudu-offline-enqueued'));
+  }
 };
 
 export const listQueue = async (): Promise<QueuedOperation[]> => {
