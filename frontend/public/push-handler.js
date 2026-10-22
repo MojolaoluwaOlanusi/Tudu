@@ -43,3 +43,12 @@ self.addEventListener('notificationclick', (event) => {
       })
   );
 });
+
+self.addEventListener('sync', (event) => {
+  if (event.tag !== 'tudu-sync') return;
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+      clients.forEach((client) => client.postMessage('tudu-sync'));
+    })
+  );
+});

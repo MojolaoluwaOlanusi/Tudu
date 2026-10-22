@@ -36,6 +36,7 @@ import CommandPalette from './components/common/CommandPalette';
 import InstallPrompt from './components/common/InstallPrompt';
 import OfflineIndicator from './components/common/OfflineIndicator';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
+import { useOfflineSync } from './hooks/useOfflineSync';
 import UndoToast from './components/common/UndoToast';
 import OnboardingRoot from './components/onboarding/OnboardingRoot';
 import { ConfettiProvider } from './components/common/ConfettiProvider';
@@ -45,6 +46,11 @@ import { ConfettiProvider } from './components/common/ConfettiProvider';
     works; called once, so every keypress is handled exactly once. */
 const ShortcutBridge = () => {
   useKeyboardShortcuts();
+  return null;
+};
+
+const OfflineBridge = () => {
+  useOfflineSync();
   return null;
 };
 
@@ -214,6 +220,7 @@ function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
         <CollaborationBridge />
+        <OfflineBridge />
         <ShortcutBridge />
         <OfflineIndicator />
         <InstallPrompt />
