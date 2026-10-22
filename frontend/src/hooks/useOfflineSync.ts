@@ -8,24 +8,10 @@ import {
   removeFromQueue,
   queueCount,
   conflictCount,
-  enqueueConflict,
   isNetworkError,
   type QueuedOperation,
 } from '../lib/offlineQueue';
-import { loadTaskCache, saveTaskCache } from '../lib/taskCacheStorage';
-
-const isStale = (
-  baseline: Record<string, unknown>,
-  current: Record<string, unknown>,
-): string[] => {
-  const changed: string[] = [];
-  for (const field of Object.keys(baseline)) {
-    if (JSON.stringify(baseline[field]) !== JSON.stringify(current[field])) {
-      changed.push(field);
-    }
-  }
-  return changed;
-};
+import { snapshotQuery } from '../lib/offlineCache';
 
 const execute = async (op: QueuedOperation, token: string): Promise<void> => {
   switch (op.type) {
@@ -50,41 +36,12 @@ const execute = async (op: QueuedOperation, token: string): Promise<void> => {
   }
 };
 
-/**
- * Detect a conflict before executing an update: fetch the current task,
- * compare the queued baseline fields with the server's current values.
- * Returns null when safe to apply, or a QueuedConflict if not.
- */
-const detectConflict = async (
-  op: Extract<QueuedOperation, { type: 'update' }>,
-  token: string,
-) => {
-  let current: Record<string, unknown>;
-  try {
-    current = (await taskService.getTaskById(token, op.payload.id)) as unknown as Record<
-      string,
-      unknown
-    >;
-  } catch {
-    // Task itself is gone — surface as a conflict, not a silent drop.
-    return {
-      ...op,
-      currentState: {},
-      conflictFields: Object.keys(op.payload.task),
-      conflictReason: 'Task no longer exists on the server',
-    };
-  }
-
-  const conflicts = isStale(op.baseline, current);
-  if (conflicts.length === 0) return null;
-
-  return {
-    ...op,
-    currentState: current,
-    conflictFields: conflicts,
-    conflictReason: 'Fields changed on the server',
-  };
-};
+export interface SyncProgress {
+  /** Number of queued ops processed so far. */
+  done: number;
+  /** Total queued at the start of this flush. 0 when idle. */
+  total: number;
+}
 
 export const useOfflineSync = () => {
   const token = useAuthStore((s) => s.token);
@@ -92,6 +49,7 @@ export const useOfflineSync = () => {
   const pushToast = useUiStore((s) => s.pushToast);
   const [pending, setPending] = useState(0);
   const [conflictTotal, setConflictTotal] = useState(0);
+  const [progress, setProgress] = useState<SyncProgress>({ done: 0, total: 0 });
   const flushing = useRef(false);
 
   const refreshCounts = useCallback(async () => {
@@ -108,15 +66,14 @@ export const useOfflineSync = () => {
     flushing.current = true;
     try {
       const queue = await listQueue();
+      if (queue.length === 0) {
+        setProgress({ done: 0, total: 0 });
+        await refreshCounts();
+        return;
+      }
+      setProgress({ done: 0, total: queue.length });
+      let done = 0;
       for (const op of queue) {
-        if (op.type === 'update') {
-          const conflict = await detectConflict(op, token);
-          if (conflict) {
-            await enqueueConflict(conflict);
-            await removeFromQueue(op.id);
-            continue;
-          }
-        }
         try {
           await execute(op, token);
           await removeFromQueue(op.id);
@@ -126,36 +83,29 @@ export const useOfflineSync = () => {
           const detail = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
           pushToast('Could not sync offline change: ' + (detail || 'unknown error'), 'error');
         }
+        done += 1;
+        setProgress({ done, total: queue.length });
       }
       await refreshCounts();
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
     } finally {
       flushing.current = false;
+      // Clear progress after a short delay so the circle is readable.
+      window.setTimeout(() => setProgress({ done: 0, total: 0 }), 1200);
     }
   }, [token, queryClient, pushToast, refreshCounts]);
 
-  // Hydrate React Query from the localStorage task snapshot when offline.
-  useEffect(() => {
-    if (typeof navigator === 'undefined') return;
-    if (navigator.onLine) return;
-    const cached = loadTaskCache();
-    if (!cached) return;
-    queryClient.setQueryData(['tasks', 'list', {}], cached);
-    queryClient.setQueryData(['tasks', 'kanban'], cached);
-  }, [queryClient]);
-
-  // Save the task list to localStorage whenever the main query succeeds.
+  // Snapshot every successful query to localStorage. This is the load-
+  // bearing piece for offline: no matter which page the user is on, the
+  // data they have already seen is written to disk.
   useEffect(() => {
     const unsub = queryClient.getQueryCache().subscribe((event) => {
       if (event.type !== 'updated') return;
-      const key = event.query.queryKey;
-      if (!Array.isArray(key) || key[0] !== 'tasks') return;
-      if (key[1] !== 'kanban' && key[1] !== 'list') return;
-      const data = event.query.state.data;
-      if (Array.isArray(data)) saveTaskCache(data as never);
+      if (event.query.state.status !== 'success') return;
+      snapshotQuery(event.query.queryKey, event.query.state.data, token);
     });
     return () => unsub();
-  }, [queryClient]);
+  }, [queryClient, token]);
 
   useEffect(() => {
     void refreshCounts();
@@ -172,5 +122,5 @@ export const useOfflineSync = () => {
     };
   }, [flush, refreshCounts]);
 
-  return { pending, conflictTotal, flush, refreshCounts };
+  return { pending, conflictTotal, progress, flush, refreshCounts };
 };
