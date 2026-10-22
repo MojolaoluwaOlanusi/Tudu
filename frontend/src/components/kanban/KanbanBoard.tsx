@@ -156,7 +156,7 @@ const KanbanBoard: React.FC = () => {
     );
   }
 
-  if (isError) {
+  if (isError && (!tasks || tasks.length === 0)) {
     return (
       <div className="card p-10 text-center">
         <p className="text-red-500">{(error as Error)?.message || 'Could not load the board.'}</p>

@@ -39,7 +39,8 @@ import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useOfflineSync } from './hooks/useOfflineSync';
 import UndoToast from './components/common/UndoToast';
 import OnboardingRoot from './components/onboarding/OnboardingRoot';
-import { ConfettiProvider } from './components/common/ConfettiProvider';
+import { ConfettiProvider } from './components/common/ConfettiProvider'
+import ErrorBoundary from './components/common/ErrorBoundary';
 
 /** Opens the real-time socket once we know who is signed in. */
 /** Mounts the global keyboard listener. Inside Router, so useNavigate
@@ -139,6 +140,7 @@ const Analytics = () => (
 
 function App() {
   return (
+    <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
       <ConfettiProvider>
         <Router>
@@ -235,6 +237,7 @@ function App() {
         </Router>
       </ConfettiProvider>
     </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
 

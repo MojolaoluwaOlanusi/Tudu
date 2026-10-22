@@ -266,7 +266,10 @@ const TaskList: React.FC = () => {
     );
   }
 
-  if (isError) {
+  // Only show the error screen when we have nothing to show. When the
+  // user is offline but React Query still holds a cached list, render
+  // it and let the OfflineIndicator explain the situation.
+  if (isError && (!tasks || tasks.length === 0)) {
     return (
       <div className="card p-10 text-center">
         <p className="text-red-500">
