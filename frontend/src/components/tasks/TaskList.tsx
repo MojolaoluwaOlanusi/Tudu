@@ -221,6 +221,15 @@ const TaskList: React.FC = () => {
       }
       closeTaskForm();
     } catch (err) {
+      // Network errors are queued by the mutation. Close the form so
+      // the user sees the created task, and show the one-time toast.
+      if (isNetworkError(err)) {
+        if (shouldShowQueuedToast()) {
+          pushToast('Saved offline — will sync when you reconnect', 'info');
+        }
+        closeTaskForm();
+        return;
+      }
       notify(err, 'Could not save the task');
     }
   };

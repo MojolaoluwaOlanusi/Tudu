@@ -111,6 +111,15 @@ export const useOfflineSync = () => {
     void refreshCounts();
     const onOnline = () => void flush();
     window.addEventListener('online', onOnline);
+
+    // Refresh the pill the moment something is enqueued, so the
+    // count reflects offline actions immediately.
+    const onEnqueued = () => void refreshCounts();
+    window.addEventListener('tudu-offline-enqueued', onEnqueued);
+
+    // Belt-and-braces: poll every 3s in case an event is missed.
+    const poll = window.setInterval(() => void refreshCounts(), 3000);
+
     const onMessage = (event: MessageEvent) => {
       if (event.data === 'tudu-sync') void flush();
     };
@@ -118,6 +127,8 @@ export const useOfflineSync = () => {
     sw?.addEventListener('message', onMessage);
     return () => {
       window.removeEventListener('online', onOnline);
+      window.removeEventListener('tudu-offline-enqueued', onEnqueued);
+      window.clearInterval(poll);
       sw?.removeEventListener('message', onMessage);
     };
   }, [flush, refreshCounts]);
