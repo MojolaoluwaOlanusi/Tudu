@@ -4,6 +4,7 @@ import { useCreateTask, useUpdateTask } from '../../hooks/useTasks';
 import { useKanbanTasks } from '../../hooks/useKanban';
 import { useActiveBoardId } from '../../hooks/useBoards';
 import { useUiStore } from '../../store/uiStore';
+import { isNetworkError, shouldShowQueuedToast } from '../../lib/offlineQueue';
 import type { CreateTaskInput } from '../../types/task';
 
 /**
@@ -41,6 +42,13 @@ const BoardTaskForm: React.FC = () => {
       }
       closeTaskForm();
     } catch (err) {
+      if (isNetworkError(err)) {
+        if (shouldShowQueuedToast()) {
+          pushToast('Saved offline — will sync when you reconnect', 'info');
+        }
+        closeTaskForm();
+        return;
+      }
       const detail = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
       pushToast(detail || 'Could not save the task', 'error');
     }

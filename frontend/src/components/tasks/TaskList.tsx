@@ -10,6 +10,7 @@ import {
 } from '../../hooks/useTasks';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import { useUiStore } from '../../store/uiStore';
+import { isNetworkError, shouldShowQueuedToast } from '../../lib/offlineQueue';
 import { useUndoStore } from '../../store/undoStore';
 import {
   useFilterStore,
@@ -195,6 +196,14 @@ const TaskList: React.FC = () => {
   );
 
   const notify = (err: unknown, fallback: string) => {
+    // Network errors are queued by the mutation; suppress the scary
+    // "failed" toast and offer a one-time reassurance instead.
+    if (isNetworkError(err)) {
+      if (shouldShowQueuedToast()) {
+        pushToast('Saved offline — will sync when you reconnect', 'info');
+      }
+      return;
+    }
     const detail =
       (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
     pushToast(detail || fallback, 'error');

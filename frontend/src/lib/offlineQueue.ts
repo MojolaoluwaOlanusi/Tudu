@@ -127,3 +127,13 @@ export const isNetworkError = (error: unknown): boolean => {
   if (e?.code === 'ERR_NETWORK' || e?.code === 'ECONNABORTED') return true;
   return typeof e?.message === 'string' && /network|failed to fetch|timeout/i.test(e.message);
 };
+
+// Module-level flag so the "Saved offline" info toast fires only
+// once per session, not once per queued operation.
+let shownQueuedToast = false;
+
+export const shouldShowQueuedToast = (): boolean => {
+  if (shownQueuedToast) return false;
+  shownQueuedToast = true;
+  return true;
+};
