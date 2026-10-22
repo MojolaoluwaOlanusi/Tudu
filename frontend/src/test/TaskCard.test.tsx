@@ -19,6 +19,13 @@ vi.mock('../hooks/useActivity', () => ({
   useTaskActivity: () => ({ data: [] }),
 }));
 
+// TaskCard uses useFeatureFlag to decide whether to render the time-
+// tracking button. Stub it to false so the existing assertions (which
+// predate time tracking) still hold.
+vi.mock('../hooks/useFeatureFlag', () => ({
+  useFeatureFlag: () => false,
+}));
+
 const makeTask = (over: Partial<Task> = {}): Task =>
   ({
     id: 'task-1',

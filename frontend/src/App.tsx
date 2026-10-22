@@ -29,6 +29,9 @@ import SharedWithMeSection from './components/sharing/SharedWithMeSection';
 import RecentActivity from './components/activity/RecentActivity';
 import SharedListView from './components/sharing/SharedListView';
 import PomodoroStats from './components/pomodoro/PomodoroStats';
+import WeeklyReport from './components/time/WeeklyReport';
+import TimeLog from './components/time/TimeLog';
+import FeatureGate from './components/common/FeatureGate';
 import PomodoroRunner from './components/pomodoro/PomodoroRunner';
 import ToastContainer from './components/common/ToastContainer';
 import ShortcutHelp from './components/common/ShortcutHelp';
@@ -117,6 +120,16 @@ const Stats = () => (
     <div data-tour="stats">
       <h1 className="mb-4 font-handwritten text-3xl text-ink">Focus stats</h1>
       <PomodoroStats />
+      <FeatureGate
+        feature="time.tracking"
+        title="Time tracking"
+        description="Log work hours, track billable time, and see a weekly report."
+      >
+        <div className="mt-6 space-y-5">
+          <WeeklyReport />
+          <TimeLog />
+        </div>
+      </FeatureGate>
     </div>
   </Shell>
 );

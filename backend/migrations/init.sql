@@ -722,3 +722,31 @@ CREATE INDEX IF NOT EXISTS idx_webhook_deliveries_pending
   WHERE status IN ('pending', 'failed');
 CREATE INDEX IF NOT EXISTS idx_webhook_deliveries_endpoint
   ON webhook_deliveries(endpoint_id, created_at DESC);
+
+
+-- =====================================================================
+-- Phase 5.12 - time tracking.
+--
+-- One row per worked interval. A running timer has ended_at = NULL.
+-- A partial unique index enforces one running timer per user at the
+-- DB level, so a race between two tabs cannot create two.
+--
+-- task_id is ON DELETE SET NULL: deleting a task must not destroy time
+-- that was already worked against it. The row survives, but the title
+-- becomes null in the UI.
+-- =====================================================================
+CREATE TABLE IF NOT EXISTS time_entries (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  task_id UUID REFERENCES tasks(id) ON DELETE SET NULL,
+  description TEXT,
+  billable BOOLEAN NOT NULL DEFAULT FALSE,
+  started_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  ended_at TIMESTAMP,
+  duration_seconds INTEGER,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_time_entries_user_started ON time_entries(user_id, started_at DESC);
+CREATE INDEX IF NOT EXISTS idx_time_entries_task ON time_entries(task_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_time_entries_one_active ON time_entries(user_id) WHERE ended_at IS NULL;
