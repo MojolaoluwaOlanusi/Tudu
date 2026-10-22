@@ -9,6 +9,7 @@ import {
   type TaskCacheSnapshot,
   type TaskMovePatch,
 } from '../lib/taskCache';
+import { enqueue, isNetworkError } from '../lib/offlineQueue';
 import { Task, StatusChange } from '../types/task';
 
 /** All tasks for the board (no filters) in one cache entry. */
@@ -73,7 +74,16 @@ export const useMoveTasks = () => {
       return { snapshot };
     },
 
-    onError: (_error, _changes, context) => {
+    onError: (_error, changes, context) => {
+      if (isNetworkError(_error)) {
+        void enqueue({
+          id: crypto.randomUUID(),
+          type: 'move',
+          payload: changes,
+          createdAt: Date.now(),
+        });
+        return;
+      }
       if (context?.snapshot) restoreTaskCaches(queryClient, context.snapshot);
     },
 

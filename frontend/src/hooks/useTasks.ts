@@ -8,6 +8,8 @@ import { taskService } from '../services/taskService';
 import { useAuthStore } from '../store/authStore';
 import { queryKeys } from '../lib/queryClient';
 import { isOverdueTask, matchesFilters, sortByCreatedAtDesc } from '../lib/taskCache';
+import { enqueue, isNetworkError } from '../lib/offlineQueue';
+import { saveTaskCache } from '../lib/taskCacheStorage';
 import { Task, CreateTaskInput, UpdateTaskInput, TaskFilters } from '../types/task';
 
 const TASKS_KEY = queryKeys.tasks.all;
@@ -37,7 +39,11 @@ export const useTasks = (filters?: TaskFilters) => {
 
   return useQuery({
     queryKey: queryKeys.tasks.list(filters),
-    queryFn: () => taskService.getTasks(token!, filters!),
+    queryFn: async () => {
+      const list = await taskService.getTasks(token!, filters!);
+      saveTaskCache(list as never);
+      return list;
+    },
     enabled: !!token,
   });
 };
@@ -103,7 +109,17 @@ export const useCreateTask = () => {
         tasks.filter((task) => task.id !== context.optimisticId)
       );
     },
-    onError: (_error, _variables, context) => {
+    onError: (error, variables, context) => {
+      if (isNetworkError(error)) {
+        void enqueue({
+          id: crypto.randomUUID(),
+          type: 'create',
+          payload: variables,
+          tempId: context?.optimisticId,
+          createdAt: Date.now(),
+        });
+        return;
+      }
       context?.previousTasks?.forEach(([key, data]) => queryClient.setQueryData(key, data));
       queryClient.setQueryData(OVERDUE_KEY, context?.previousOverdue);
     },
@@ -159,9 +175,40 @@ export const useUpdateTask = () => {
         queryClient.setQueryData<Task>(queryKeys.tasks.detail(id), applyUpdate(previousSingle));
       }
 
-      return { previousTasks, previousOverdue, previousSingle };
+      // Snapshot only the pre-edit values of the fields being changed.
+      // The conflict detector compares this to the server's current
+      // values on flush; if they differ, the op is moved to the
+      // conflicts store instead of silently overwriting.
+      const findExisting = (): Task | null => {
+        if (previousSingle) return previousSingle;
+        for (const [, data] of previousTasks) {
+          const found = (data as Task[] | undefined)?.find((t) => t.id === id);
+          if (found) return found;
+        }
+        return null;
+      };
+      const baseline: Record<string, unknown> = {};
+      const existing = findExisting();
+      if (existing) {
+        const existingRecord = existing as unknown as Record<string, unknown>;
+        for (const field of Object.keys(updates)) {
+          baseline[field] = existingRecord[field];
+        }
+      }
+
+      return { previousTasks, previousOverdue, previousSingle, baseline };
     },
     onError: (_error, variables, context) => {
+      if (isNetworkError(_error)) {
+        void enqueue({
+          id: crypto.randomUUID(),
+          type: 'update',
+          payload: { id: variables.id, task: variables.task as unknown as Record<string, unknown> },
+          baseline: context?.baseline ?? {},
+          createdAt: Date.now(),
+        });
+        return;
+      }
       context?.previousTasks?.forEach(([key, data]) => queryClient.setQueryData(key, data));
       queryClient.setQueryData(OVERDUE_KEY, context?.previousOverdue);
       if (context?.previousSingle) {
@@ -183,6 +230,17 @@ export const useBatchDeleteTasks = () => {
   const queryClient = useQueryClient();
   return useMutation<{ deleted: number; ids: string[] }, unknown, string[]>({
     mutationFn: (ids) => taskService.batchDelete(token!, ids),
+    onError: (error, ids) => {
+      if (isNetworkError(error)) {
+        void enqueue({
+          id: crypto.randomUUID(),
+          type: 'batchDelete',
+          payload: ids,
+          createdAt: Date.now(),
+        });
+        return;
+      }
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all });
     },
@@ -198,6 +256,17 @@ export const useBatchAssignTasks = () => {
     { ids: string[]; assigneeId: string | null }
   >({
     mutationFn: ({ ids, assigneeId }) => taskService.batchAssign(token!, ids, assigneeId),
+    onError: (error, variables) => {
+      if (isNetworkError(error)) {
+        void enqueue({
+          id: crypto.randomUUID(),
+          type: 'batchAssign',
+          payload: variables,
+          createdAt: Date.now(),
+        });
+        return;
+      }
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all });
     },
@@ -224,7 +293,16 @@ export const useDeleteTask = () => {
 
       return { previousTasks, previousOverdue };
     },
-    onError: (_error, _variables, context) => {
+    onError: (error, variables, context) => {
+      if (isNetworkError(error)) {
+        void enqueue({
+          id: crypto.randomUUID(),
+          type: 'delete',
+          payload: variables,
+          createdAt: Date.now(),
+        });
+        return;
+      }
       context?.previousTasks?.forEach(([key, data]) => queryClient.setQueryData(key, data));
       queryClient.setQueryData(OVERDUE_KEY, context?.previousOverdue);
     },
