@@ -382,3 +382,211 @@ export const getTimeSpent = async (
     })),
   };
 };
+
+
+/* ------------------------------------------------------------------ */
+/* Feature 5.11 - team analytics                                       */
+/* ------------------------------------------------------------------ */
+
+export interface TeamBoardRow {
+  id: string;
+  name: string;
+  total: number;
+  done: number;
+}
+
+export interface TeamOverview {
+  tasks: { total: number; todo: number; doing: number; done: number; overdue: number };
+  completionRate: number;
+  boards: TeamBoardRow[];
+}
+
+export type TeamRole = 'admin' | 'member' | 'viewer';
+
+export interface TeamMemberRow {
+  userId: string;
+  name: string | null;
+  email: string;
+  avatarUrl: string | null;
+  role: TeamRole;
+  completed: number;
+  inProgress: number;
+  assigned: number;
+}
+
+export interface BurndownPoint {
+  date: string;
+  remaining: number;
+  completed: number;
+}
+
+export interface TeamAnalyticsResult {
+  overview: TeamOverview;
+  byMember: TeamMemberRow[];
+  burndown: BurndownPoint[];
+}
+
+/**
+ * All the numbers behind the team view, in one call. Filtered by the
+ * workspace's boards; soft-deleted tasks are excluded throughout.
+ *
+ * The burndown is computed as (tasks created up to and including day D)
+ * minus (tasks completed up to and including day D), so it always starts
+ * from the workspace's pre-window state rather than assuming 0. Daily
+ * rows are assembled in JS rather than in SQL to avoid a Postgres
+ * generate_series join that gets fiddly with timezone shifts.
+ */
+export const getTeamAnalytics = async (
+  workspaceId: string,
+  timezoneOffset: number,
+  spec: RangeSpec,
+): Promise<TeamAnalyticsResult> => {
+  const shift = utcToLocalShift(timezoneOffset);
+  const dueShift = localToUtcShift(timezoneOffset);
+
+  const localNow = new Date(Date.now() - timezoneOffset * 60_000);
+  const endDate = new Date(localNow.getTime());
+  const startDate = new Date(localNow.getTime());
+  startDate.setUTCDate(startDate.getUTCDate() - (spec.periodDays - 1));
+  const startKey = startDate.toISOString().slice(0, 10);
+  const endKey = endDate.toISOString().slice(0, 10);
+
+  const workspaceFilter =
+    "t.board_id IN (SELECT id FROM boards WHERE workspace_id = $1)";
+
+  const [overviewRow, boards, members, completedByMember, createdDaily, completedDaily, baseline] =
+    await Promise.all([
+      pool.query(
+        `SELECT
+           COUNT(*)::int AS total,
+           COUNT(*) FILTER (WHERE t.status = 'todo')::int  AS todo,
+           COUNT(*) FILTER (WHERE t.status = 'doing')::int AS doing,
+           COUNT(*) FILTER (WHERE t.status = 'done')::int  AS done,
+           COUNT(*) FILTER (
+             WHERE t.due_date IS NOT NULL
+               AND (t.due_date + $2::interval) < NOW()
+               AND t.status <> 'done'
+           )::int AS overdue
+         FROM tasks t
+         WHERE ${workspaceFilter} AND t.deleted_at IS NULL`,
+        [workspaceId, dueShift],
+      ),
+      pool.query(
+        `SELECT b.id, b.name,
+           COUNT(t.id)::int AS total,
+           COUNT(t.id) FILTER (WHERE t.status = 'done')::int AS done
+         FROM boards b
+         LEFT JOIN tasks t ON t.board_id = b.id AND t.deleted_at IS NULL
+         WHERE b.workspace_id = $1
+         GROUP BY b.id, b.name
+         ORDER BY b.name ASC`,
+        [workspaceId],
+      ),
+      pool.query(
+        `SELECT u.id AS user_id, u.name, u.email, u.avatar_url, wm.role
+         FROM workspace_members wm
+         JOIN users u ON u.id = wm.user_id
+         WHERE wm.workspace_id = $1 AND wm.status = 'accepted'
+         ORDER BY u.name ASC NULLS LAST, u.email ASC`,
+        [workspaceId],
+      ),
+      pool.query(
+        `SELECT a.user_id, COUNT(*)::int AS completed
+         FROM activity_log a
+         JOIN tasks t ON t.id = a.task_id
+         WHERE a.action = 'task_completed'
+           AND ${workspaceFilter}
+           AND (a.created_at + $2::interval)::date >= $3::date
+         GROUP BY a.user_id`,
+        [workspaceId, shift, startKey],
+      ),
+      pool.query(
+        `SELECT (t.created_at + $2::interval)::date::text AS day,
+                COUNT(*)::int AS n
+         FROM tasks t
+         WHERE ${workspaceFilter}
+           AND t.deleted_at IS NULL
+           AND (t.created_at + $2::interval)::date BETWEEN $3::date AND $4::date
+         GROUP BY 1`,
+        [workspaceId, shift, startKey, endKey],
+      ),
+      pool.query(
+        `SELECT (a.created_at + $2::interval)::date::text AS day,
+                COUNT(*)::int AS n
+         FROM activity_log a
+         JOIN tasks t ON t.id = a.task_id
+         WHERE a.action = 'task_completed'
+           AND ${workspaceFilter}
+           AND (a.created_at + $2::interval)::date BETWEEN $3::date AND $4::date
+         GROUP BY 1`,
+        [workspaceId, shift, startKey, endKey],
+      ),
+      pool.query(
+        `SELECT
+           (SELECT COUNT(*)::int FROM tasks t
+             WHERE ${workspaceFilter} AND t.deleted_at IS NULL
+               AND (t.created_at + $2::interval)::date < $3::date) AS created_before,
+           (SELECT COUNT(*)::int FROM activity_log a
+             JOIN tasks t ON t.id = a.task_id
+             WHERE a.action = 'task_completed'
+               AND ${workspaceFilter}
+               AND (a.created_at + $2::interval)::date < $3::date) AS completed_before`,
+        [workspaceId, shift, startKey],
+      ),
+    ]);
+
+  const ov = overviewRow.rows[0];
+  const total = ov.total;
+
+  const completedMap = new Map<string, number>();
+  for (const row of completedByMember.rows) {
+    completedMap.set(row.user_id, row.completed);
+  }
+
+  const createdByDay = new Map<string, number>();
+  for (const row of createdDaily.rows) createdByDay.set(row.day, row.n);
+  const completedByDay = new Map<string, number>();
+  for (const row of completedDaily.rows) completedByDay.set(row.day, row.n);
+
+  let createdCum = baseline.rows[0].created_before;
+  let completedCum = baseline.rows[0].completed_before;
+
+  const burndown: BurndownPoint[] = [];
+  const cursor = new Date(startDate.getTime());
+  while (cursor.toISOString().slice(0, 10) <= endKey) {
+    const key = cursor.toISOString().slice(0, 10);
+    createdCum += createdByDay.get(key) ?? 0;
+    completedCum += completedByDay.get(key) ?? 0;
+    burndown.push({
+      date: key,
+      remaining: Math.max(0, createdCum - completedCum),
+      completed: completedByDay.get(key) ?? 0,
+    });
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
+  }
+
+  return {
+    overview: {
+      tasks: {
+        total,
+        todo: ov.todo,
+        doing: ov.doing,
+        done: ov.done,
+        overdue: ov.overdue,
+      },
+      completionRate: total === 0 ? 0 : Math.round((ov.done / total) * 100),
+      boards: boards.rows as TeamBoardRow[],
+    },
+    byMember: members.rows.map((m) => ({
+      userId: m.user_id,
+      name: m.name,
+      email: m.email,
+      avatarUrl: m.avatar_url,
+      role: m.role,
+      completed: completedMap.get(m.user_id) ?? 0,
+      inProgress: 0,
+      assigned: 0,
+    })),
+    burndown,
+  };
+};

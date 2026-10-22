@@ -53,3 +53,48 @@ export interface TimeSpentAnalytics {
     sessions: number;
   }[];
 }
+
+
+/* ------------------------------------------------------------------ */
+/* Feature 5.11 - team analytics                                       */
+/* ------------------------------------------------------------------ */
+
+export type TeamRole = 'admin' | 'member' | 'viewer';
+
+export interface TeamBoardRow {
+  id: string;
+  name: string;
+  total: number;
+  done: number;
+}
+
+export interface TeamOverview {
+  tasks: { total: number; todo: number; doing: number; done: number; overdue: number };
+  completionRate: number;
+  boards: TeamBoardRow[];
+}
+
+export interface TeamMemberRow {
+  userId: string;
+  name: string | null;
+  email: string;
+  avatarUrl: string | null;
+  role: TeamRole;
+  completed: number;
+  inProgress: number;
+  assigned: number;
+}
+
+export interface BurndownPoint {
+  date: string;
+  remaining: number;
+  completed: number;
+}
+
+export interface TeamAnalytics {
+  workspace: { id: string; name: string; role: TeamRole };
+  range: AnalyticsRange;
+  overview: TeamOverview;
+  byMember: TeamMemberRow[];
+  burndown: BurndownPoint[];
+}
