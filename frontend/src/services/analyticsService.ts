@@ -4,6 +4,7 @@ import type {
   AnalyticsRange,
   CompletedTasksAnalytics,
   TimeSpentAnalytics,
+  TeamAnalytics,
 } from '../types/analytics';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -46,6 +47,18 @@ export const analyticsService = {
       ...headers(token),
       params: { range, ...timezone() },
     });
+    return response.data;
+  },
+
+  team: async (
+    token: string,
+    workspaceId: string,
+    range: AnalyticsRange,
+  ): Promise<TeamAnalytics> => {
+    const response = await axios.get(
+      `${API_URL}/api/analytics/team/${workspaceId}`,
+      { ...headers(token), params: { range, ...timezone() } },
+    );
     return response.data;
   },
 };
