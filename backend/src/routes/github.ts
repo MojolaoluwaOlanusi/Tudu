@@ -8,13 +8,14 @@ import {
   saveMapping,
   deleteMapping,
   disconnectGitHub,
-  handleWebhook,
 } from '../controllers/githubController';
 
 const router = express.Router();
 
-// Webhook is public (GitHub calls it).
-router.post('/webhook', handleWebhook);
+// The webhook is mounted directly in app.ts with express.raw() so the
+// HMAC signature can be verified against the raw body bytes. Do not add
+// it here - the router-level JSON parser would consume the raw bytes
+// before the signature check could run.
 
 router.use(authenticate);
 
