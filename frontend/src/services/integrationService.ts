@@ -81,6 +81,19 @@ export const integrationService = {
   disconnect: async (token: string): Promise<void> => {
     await axios.post(API_URL + '/api/integrations/github/disconnect', {}, { headers: auth(token) });
   },
+  
+  getWebhookSecret: async (token: string): Promise<{ secret: string }> =>
+    (await axios.get(API_URL + '/api/integrations/github/webhook-secret', { headers: auth(token) }))
+      .data,
+
+  rotateSecret: async (token: string): Promise<{ secret: string }> =>
+    (
+      await axios.post(
+        API_URL + '/api/integrations/github/rotate-secret',
+        {},
+        { headers: auth(token) }
+      )
+    ).data,
 
   /* ------------------------------- Slack ------------------------------ */
 
@@ -115,31 +128,9 @@ export const integrationService = {
   },
 };
 
-/* ------------------------- Webhook secret ------------------------- */
+/* Standalone names, kept because components/settings/GitHubWebhookCard.tsx imports them. */
+export const getGithubWebhookSecret = (token: string): Promise<{ secret: string }> =>
+  integrationService.getWebhookSecret(token);
 
-const API_URL_INTERNAL =
-  import.meta.env.VITE_API_URL || 'http://localhost:5000';
-const authInternal = (token: string) => ({
-  Authorization: 'Bearer ' + token,
-});
-
-export const getGithubWebhookSecret = async (
-  token: string,
-): Promise<{ secret: string }> =>
-  (
-    await axios.get(
-      API_URL_INTERNAL + '/api/integrations/github/webhook-secret',
-      { headers: authInternal(token) },
-    )
-  ).data;
-
-export const rotateGithubWebhookSecret = async (
-  token: string,
-): Promise<{ secret: string }> =>
-  (
-    await axios.post(
-      API_URL_INTERNAL + '/api/integrations/github/rotate-secret',
-      {},
-      { headers: authInternal(token) },
-    )
-  ).data;
+export const rotateGithubWebhookSecret = (token: string): Promise<{ secret: string }> =>
+  integrationService.rotateSecret(token);

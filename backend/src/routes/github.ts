@@ -8,6 +8,8 @@ import {
   saveMapping,
   deleteMapping,
   disconnectGitHub,
+  getWebhookSecret,
+  rotateWebhookSecret,
 } from '../controllers/githubController';
 
 const router = express.Router();
@@ -25,6 +27,8 @@ router.get('/repos', getRepos);
 router.get('/mappings', listMappings);
 router.post('/mapping', saveMapping);
 router.delete('/mapping/:id', deleteMapping);
+router.get('/webhook-secret', getWebhookSecret);
+router.post('/rotate-secret', rotateWebhookSecret);
 router.post('/disconnect', disconnectGitHub);
 
 export default router;

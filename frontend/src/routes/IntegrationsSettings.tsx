@@ -10,7 +10,6 @@ import {
   type SlackChannel,
 } from '../services/integrationService';
 import { useAuthStore } from '../store/authStore';
-import GitHubWebhookCard from '../components/settings/GitHubWebhookCard';
 import { useUiStore } from '../store/uiStore';
 
 const IntegrationsSettings: React.FC = () => {
@@ -30,6 +29,8 @@ const IntegrationsSettings: React.FC = () => {
   const [repos, setRepos] = useState<GitHubRepo[]>([]);
   const [mappings, setMappings] = useState<GitHubMapping[]>([]);
   const [ghLoading, setGhLoading] = useState(true);
+  const [webhookSecret, setWebhookSecret] = useState<string | null>(null);
+  const [rotating, setRotating] = useState(false);
 
   const [selectedRepo, setSelectedRepo] = useState('');
   const [openedCol, setOpenedCol] = useState('');
@@ -49,12 +50,14 @@ const IntegrationsSettings: React.FC = () => {
       const s = await integrationService.getStatus(token);
       setGhStatus(s);
       if (s.connected) {
-        const [r, m] = await Promise.all([
+        const [r, m, sec] = await Promise.all([
           integrationService.getRepos(token),
           integrationService.listMappings(token),
+          integrationService.getWebhookSecret(token).catch(() => null)
         ]);
         setRepos(r);
         setMappings(m);
+        if (sec && sec.secret) setWebhookSecret(sec.secret);
       }
     } catch {
       pushToast('Could not load GitHub status', 'error');
@@ -118,9 +121,34 @@ const IntegrationsSettings: React.FC = () => {
       setGhStatus({ connected: false });
       setRepos([]);
       setMappings([]);
+      setWebhookSecret(null);
       pushToast('GitHub disconnected', 'success');
     } catch {
       pushToast('Could not disconnect GitHub', 'error');
+    }
+  };
+
+  const handleRotateSecret = async () => {
+    if (!token) return;
+    if (!window.confirm('Rotate the webhook secret? You will need to update the GitHub repo settings immediately.')) return;
+    setRotating(true);
+    try {
+      const sec = await integrationService.rotateSecret(token);
+      setWebhookSecret(sec.secret);
+      pushToast('Webhook secret rotated', 'success');
+    } catch {
+      pushToast('Could not rotate the secret', 'error');
+    } finally {
+      setRotating(false);
+    }
+  };
+
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      pushToast('Copied to clipboard', 'success');
+    } catch {
+      pushToast('Could not copy', 'error');
     }
   };
 
@@ -377,7 +405,76 @@ const IntegrationsSettings: React.FC = () => {
 
       {ghStatus?.connected && (
         <>
-          <GitHubWebhookCard />
+          {/* ------------------------- Webhook Secret ------------------------- */}
+          <section className="card mb-5 p-5">
+            <h2 className="mb-3 font-handwritten text-xl text-ink">GitHub webhook</h2>
+            <p className="mb-3 text-sm text-ink-muted">
+              Use this endpoint and secret when configuring the webhook in your GitHub repository settings.
+            </p>
+
+            <div className="space-y-4">
+              <div>
+                <label className="mb-1 block text-xs font-medium text-ink-muted">Payload URL</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    readOnly
+                    value={import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL + '/api/integrations/github/webhook' : window.location.origin.replace('5173', '5000') + '/api/integrations/github/webhook'}
+                    className="input flex-1 bg-surface-2 text-xs font-mono"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => copyToClipboard(import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL + '/api/integrations/github/webhook' : window.location.origin.replace('5173', '5000') + '/api/integrations/github/webhook')}
+                    className="btn-ghost shrink-0 !py-1.5 !text-xs"
+                  >
+                    Copy
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs font-medium text-ink-muted">Secret</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="password"
+                    readOnly
+                    value={webhookSecret || 'Loading...'}
+                    className="input flex-1 bg-surface-2 text-xs font-mono"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => webhookSecret && copyToClipboard(webhookSecret)}
+                    disabled={!webhookSecret}
+                    className="btn-ghost shrink-0 !py-1.5 !text-xs disabled:opacity-50"
+                  >
+                    Copy
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleRotateSecret}
+                    disabled={rotating}
+                    className="rounded-lg border border-hairline bg-surface px-2.5 py-1.5 text-xs font-semibold text-red-500 hover:border-red-300 disabled:opacity-50"
+                  >
+                    {rotating ? 'Rotating...' : 'Rotate'}
+                  </button>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-hairline bg-surface-2 p-3 text-xs text-ink-muted">
+                <p className="mb-2 font-semibold text-ink">How to set it up:</p>
+                <ol className="list-decimal pl-4 space-y-1">
+                  <li>Go to your GitHub repo → Settings → Webhooks</li>
+                  <li>Click <strong>Add webhook</strong></li>
+                  <li>Paste the <strong>Payload URL</strong> above</li>
+                  <li>Set Content type to <code>application/json</code></li>
+                  <li>Paste the <strong>Secret</strong> above</li>
+                  <li>Under events, select <strong>Pull requests</strong> only</li>
+                </ol>
+              </div>
+            </div>
+          </section>
+
+          {/* --------------------------- Mappings ----------------------------- */}
           <section className="card mb-5 p-5">
             <h2 className="mb-3 font-handwritten text-xl text-ink">Add a mapping</h2>
             <div className="space-y-3">
