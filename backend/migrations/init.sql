@@ -750,3 +750,24 @@ CREATE TABLE IF NOT EXISTS time_entries (
 CREATE INDEX IF NOT EXISTS idx_time_entries_user_started ON time_entries(user_id, started_at DESC);
 CREATE INDEX IF NOT EXISTS idx_time_entries_task ON time_entries(task_id);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_time_entries_one_active ON time_entries(user_id) WHERE ended_at IS NULL;
+
+
+-- =====================================================================
+-- GitHub webhook HMAC hardening.
+--
+-- Every integration gets a 64-char hex secret GitHub uses to sign each
+-- webhook POST. Per-user, so a leaked secret only forgives events for
+-- that one user. UNIQUE index means we can hash-compare safely.
+-- =====================================================================
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+ALTER TABLE github_integrations ADD COLUMN IF NOT EXISTS webhook_secret VARCHAR(64);
+
+UPDATE github_integrations
+   SET webhook_secret = encode(gen_random_bytes(32), 'hex')
+ WHERE webhook_secret IS NULL;
+
+ALTER TABLE github_integrations ALTER COLUMN webhook_secret SET NOT NULL;
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_github_integrations_webhook_secret
+  ON github_integrations(webhook_secret);

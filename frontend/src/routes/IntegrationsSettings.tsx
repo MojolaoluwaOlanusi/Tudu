@@ -10,6 +10,7 @@ import {
   type SlackChannel,
 } from '../services/integrationService';
 import { useAuthStore } from '../store/authStore';
+import GitHubWebhookCard from '../components/settings/GitHubWebhookCard';
 import { useUiStore } from '../store/uiStore';
 
 const IntegrationsSettings: React.FC = () => {
@@ -376,6 +377,7 @@ const IntegrationsSettings: React.FC = () => {
 
       {ghStatus?.connected && (
         <>
+          <GitHubWebhookCard />
           <section className="card mb-5 p-5">
             <h2 className="mb-3 font-handwritten text-xl text-ink">Add a mapping</h2>
             <div className="space-y-3">

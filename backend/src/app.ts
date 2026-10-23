@@ -27,6 +27,7 @@ import licenseRoutes from './routes/license';
 import timeRoutes from './routes/time';
 import publisherRoutes from './routes/publisher';
 import githubRoutes from './routes/github';
+import { handleWebhook as handleGithubWebhook } from './controllers/githubController';
 import slackRoutes, { slackCommandsRouter } from './routes/slack';
 import webhookRoutes from './routes/webhooks';
 
@@ -137,6 +138,23 @@ app.use(
   '/api/integrations/slack/commands',
   express.raw({ type: '*/*' }),
   slackCommandsRouter
+);
+
+// GitHub signs the raw JSON body with HMAC-SHA256. This must be
+// mounted BEFORE express.json() so the bytes reach the controller
+// intact for signature verification.
+app.post(
+  '/api/integrations/github/webhook',
+  express.raw({ type: 'application/json' }),
+  handleGithubWebhook
+);
+
+// IMPORTANT: GitHub signs the raw body. Must be mounted BEFORE express.json()
+// so the handler can verify the HMAC against the exact bytes GitHub sent.
+app.post(
+  '/api/integrations/github/webhook',
+  express.raw({ type: 'application/json' }),
+  handleGithubWebhook
 );
 
 app.use(express.json());

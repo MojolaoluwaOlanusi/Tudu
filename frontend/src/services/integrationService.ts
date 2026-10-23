@@ -114,3 +114,32 @@ export const integrationService = {
     await axios.delete(API_URL + '/api/integrations/slack', { headers: auth(token) });
   },
 };
+
+/* ------------------------- Webhook secret ------------------------- */
+
+const API_URL_INTERNAL =
+  import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const authInternal = (token: string) => ({
+  Authorization: 'Bearer ' + token,
+});
+
+export const getGithubWebhookSecret = async (
+  token: string,
+): Promise<{ secret: string }> =>
+  (
+    await axios.get(
+      API_URL_INTERNAL + '/api/integrations/github/webhook-secret',
+      { headers: authInternal(token) },
+    )
+  ).data;
+
+export const rotateGithubWebhookSecret = async (
+  token: string,
+): Promise<{ secret: string }> =>
+  (
+    await axios.post(
+      API_URL_INTERNAL + '/api/integrations/github/rotate-secret',
+      {},
+      { headers: authInternal(token) },
+    )
+  ).data;

@@ -1,11 +1,9 @@
+import crypto from 'node:crypto';
 import request from 'supertest';
 import app from '../../src/app';
 import pool from '../../src/config/database';
 import { auth, destroyUser, registerUser, TestUser } from './helpers';
 
-/**
- * Feature 5.7 rework - github_mappings ownership, save, and webhook dispatch.
- */
 describe('github integration', () => {
   let userA: TestUser;
   let userB: TestUser;
@@ -13,6 +11,8 @@ describe('github integration', () => {
   let boardB: string;
   let openedColA: string;
   let mergedColA: string;
+  let secretA = '';
+  let secretB = '';
 
   beforeAll(async () => {
     userA = await registerUser('gh-a');
@@ -27,19 +27,22 @@ describe('github integration', () => {
     const bb = await request(app).get('/api/boards').set(auth(userB));
     boardB = bb.body[0].id;
 
-    // Simulate the user having connected GitHub already.
     for (const u of [userA, userB]) {
+      const secret = crypto.randomBytes(32).toString('hex');
+      if (u === userA) secretA = secret;
+      if (u === userB) secretB = secret;
       await pool.query(
-        'INSERT INTO github_integrations (user_id, access_token, github_login) VALUES ($1, $2, $3)',
-        [u.id, 'fake-token-' + u.id, 'gh-' + u.id.slice(0, 6)]
+        'INSERT INTO github_integrations (user_id, access_token, github_login, webhook_secret) VALUES ($1, $2, $3, $4)',
+        [u.id, 'fake-token-' + u.id, 'gh-' + u.id.slice(0, 6), secret]
       );
     }
   });
 
   afterAll(async () => {
-    await pool.query('DELETE FROM github_integrations WHERE user_id = ANY($1::uuid[])', [
-      [userA.id, userB.id],
-    ]);
+    await pool.query(
+      'DELETE FROM github_integrations WHERE user_id = ANY($1::uuid[])',
+      [[userA.id, userB.id]]
+    );
     await destroyUser(userA);
     await destroyUser(userB);
   });
@@ -103,32 +106,47 @@ describe('github integration', () => {
     expect(rows.rows[0].n).toBe(2);
   });
 
-  it('listMappings returns only the caller\'s rows', async () => {
-    const a = await request(app).get('/api/integrations/github/mappings').set(auth(userA));
-    const b = await request(app).get('/api/integrations/github/mappings').set(auth(userB));
+  it('listMappings returns only the caller rows', async () => {
+    const a = await request(app)
+      .get('/api/integrations/github/mappings')
+      .set(auth(userA));
+    const b = await request(app)
+      .get('/api/integrations/github/mappings')
+      .set(auth(userB));
     expect(a.body).toHaveLength(1);
     expect(b.body).toHaveLength(1);
     expect(a.body[0].board_id).toBe(boardA);
     expect(b.body[0].board_id).toBe(boardB);
   });
 
-  it('the webhook moves only the mapped user\'s task', async () => {
+  it('the webhook moves only the mapped user task (signed)', async () => {
     const t = await request(app)
       .post('/api/tasks')
       .set(auth(userA))
       .send({ title: 'PR will move me', board_id: boardA });
     const shortId = t.body.short_id;
 
+    const payload = {
+      action: 'opened',
+      pull_request: { title: 'Fix TUDU-' + shortId, body: '', merged: false },
+      repository: { full_name: 'octocat/hello-world' },
+    };
+    const rawBody = JSON.stringify(payload);
+    const sig = crypto
+      .createHmac('sha256', secretA)
+      .update(rawBody)
+      .digest('hex');
+
     await request(app)
       .post('/api/integrations/github/webhook')
       .set('x-github-event', 'pull_request')
-      .send({
-        action: 'opened',
-        pull_request: { title: 'Fix TUDU-' + shortId, body: '', merged: false },
-        repository: { full_name: 'octocat/hello-world' },
-      });
+      .set('x-hub-signature-256', 'sha256=' + sig)
+      .set('Content-Type', 'application/json')
+      .send(rawBody);
 
-    const after = await request(app).get('/api/tasks/' + t.body.id).set(auth(userA));
+    const after = await request(app)
+      .get('/api/tasks/' + t.body.id)
+      .set(auth(userA));
     expect(after.body.column_id).toBe(openedColA);
   });
 });
