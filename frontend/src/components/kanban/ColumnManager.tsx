@@ -321,7 +321,7 @@ const ColumnManager: React.FC<ColumnManagerProps> = ({ onClose }) => {
                 type="button"
                 onClick={() => handleDelete(column)}
                 aria-label={`Delete ${column.name}`}
-                className="rounded-lg border border-hairline bg-surface px-2.5 py-1.5 text-xs font-semibold text-red-500 hover:border-red-300"
+                className="rounded-lg border border-hairline bg-surface px-2.5 py-1.5 text-xs font-semibold text-red-400 hover:border-red-300"
               >
                 Delete
               </button>

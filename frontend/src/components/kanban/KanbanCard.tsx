@@ -15,15 +15,15 @@ interface KanbanCardBodyProps {
 }
 
 const categoryStyles: Record<string, string> = {
-  work: 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200',
-  personal: 'bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-200',
-  study: 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-200',
+  work: 'bg-blue-500/10 text-blue-400',
+  personal: 'bg-purple-500/10 text-purple-400',
+  study: 'bg-emerald-500/10 text-emerald-400',
 };
 
 const priorityStyles: Record<string, string> = {
-  low: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200',
-  medium: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-200',
-  high: 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-200',
+  low: 'bg-line-subtle text-ink-muted',
+  medium: 'bg-amber-500/10 text-amber-400',
+  high: 'bg-red-500/10 text-red-400',
 };
 
 /** Presentational card - also used inside the DragOverlay. */
@@ -91,8 +91,8 @@ export const KanbanCardBody: React.FC<KanbanCardBodyProps> = ({
           <span
             className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
               overdue
-                ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-200'
-                : 'bg-surface-2 text-ink-muted'
+                ? 'bg-red-500/10 text-red-400'
+                : 'bg-line-subtle text-ink-muted'
             }`}
           >
             {overdue ? 'Overdue ' : ''}

@@ -61,7 +61,7 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
         </h3>
         <span
           className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold ${
-            atLimit ? 'bg-red-500/15 text-red-500' : 'bg-surface text-ink-muted'
+            atLimit ? 'bg-red-500/15 text-red-400' : 'bg-line-subtle text-ink-muted'
           }`}
           title={
             column.wip_limit
@@ -74,7 +74,7 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
       </header>
 
       {atLimit && (
-        <p className="mb-2 rounded-lg bg-red-500/10 px-2 py-1 text-xs font-medium text-red-500">
+        <p className="mb-2 rounded-lg bg-red-500/10 px-2 py-1 text-xs font-medium text-red-400">
           WIP limit reached
         </p>
       )}
@@ -91,7 +91,7 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
         >
           <div className="flex flex-col gap-2">
             {tasks.length === 0 ? (
-              <p className="rounded-xl border border-dashed border-hairline p-6 text-center text-xs text-ink-muted">
+              <p className="rounded-xl border border-dashed border-line-subtle p-6 text-center text-xs text-ink-muted">
                 {isOver ? 'Drop here' : 'No tasks'}
               </p>
             ) : (
