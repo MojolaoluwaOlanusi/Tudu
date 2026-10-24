@@ -6,6 +6,12 @@ export interface PublicStats {
   status: string;
   uptime_seconds: number;
   version: string;
+  /**
+   * Distinct users with at least one open Socket.io connection right now.
+   * Added in Step 5 for LiveDot; optional so an older backend build does
+   * not break the type.
+   */
+  active_users?: number;
 }
 
 export interface DemoSession {

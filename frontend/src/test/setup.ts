@@ -30,6 +30,31 @@ class ResizeObserverStub {
 }
 globalThis.ResizeObserver = globalThis.ResizeObserver ?? (ResizeObserverStub as never);
 
+// jsdom also does not implement IntersectionObserver, which framer-motion's
+// `whileInView` feature (used by ProblemSection, BentoGrid and the marketing
+// animations) requires at mount. Without a stub, any test rendering a
+// `motion.*` component with `whileInView` crashes with
+// `ReferenceError: IntersectionObserver is not defined`.
+//
+// A no-op stub is sufficient for tests: elements still render, styles still
+// apply (initial opacity 0 does not remove them from the accessibility tree),
+// and DOM/role queries still find them. Whether the intersection callback
+// ever fires is irrelevant to the assertions we make here.
+class IntersectionObserverStub {
+  root: Element | null = null;
+  rootMargin = '';
+  thresholds: number[] = [];
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+  takeRecords(): IntersectionObserverEntry[] {
+    return [];
+  }
+}
+globalThis.IntersectionObserver =
+  globalThis.IntersectionObserver ??
+  (IntersectionObserverStub as unknown as typeof IntersectionObserver);
+
 // jsdom does not implement Element.prototype.scrollIntoView. Any component
 // that scrolls a highlighted row into view (the command palette, future
 // list-with-cursor features) would throw without this. Stubbed once, here.
