@@ -2,18 +2,26 @@ import { Request, Response } from 'express';
 import crypto from 'node:crypto';
 import pool from '../config/database';
 import { generateToken } from '../utils/jwt';
+import { getActiveUserCount } from '../utils/socket';
 
 /**
  * Public endpoints — no authentication required.
  * Used by the marketing landing page and the "Try the demo" flow.
  */
 
-/** GET /api/public/stats — a few numbers the landing page can show. */
+/**
+ * GET /api/public/stats — a few numbers the landing page can show.
+ *
+ * `active_users` is the count of distinct users with at least one open
+ * Socket.io connection right now. It reads from the same in-memory map the
+ * socket server maintains, so it is accurate to the second without a query.
+ */
 export const getStats = (_req: Request, res: Response) => {
   res.json({
     status: 'ok',
     uptime_seconds: Math.floor(process.uptime()),
     version: process.env.npm_package_version ?? '1.0.0',
+    active_users: getActiveUserCount(),
   });
 };
 

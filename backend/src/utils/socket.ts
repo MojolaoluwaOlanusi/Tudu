@@ -13,6 +13,22 @@ export const setIO = (server: Server): void => {
 
 export const getIO = (): Server | null => io;
 
+/**
+ * The number of distinct users with at least one open socket right now.
+ *
+ * Kept module-level (like `io`) so the public stats endpoint can read it
+ * without importing the socket server. Updated by socketServer.ts on every
+ * connect and disconnect. `connectionsByUser` is keyed by user id, so
+ * `size` counts distinct users, not sockets.
+ */
+let activeUserCount = 0;
+
+export const setActiveUserCount = (n: number): void => {
+  activeUserCount = n < 0 ? 0 : Math.floor(n);
+};
+
+export const getActiveUserCount = (): number => activeUserCount;
+
 /** Emit to every socket a user has open (they join `user-<id>` on connect). */
 export const emitToUser = (userId: string, event: string, payload: unknown): void => {
   if (!userId) return;

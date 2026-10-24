@@ -6,6 +6,9 @@ import { useUiStore } from '../../store/uiStore';
 import Navbar from './Navbar';
 import Hero from './Hero';
 import LiveBoardHero from './LiveBoardHero';
+import LogoStrip from './LogoStrip';
+import ProblemSection from './ProblemSection';
+import BentoGrid from './BentoGrid';
 import type { User } from '../../types/user';
 
 /**
@@ -65,6 +68,10 @@ const Landing = () => {
         <div className="mx-auto max-w-5xl px-6 pb-12">
           <LiveBoardHero />
         </div>
+
+        <LogoStrip />
+        <ProblemSection />
+        <BentoGrid />
 
         {/* --- Features (live copy, replaced by BentoGrid in Step 5) --- */}
         <section className="mx-auto max-w-5xl px-4 py-12">

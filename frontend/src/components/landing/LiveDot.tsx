@@ -1,12 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { twMerge } from 'tailwind-merge';
+import { publicService } from '../../services/publicService';
 
 interface LiveDotProps {
   /**
-   * If provided, the component shows this fixed count. If omitted it
-   * oscillates around 12 (between 6 and 28) every 4.2s, matching the
-   * mockup. Kept optional so a future step can wire it to a real
-   * "recently active" query without changing this component.
+   * Explicit count. If provided, the component renders this value and does
+   * NOT poll the API. Used in tests and any caller that already has a count.
    */
   count?: number;
   className?: string;
@@ -15,15 +14,29 @@ interface LiveDotProps {
 const MIN = 6;
 const MAX = 28;
 const INITIAL = 12;
+const POLL_MS = 20_000;
 
 /**
  * A pulsing brand dot with a short "N people building right now" caption.
- * Used on the landing page navbar and the mobile menu (added in Step 3).
- * Presentational only — no network call, no analytics, no storage.
+ *
+ * Data source:
+ *   - `count` prop wins (presentational override).
+ *   - Otherwise, polls `GET /api/public/stats` on mount and every 20 s and
+ *     uses its `active_users` field (the socket server's live count of
+ *     distinct connected users).
+ *   - If the fetch fails or the field is missing, the count oscillates
+ *     around 12 (the mockup's original behaviour). That makes the landing
+ *     page resilient: it never shows a blank dot when the backend is down.
+ *
+ * Not tied to authentication: landing-page visitors are anonymous, so
+ * polling the public endpoint is the only way to surface a real count
+ * without giving every visitor a socket connection.
  */
 const LiveDot: React.FC<LiveDotProps> = ({ count, className }) => {
   const [oscillating, setOscillating] = useState(INITIAL);
+  const [liveCount, setLiveCount] = useState<number | null>(null);
 
+  // Oscillating fallback (only when no explicit count).
   useEffect(() => {
     if (count !== undefined) return;
     const id = window.setInterval(() => {
@@ -35,7 +48,31 @@ const LiveDot: React.FC<LiveDotProps> = ({ count, className }) => {
     return () => window.clearInterval(id);
   }, [count]);
 
-  const value = count ?? oscillating;
+  // Poll the public stats endpoint for the real number.
+  useEffect(() => {
+    if (count !== undefined) return;
+    let cancelled = false;
+
+    const fetchCount = async () => {
+      try {
+        const stats = await publicService.getStats();
+        if (!cancelled && typeof stats.active_users === 'number') {
+          setLiveCount(stats.active_users);
+        }
+      } catch {
+        // Silent fail — keep the oscillating fallback.
+      }
+    };
+
+    void fetchCount();
+    const id = window.setInterval(fetchCount, POLL_MS);
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+    };
+  }, [count]);
+
+  const value = count ?? liveCount ?? oscillating;
 
   return (
     <div

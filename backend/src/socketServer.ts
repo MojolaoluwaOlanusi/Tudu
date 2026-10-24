@@ -1,7 +1,7 @@
 import { createServer, type Server as HttpServer } from 'http';
 import { Server } from 'socket.io';
 import type { Application } from 'express';
-import { setIO } from './utils/socket';
+import { setActiveUserCount, setIO } from './utils/socket';
 import { verifyToken } from './utils/jwt';
 import { userRoom, type SocketData } from './types/socket';
 
@@ -34,7 +34,7 @@ export const createRealtimeServer = (app: Application): RealtimeServer => {
   // Let controllers emit real-time events without importing `io` directly.
   setIO(io);
 
-  /** Live socket count per user, purely so the logs are readable. */
+  /** Live socket count per user, so we can both log and expose the active-user count. */
   const connectionsByUser = new Map<string, number>();
 
   /**
@@ -78,6 +78,8 @@ export const createRealtimeServer = (app: Application): RealtimeServer => {
 
     const open = (connectionsByUser.get(userId) ?? 0) + 1;
     connectionsByUser.set(userId, open);
+    // Publish the distinct-user count so the public stats endpoint can read it.
+    setActiveUserCount(connectionsByUser.size);
     console.log(`[socket] connected ${socket.id} user=${userId} (${open} open)`);
 
     socket.emit('socket:ready', { userId, connectedAt: new Date().toISOString() });
@@ -89,6 +91,7 @@ export const createRealtimeServer = (app: Application): RealtimeServer => {
       } else {
         connectionsByUser.set(userId, next);
       }
+      setActiveUserCount(connectionsByUser.size);
       console.log(
         `[socket] disconnected ${socket.id} user=${userId} (${reason}, ${Math.max(next, 0)} open)`
       );
