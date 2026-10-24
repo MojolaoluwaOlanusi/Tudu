@@ -31,8 +31,8 @@ describe('realtime sockets', () => {
   });
 
   afterAll(async () => {
-    ioServer.close();
-    await new Promise<void>((resolve) => httpServer.close(() => resolve()));
+    ioServer?.close();
+    if (httpServer) await new Promise<void>((resolve) => httpServer.close(() => resolve()));
     await destroyUser(owner);
     await destroyUser(stranger);
   });

@@ -346,11 +346,7 @@ export const handleWebhook = async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Invalid payload' });
     }
 
-    const text = (pr.title || '') + ' ' + (pr.body || '');
-    const match = text.match(/TUDU-(\d+)/i);
-    if (!match) return res.status(200).json({ ignored: true });
 
-    const shortId = Number(match[1]);
 
     // Which user does this payload belong to? Only users who have a
     // mapping for this repo are candidates. Only one of them owns the
@@ -386,6 +382,13 @@ export const handleWebhook = async (req: Request, res: Response) => {
         .status(401)
         .json({ error: 'Signature does not match any known secret' });
     }
+
+    // Only now, with the sender authenticated, look at what the PR is about.
+    const text = (pr.title || '') + ' ' + (pr.body || '');
+    const match = text.match(/TUDU-(\d+)/i);
+    if (!match) return res.status(200).json({ ignored: true });
+
+    const shortId = Number(match[1]);
 
     // From here on, we act as this user. Their mapping is scoped to
     // their board, so no other user's card can be touched.
