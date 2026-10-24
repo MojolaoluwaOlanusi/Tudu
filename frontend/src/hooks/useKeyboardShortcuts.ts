@@ -4,6 +4,7 @@ import { useAuthStore } from '../store/authStore';
 import { useUiStore } from '../store/uiStore';
 import { useShortcutHelpStore } from '../store/shortcutHelpStore';
 import { useCommandPaletteStore } from '../store/commandPaletteStore';
+import { toggleDensity } from '../lib/density';
 
 const CHORD_TIMEOUT_MS = 1200;
 
@@ -37,8 +38,8 @@ const focusQueryBar = (): boolean => {
  *   - any modal (role=dialog + aria-modal) is open,
  * so single-key shortcuts never fight with typing or a modal.
  *
- * Ctrl/Cmd+K is the one exception: it fires from anywhere, including inputs,
- * and closes the shortcut-help modal first if that is the one that is open.
+ * Ctrl/Cmd+K and Ctrl/Cmd+Shift+D are the exceptions: they fire from
+ * anywhere, including inputs.
  */
 export const useKeyboardShortcuts = (): void => {
   const navigate = useNavigate();
@@ -61,6 +62,17 @@ export const useKeyboardShortcuts = (): void => {
         event.preventDefault();
         closeShortcutHelp();
         openCommandPalette();
+        return;
+      }
+
+      // Ctrl/Cmd+Shift+D toggles density (mockup parity).
+      if (
+        (event.ctrlKey || event.metaKey) &&
+        event.shiftKey &&
+        event.key.toLowerCase() === 'd'
+      ) {
+        event.preventDefault();
+        toggleDensity();
         return;
       }
 
