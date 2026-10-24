@@ -32,6 +32,7 @@ import { useActiveBoardId } from '../../hooks/useBoards';
 import SearchBar from '../common/SearchBar';
 import FilterDropdown from '../common/FilterDropdown';
 import { useConfetti } from '../common/ConfettiProvider';
+import EmptyState from './EmptyState';
 
 const TaskList: React.FC = () => {
   /* ------------- Bulk selection (feature 4.6) ------------- */
@@ -438,11 +439,11 @@ const TaskList: React.FC = () => {
       />
 
       {!tasks || tasks.length === 0 ? (
-        <div className="card p-10 text-center">
-          <p className="font-handwritten text-2xl text-ink-muted">
-            No tasks yet — create your first one!
-          </p>
-        </div>
+        <EmptyState
+          variant={hasActiveFilters ? 'filtered' : 'empty'}
+          onNew={() => openTaskForm(null)}
+          onClearFilters={clearFilters}
+        />
       ) : (
         <div className="grid gap-4">
           {tasks.map((task) => {
