@@ -24,16 +24,31 @@ interface TaskCardProps {
   readOnlySubtasks?: boolean;
 }
 
+/**
+ * Theme-agnostic chip palettes.
+ *
+ * The previous palettes used solid light-mode backgrounds plus `dark:`
+ * overrides. Step 9 aligns these with the mockup's translucent-tint chips,
+ * which work in both themes without a `dark:` variant because the tint is
+ * already derived from the brand colour at 10% alpha.
+ */
 const categoryColors: Record<Category, string> = {
-  work: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-  personal: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
-  study: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+  work: 'bg-blue-500/10 text-blue-400',
+  personal: 'bg-purple-500/10 text-purple-400',
+  study: 'bg-emerald-500/10 text-emerald-400',
 };
 
 const priorityColors: Record<Priority, string> = {
-  low: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200',
-  medium: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
-  high: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
+  low: 'bg-line-subtle text-ink-muted',
+  medium: 'bg-amber-500/10 text-amber-400',
+  high: 'bg-red-500/10 text-red-400',
+};
+
+/** Chips are Title Case in the mockup; the DB value stays lowercase. */
+const PRIORITY_LABEL: Record<Priority, string> = {
+  low: 'Low',
+  medium: 'Medium',
+  high: 'High',
 };
 
 const TaskCard: React.FC<TaskCardProps> = ({ task, onEdit, onDelete, onStatusChange, isShared, readOnlySubtasks }) => {
@@ -139,12 +154,19 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onEdit, onDelete, onStatusCha
         )}
         {task.priority && (
           <span className={`px-2 py-1 rounded-full text-xs font-medium ${priorityColors[task.priority]}`}>
-            {task.priority}
+            {PRIORITY_LABEL[task.priority]}
           </span>
         )}
         {task.due_date && (
-          <span className={`rounded-full px-2 py-1 text-xs font-medium ${isOverdue ? 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-200' : 'bg-surface-2 text-ink-muted'}`}>
-            {isOverdue ? 'Overdue: ' : ''}{format(new Date(task.due_date), 'MMM d, yyyy, h:mm a')}
+          <span
+            className={`rounded-full px-2 py-1 text-xs font-medium ${
+              isOverdue
+                ? 'bg-red-500/10 text-red-400'
+                : 'bg-line-subtle text-ink-muted'
+            }`}
+          >
+            {isOverdue ? 'Overdue: ' : ''}
+            {format(new Date(task.due_date), 'MMM d, yyyy, h:mm a')}
           </span>
         )}
       </div>
