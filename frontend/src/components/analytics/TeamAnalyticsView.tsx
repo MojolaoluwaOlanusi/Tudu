@@ -32,6 +32,10 @@ const RANGE_LABELS: Record<AnalyticsRange, string> = {
   quarter: 'Last 12 weeks',
 };
 
+/** Primary chart colour — mockup uses brand green for the burndown and bars. */
+const PRIMARY_CHART_COLOUR = '#22c55e';
+const PRIMARY_FILL = 'rgba(34, 197, 94, 0.15)';
+
 const formatDay = (iso: string): string => {
   const d = new Date(`${iso}T00:00:00.000Z`);
   return Number.isNaN(d.getTime())
@@ -46,15 +50,17 @@ const MetricCard: React.FC<{
   tone?: 'default' | 'alert';
 }> = ({ label, value, hint, tone = 'default' }) => (
   <div className="card min-w-0 p-4">
-    <p className="text-xs uppercase tracking-wide text-ink-muted">{label}</p>
+    <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-muted">
+      {label}
+    </p>
     <p
-      className={`mt-1 text-2xl font-semibold ${
-        tone === 'alert' ? 'text-red-600' : 'text-ink'
+      className={`mt-2 font-handwritten text-3xl leading-none ${
+        tone === 'alert' ? 'text-red-400' : 'text-ink'
       }`}
     >
       {value}
     </p>
-    {hint && <p className="mt-0.5 text-xs text-ink-muted">{hint}</p>}
+    {hint && <p className="mt-1 text-[11px] text-ink-muted">{hint}</p>}
   </div>
 );
 
@@ -94,7 +100,7 @@ const TeamAnalyticsView: React.FC = () => {
         {
           label: 'Completed',
           data: points.map((p) => p.completed),
-          backgroundColor: '#6366f1',
+          backgroundColor: PRIMARY_CHART_COLOUR,
           borderRadius: 4,
         },
       ],
@@ -109,8 +115,8 @@ const TeamAnalyticsView: React.FC = () => {
         {
           label: 'Remaining',
           data: points.map((p) => p.remaining),
-          borderColor: '#ef4444',
-          backgroundColor: 'rgba(239, 68, 68, 0.15)',
+          borderColor: PRIMARY_CHART_COLOUR,
+          backgroundColor: PRIMARY_FILL,
           fill: true,
           tension: 0.3,
           pointRadius: 2,
@@ -149,14 +155,17 @@ const TeamAnalyticsView: React.FC = () => {
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <label htmlFor="team-workspace" className="text-xs font-semibold uppercase tracking-wide text-ink-muted">
+          <label
+            htmlFor="team-workspace"
+            className="text-[11px] font-semibold uppercase tracking-wider text-ink-muted"
+          >
             Workspace
           </label>
           <select
             id="team-workspace"
             value={workspaceId ?? ''}
             onChange={(event) => setWorkspaceId(event.target.value || null)}
-            className="h-10 rounded-full border border-hairline bg-surface-2 px-4 text-sm font-semibold text-ink focus:border-accent focus:outline-none"
+            className="h-9 rounded-md border border-line bg-surface px-3 text-sm font-medium text-ink focus:border-accent focus:outline-none"
           >
             {workspaces.map((w) => (
               <option key={w.id} value={w.id}>
@@ -167,7 +176,7 @@ const TeamAnalyticsView: React.FC = () => {
         </div>
 
         <div
-          className="flex rounded-md border border-base-300 bg-base-100 p-0.5"
+          className="flex rounded-md border border-line bg-surface p-0.5"
           role="group"
           aria-label="Date range"
         >
@@ -177,9 +186,9 @@ const TeamAnalyticsView: React.FC = () => {
               type="button"
               onClick={() => setRange(key)}
               aria-pressed={range === key}
-              className={`rounded px-3 py-1 text-sm transition ${
+              className={`rounded px-3 py-1.5 text-[12px] font-medium transition-colors ${
                 range === key
-                  ? 'bg-accent text-white'
+                  ? 'bg-raised text-ink'
                   : 'text-ink-muted hover:text-ink'
               }`}
             >
@@ -197,9 +206,7 @@ const TeamAnalyticsView: React.FC = () => {
 
       {isError && !isLoading && (
         <div className="card p-6">
-          <p className="text-sm text-red-600">
-            Could not load team analytics.
-          </p>
+          <p className="text-sm text-red-400">Could not load team analytics.</p>
           <button onClick={() => refetch()} className="btn-ghost mt-3">
             Try again
           </button>
@@ -233,13 +240,15 @@ const TeamAnalyticsView: React.FC = () => {
             <MetricCard
               label="Members"
               value={String(data.byMember.length)}
-              hint={`${data.overview.boards.length} board${data.overview.boards.length === 1 ? '' : 's'}`}
+              hint={`${data.overview.boards.length} board${
+                data.overview.boards.length === 1 ? '' : 's'
+              }`}
             />
           </div>
 
           <div className="card p-5">
-            <h3 className="font-handwritten text-xl text-ink">Burndown</h3>
-            <p className="mb-3 text-xs text-ink-muted">
+            <h2 className="font-handwritten text-xl text-ink">Burndown</h2>
+            <p className="mb-3 text-[11px] text-ink-faint">
               Remaining tasks, end of each day. The line rises when new cards are
               added and drops when they are completed.
             </p>
@@ -255,21 +264,21 @@ const TeamAnalyticsView: React.FC = () => {
           </div>
 
           <div className="card p-5">
-            <h3 className="font-handwritten text-xl text-ink">Completed per day</h3>
-            <p className="mb-3 text-xs text-ink-muted">Tasks finished each day.</p>
+            <h2 className="font-handwritten text-xl text-ink">Completed per day</h2>
+            <p className="mb-3 text-[11px] text-ink-faint">Tasks finished each day.</p>
             <div className="h-48">
               <Bar data={barData} options={chartOptions} />
             </div>
           </div>
 
           <div className="card p-5">
-            <h3 className="mb-3 font-handwritten text-xl text-ink">By member</h3>
+            <h2 className="mb-3 font-handwritten text-xl text-ink">By member</h2>
             {data.byMember.length === 0 ? (
               <p className="text-sm text-ink-muted">No members yet.</p>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
-                  <thead className="text-[10px] uppercase tracking-wide text-ink-muted">
+                  <thead className="text-[10px] uppercase tracking-wider text-ink-muted">
                     <tr>
                       <th className="pb-2 text-left font-semibold">Member</th>
                       <th className="pb-2 text-left font-semibold">Role</th>
@@ -280,7 +289,7 @@ const TeamAnalyticsView: React.FC = () => {
                   </thead>
                   <tbody>
                     {data.byMember.map((m) => (
-                      <tr key={m.userId} className="border-t border-hairline/60">
+                      <tr key={m.userId} className="border-t border-line-subtle">
                         <td className="py-2 pr-2">
                           <div className="flex items-center gap-2">
                             <Avatar name={m.name} email={m.email} url={m.avatarUrl} />
@@ -288,14 +297,20 @@ const TeamAnalyticsView: React.FC = () => {
                               <p className="truncate text-ink">
                                 {m.name || m.email.split('@')[0]}
                               </p>
-                              <p className="truncate text-[11px] text-ink-muted">{m.email}</p>
+                              <p className="truncate text-[11px] text-ink-muted">
+                                {m.email}
+                              </p>
                             </div>
                           </div>
                         </td>
                         <td className="py-2 pr-2 capitalize text-ink-muted">{m.role}</td>
                         <td className="py-2 pr-2 text-right text-ink">{m.completed}</td>
-                        <td className="py-2 pr-2 text-right text-ink-muted">{m.inProgress}</td>
-                        <td className="py-2 pr-2 text-right text-ink-muted">{m.assigned}</td>
+                        <td className="py-2 pr-2 text-right text-ink-muted">
+                          {m.inProgress}
+                        </td>
+                        <td className="py-2 pr-2 text-right text-ink-muted">
+                          {m.assigned}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -306,16 +321,19 @@ const TeamAnalyticsView: React.FC = () => {
 
           {data.overview.boards.length > 0 && (
             <div className="card p-5">
-              <h3 className="mb-3 font-handwritten text-xl text-ink">By board</h3>
+              <h2 className="mb-3 font-handwritten text-xl text-ink">By board</h2>
               <ul className="space-y-2">
                 {data.overview.boards.map((b) => {
-                  const pct = b.total === 0 ? 0 : Math.round((b.done / b.total) * 100);
+                  const pct =
+                    b.total === 0 ? 0 : Math.round((b.done / b.total) * 100);
                   return (
                     <li key={b.id} className="flex items-center gap-3">
-                      <span className="min-w-0 flex-1 truncate text-sm text-ink">{b.name}</span>
-                      <span className="h-1.5 w-24 overflow-hidden rounded-full bg-surface-2">
+                      <span className="min-w-0 flex-1 truncate text-sm text-ink">
+                        {b.name}
+                      </span>
+                      <span className="h-1.5 w-24 overflow-hidden rounded-full bg-line-subtle">
                         <span
-                          className="block h-full rounded-full bg-accent transition-all duration-300"
+                          className="block h-full rounded-full bg-brand transition-all duration-300"
                           style={{ width: `${pct}%` }}
                         />
                       </span>
