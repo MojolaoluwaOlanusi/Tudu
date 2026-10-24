@@ -21,6 +21,7 @@ import KanbanBoard from './components/kanban/KanbanBoard';
 import BoardTaskForm from './components/kanban/BoardTaskForm';
 import BoardSelector from './components/common/BoardSelector';
 import Landing from './components/landing/Landing';
+import ComingSoon from './components/landing/ComingSoon';
 import WizardRoot from './components/onboarding/WizardRoot';
 import WorkspaceInvites from './components/workspace/WorkspaceInvites';
 import SharedListsSidebar from './components/sharing/SharedListsSidebar';
@@ -232,6 +233,21 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route path="/signup" element={<Navigate to="/login" replace />} />
+          <Route path="/demo" element={<ComingSoon title="Live demo" />} />
+          <Route path="/docs" element={<ComingSoon title="Documentation" />} />
+          <Route path="/docs/:slug" element={<ComingSoon title="Documentation" />} />
+          <Route path="/webhooks" element={<ComingSoon title="Webhooks" />} />
+          <Route path="/changelog" element={<ComingSoon title="Changelog" />} />
+          <Route path="/help" element={<ComingSoon title="Help center" />} />
+          <Route path="/contact" element={<ComingSoon title="Contact" />} />
+          <Route path="/blog" element={<ComingSoon title="Blog" />} />
+          <Route path="/community" element={<ComingSoon title="Community" />} />
+          <Route path="/status" element={<ComingSoon title="Status page" />} />
+          <Route path="/privacy" element={<ComingSoon title="Privacy" />} />
+          <Route path="/terms" element={<ComingSoon title="Terms" />} />
+          <Route path="/solutions" element={<ComingSoon title="Solutions" />} />
+          <Route path="/solutions/:slug" element={<ComingSoon title="Solutions" />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
         <CollaborationBridge />
