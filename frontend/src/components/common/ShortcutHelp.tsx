@@ -23,6 +23,7 @@ const GROUPS: { title: string; items: { keys: string[]; label: string }[] }[] = 
     title: 'Global',
     items: [
       { keys: ['Ctrl', 'K'], label: 'Command palette' },
+      { keys: ['Ctrl', 'Shift', 'D'], label: 'Toggle density' },
       { keys: ['Ctrl', 'Z'], label: 'Undo the last delete' },
       { keys: ['?'], label: 'Show this help' },
     ],

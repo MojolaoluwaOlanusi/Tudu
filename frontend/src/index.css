@@ -501,3 +501,43 @@ button,
 a {
   transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
 }
+
+
+/* ------------------------------------------------------------------ */
+/* Scrollbar: hidden at rest, appears briefly while scrolling          */
+/* (mockup parity — `main.tsx` toggles .is-scrolling on <html> for     */
+/* 800ms after every scroll event).                                    */
+/* ------------------------------------------------------------------ */
+html {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+html.is-scrolling {
+  scrollbar-color: var(--color-border) transparent;
+}
+html::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+html::-webkit-scrollbar-track {
+  background: transparent;
+}
+html::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 4px;
+}
+html.is-scrolling::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+}
+html.is-scrolling::-webkit-scrollbar-thumb:hover {
+  background: var(--border-strong);
+}
+
+/* Scrollable containers that should never show a scrollbar. */
+.scroll-hidden::-webkit-scrollbar {
+  display: none;
+}
+.scroll-hidden {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
