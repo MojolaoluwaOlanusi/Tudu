@@ -209,11 +209,12 @@ const AiBreakdownModal: React.FC<AiBreakdownModalProps> = ({
           )}
 
           {errorMessage && (
-            <div className="rounded-xl border border-red-300 bg-red-50 p-4 dark:border-red-700/50 dark:bg-red-950/40">
-              <p className="text-sm font-medium text-red-700 dark:text-red-300">
+            <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-4">
+              <p className="text-sm font-medium text-red-400">
                 Could not generate a breakdown
               </p>
-              <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errorMessage}</p>
+              {/* was: text-red-600 dark:text-red-400 */}
+              <p className="mt-1 text-sm text-red-400">{errorMessage}</p>
               <button type="button" onClick={handleRetry} className="btn-ghost mt-3 !py-1 !text-xs">
                 Try again
               </button>
@@ -244,7 +245,7 @@ const AiBreakdownModal: React.FC<AiBreakdownModalProps> = ({
                       onClick={() => setItems((prev) => prev.filter((_, i) => i !== index))}
                       disabled={isSaving}
                       aria-label={`Remove: ${item.text}`}
-                      className="shrink-0 rounded-full p-1.5 text-ink-muted transition-colors hover:bg-surface-2 hover:text-red-500"
+                      className="shrink-0 rounded-full p-1.5 text-ink-muted transition-colors hover:bg-surface-2 hover:text-red-400"
                     >
                       <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                         <path strokeLinecap="round" d="M6 6l12 12M18 6L6 18" />

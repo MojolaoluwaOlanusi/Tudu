@@ -33,7 +33,7 @@ const CreditBadge: React.FC<CreditBadgeProps> = ({ compact = false }) => {
         className={
           'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold transition-colors ' +
           (low
-            ? 'border-amber-400/50 bg-amber-400/10 text-amber-500 hover:border-amber-400'
+            ? 'border-amber-400/50 bg-amber-400/10 text-amber-400 hover:border-amber-400'
             : 'border-hairline bg-surface-2 text-ink-muted hover:border-accent hover:text-ink')
         }
         title="AI credits remaining"
@@ -47,11 +47,11 @@ const CreditBadge: React.FC<CreditBadgeProps> = ({ compact = false }) => {
     <div
       className={
         'flex items-center justify-between gap-3 rounded-lg border px-3 py-2 text-xs ' +
-        (low ? 'border-amber-400/40 bg-amber-400/5' : 'border-hairline bg-surface-2')
+        (low ? 'border-amber-400/40 bg-amber-400/10' : 'border-hairline bg-surface-2')
       }
     >
       <span className="text-ink-muted">
-        <span className={low ? 'font-semibold text-amber-500' : 'font-semibold text-ink'}>
+        <span className={low ? 'font-semibold text-amber-400' : 'font-semibold text-ink'}>
           {remaining}
         </span>{
           ' ' + (remaining === 1 ? 'credit' : 'credits') + ' remaining'

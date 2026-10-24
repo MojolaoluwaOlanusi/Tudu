@@ -48,14 +48,14 @@ const LicenseBanner: React.FC = () => {
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
-            className="shrink-0 text-amber-500"
+            className="shrink-0 text-amber-400"
             aria-hidden="true"
           >
             <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
             <line x1="12" y1="9" x2="12" y2="13" />
             <line x1="12" y1="17" x2="12.01" y2="17" />
           </svg>
-          <p className="min-w-0 text-xs text-amber-500">
+          <p className="min-w-0 text-xs text-amber-400">
             <span className="font-semibold">
               {isPresent ? 'Invalid license' : 'Unlicensed instance'}
             </span>
@@ -65,7 +65,7 @@ const LicenseBanner: React.FC = () => {
         <button
           type="button"
           onClick={() => navigate('/settings/license')}
-          className="shrink-0 rounded-full border border-amber-400/60 bg-amber-400/10 px-3 py-1.5 text-xs font-semibold text-amber-500 transition-colors hover:bg-amber-400/20"
+          className="shrink-0 rounded-full border border-amber-400/60 bg-amber-400/10 px-3 py-1.5 text-xs font-semibold text-amber-400 transition-colors hover:bg-amber-400/20"
         >
           {isPresent ? 'Fix license' : 'Install license'} →
         </button>

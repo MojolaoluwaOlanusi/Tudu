@@ -140,7 +140,7 @@ const ShareModal: React.FC<ShareModalProps> = ({ tasks }) => {
           </div>
 
           {error && (
-            <p className="rounded-lg bg-red-100 p-2 text-xs text-red-700 dark:bg-red-900/30 dark:text-red-300">
+            <p className="rounded-lg bg-red-500/10 p-2 text-xs text-red-400">
               {error}
             </p>
           )}
