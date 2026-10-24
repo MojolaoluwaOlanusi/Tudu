@@ -8,8 +8,7 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Semantic design tokens driven by CSS variables (see src/index.css).
-        // These switch automatically with the `.dark` class.
+        // --- Existing live tokens (unchanged; every current class keeps working) ---
         page: 'var(--color-bg)',
         surface: 'var(--color-surface)',
         'surface-2': 'var(--color-surface-2)',
@@ -21,16 +20,48 @@ export default {
           strong: 'var(--color-accent-strong)',
           soft: 'var(--color-accent-soft)',
         },
-        // Brand palette (kept for backwards compatibility).
+
+        // --- Mockup tokens (additive; opt-in per component in later steps) ---
+        canvas: 'var(--bg-page)',
+        raised: 'var(--bg-elevated)',
+        subtle: 'var(--bg-hover)',
+        active: 'var(--bg-active)',
+        line: {
+          DEFAULT: 'var(--border-default)',
+          subtle: 'var(--border-subtle)',
+          strong: 'var(--border-strong)',
+        },
+        'ink-faint': 'var(--text-tertiary)',
+        'ink-inverse': 'var(--text-inverse)',
         brand: {
+          // DEFAULT + hover/subtle/muted are the mockup tokens.
+          DEFAULT: 'var(--accent)',
+          hover: 'var(--accent-hover)',
+          subtle: 'var(--accent-subtle)',
+          muted: 'var(--accent-muted)',
+          // Existing brand colour names (kept for compatibility).
           green: '#22c55e',
           dark: '#1a1a1a',
           light: '#fafafa',
         },
+        todo: 'var(--status-todo)',
+        doing: 'var(--status-doing)',
+        done: 'var(--status-done)',
+        overdue: 'var(--status-overdue)',
       },
       fontFamily: {
         handwritten: ['"Caveat"', '"Comic Sans MS"', 'cursive'],
+        brand: ['"Caveat"', '"Comic Sans MS"', 'cursive'],
         sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+        // JetBrains Mono first, then Tailwind's previous default chain.
+        // The <link> that actually loads JetBrains Mono lands in Step 8;
+        // until then the browser falls back to ui-monospace (no visual delta).
+        mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
+      },
+      borderRadius: {
+        'r-sm': 'var(--r-sm)',
+        'r-md': 'var(--r-md)',
+        'r-lg': 'var(--r-lg)',
       },
       boxShadow: {
         surface: 'var(--shadow-surface)',
@@ -41,7 +72,6 @@ export default {
           '0%': { opacity: '0', transform: 'translateY(6px)' },
           '100%': { opacity: '1', transform: 'translateY(0)' },
         },
-        // A short spring used for cards and popovers appearing.
         'pop-in': {
           '0%': { opacity: '0', transform: 'scale(0.96) translateY(4px)' },
           '60%': { transform: 'scale(1.01) translateY(0)' },
@@ -56,4 +86,3 @@ export default {
   },
   plugins: [],
 }
-
