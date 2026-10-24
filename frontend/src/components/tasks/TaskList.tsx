@@ -138,6 +138,7 @@ const TaskList: React.FC = () => {
   const isTaskFormOpen = useUiStore((s) => s.isTaskFormOpen);
   const editingTaskId = useUiStore((s) => s.editingTaskId);
   const openTaskForm = useUiStore((s) => s.openTaskForm);
+  const openDetail = useUiStore((s) => s.openDetail);
   const closeTaskForm = useUiStore((s) => s.closeTaskForm);
   const isSidebarOpen = useUiStore((s) => s.isSidebarOpen);
   const toggleSidebar = useUiStore((s) => s.toggleSidebar);
@@ -274,7 +275,7 @@ const TaskList: React.FC = () => {
     }
   };
 
-  const handleEdit = (task: Task) => openTaskForm(task.id);
+  const handleEdit = (task: Task) => openDetail({ type: 'task', id: task.id });
 
   /* -------------- Loading / error -------------- */
   if (isLoading) {

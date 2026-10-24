@@ -37,6 +37,7 @@ const KanbanBoard: React.FC = () => {
   const { data: tasks, isLoading, isError, error, refetch } = useKanbanTasks();
   const { mutate: moveTasks, isPending } = useMoveTasks();
   const openTaskForm = useUiStore((s) => s.openTaskForm);
+  const openDetail = useUiStore((s) => s.openDetail);
   const pushToast = useUiStore((s) => s.pushToast);
   const { burst } = useConfetti();
 
@@ -224,7 +225,7 @@ const KanbanBoard: React.FC = () => {
               tasks={grouped[column.id] ?? []}
               selectedIds={selectedIds}
               onToggleSelect={toggleSelect}
-              onEdit={(task) => openTaskForm(task.id)}
+              onEdit={(task) => openDetail({ type: 'task', id: task.id })}
             />
           ))}
         </div>
@@ -252,3 +253,4 @@ const KanbanBoard: React.FC = () => {
 };
 
 export default KanbanBoard;
+

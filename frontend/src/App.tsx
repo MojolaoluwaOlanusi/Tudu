@@ -1,30 +1,33 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { lazy, Suspense, type ReactNode } from 'react';
+import { lazy, Suspense, useEffect, useRef, type ReactNode } from 'react';
 import { Analytics as VercelAnalytics } from '@vercel/analytics/react';
 import { queryClient } from './lib/queryClient';
 import { useRealtimeSync } from './hooks/useRealtimeSync';
 import { useAuthStore } from './store/authStore';
+import { attachScrollbarAutoHide } from './lib/scrollbar';
+
 import Login from './components/auth/Login';
 import Pricing from './routes/Pricing';
 import BillingSettings from './routes/BillingSettings';
 import LicenseSettings from './routes/LicenseSettings';
 import IntegrationsSettings from './routes/IntegrationsSettings';
-
 import BillingCallback from './routes/BillingCallback';
 import AuthCallback from './components/auth/AuthCallback';
 import ProtectedRoute from './components/common/ProtectedRoute';
-import Header from './components/layout/Header';
+
+import Topbar from './components/app/Topbar';
+import Sidebar from './components/app/Sidebar';
+import DetailPanel from './components/app/DetailPanel';
 import LicenseBanner from './components/common/LicenseBanner';
+
 import TaskList from './components/tasks/TaskList';
 import KanbanBoard from './components/kanban/KanbanBoard';
 import BoardTaskForm from './components/kanban/BoardTaskForm';
-import BoardSelector from './components/common/BoardSelector';
 import Landing from './components/landing/Landing';
 import ComingSoon from './components/landing/ComingSoon';
 import WizardRoot from './components/onboarding/WizardRoot';
 import WorkspaceInvites from './components/workspace/WorkspaceInvites';
-import SharedListsSidebar from './components/sharing/SharedListsSidebar';
 import ShareInvites from './components/sharing/ShareInvites';
 import SharedWithMeSection from './components/sharing/SharedWithMeSection';
 import RecentActivity from './components/activity/RecentActivity';
@@ -43,12 +46,16 @@ import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useOfflineSync } from './hooks/useOfflineSync';
 import UndoToast from './components/common/UndoToast';
 import OnboardingRoot from './components/onboarding/OnboardingRoot';
-import { ConfettiProvider } from './components/common/ConfettiProvider'
+import { ConfettiProvider } from './components/common/ConfettiProvider';
 import ErrorBoundary from './components/common/ErrorBoundary';
 
 /** Opens the real-time socket once we know who is signed in. */
-/** Mounts the global keyboard listener. Inside Router, so useNavigate
-    works; called once, so every keypress is handled exactly once. */
+const CollaborationBridge = () => {
+  useRealtimeSync();
+  return null;
+};
+
+/** Mounts the global keyboard listener (Ctrl+K, chords, etc). */
 const ShortcutBridge = () => {
   useKeyboardShortcuts();
   return null;
@@ -59,42 +66,56 @@ const OfflineBridge = () => {
   return null;
 };
 
-const CollaborationBridge = () => {
-  useRealtimeSync();
-  return null;
-};
-
-/**
- * Chart.js is ~200kB of the bundle and only the analytics page needs it, so
- * the route is code-split; everyone else never downloads it.
- */
 const AnalyticsDashboard = lazy(() => import('./components/analytics/AnalyticsDashboard'));
 
-/** App shell: header plus the shared-lists sidebar on large screens. */
-const Shell = ({ children }: { children: ReactNode }) => (
-  <div data-app-shell className="min-h-screen">
-    <Header />
+/**
+ * App shell.
+ *
+ * Fixed-height flex column: the topbar and sidebar stay put, the main pane
+ * scrolls inside itself, and the detail panel slides in from the right.
+ * Matches the mockup's `AppLayout`.
+ *
+ * Mobile-only fallbacks: the Sidebar is desktop-only (`lg`+), so the
+ * invitations banner and the "shared with me" section are surfaced here
+ * for small screens — otherwise a mobile user has no way to accept an
+ * invite or open a shared list. On `lg` the Sidebar owns both.
+ */
+const Shell = ({ children }: { children: ReactNode }) => {
+  const mainRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!mainRef.current) return;
+    return attachScrollbarAutoHide(mainRef.current);
+  }, []);
+
+  return (
+    <div data-app-shell className="flex h-screen flex-col overflow-hidden bg-canvas text-ink">
+      <Topbar />
       <LicenseBanner />
-    <div className="mx-auto flex w-full max-w-7xl gap-6 px-4 py-6 sm:px-6 sm:py-8">
-      <aside className="hidden w-64 shrink-0 lg:block" data-tour="shared">
-        <SharedListsSidebar />
-      </aside>
-      <main className="min-w-0 flex-1">
-        {/* Invitations must be reachable without the sidebar (mobile). */}
-        <div className="mb-4 lg:hidden">
-          <ShareInvites />
-        </div>
-        <BoardSelector />
-        <WorkspaceInvites />
-        <SharedWithMeSection />
-        {children}
-        <div className="mt-6" data-tour="activity">
-          <RecentActivity />
-        </div>
-      </main>
+      <div className="flex min-h-0 flex-1 gap-3 p-3">
+        <Sidebar />
+        <main className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-line-subtle bg-surface">
+          <div data-main ref={mainRef} className="min-h-0 flex-1 overflow-y-auto">
+            <div className="p-4 md:p-6">
+              {/* Mobile-only. On lg+, the Sidebar owns these sections. */}
+              <div className="mb-4 lg:hidden">
+                <ShareInvites />
+              </div>
+              <WorkspaceInvites />
+              <div className="lg:hidden">
+                <SharedWithMeSection />
+              </div>
+              {children}
+              <div className="mt-6" data-tour="activity">
+                <RecentActivity />
+              </div>
+            </div>
+          </div>
+        </main>
+        <DetailPanel />
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 const LandingOrApp = ({ children }: { children: ReactNode }) => {
   const user = useAuthStore((s) => s.user);
@@ -155,117 +176,117 @@ const Analytics = () => (
 function App() {
   return (
     <ErrorBoundary>
-    <QueryClientProvider client={queryClient}>
-      <ConfettiProvider>
-        <Router>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/pricing" element={<Pricing />} />
-          <Route path="/billing/callback" element={<BillingCallback />} />
-          <Route
-            path="/settings/license"
-            element={
-              <ProtectedRoute>
-                <Shell>
-                  <LicenseSettings />
-                </Shell>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/settings/integrations"
-            element={
-              <ProtectedRoute>
-                <Shell>
-                  <IntegrationsSettings />
-                </Shell>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/settings/billing"
-            element={
-              <ProtectedRoute>
-                <Shell>
-                  <BillingSettings />
-                </Shell>
-              </ProtectedRoute>
-            }
-          />
-          <Route path="/auth/callback" element={<AuthCallback />} />
-          <Route
-            path="/"
-            element={
-              <LandingOrApp>
-                <Dashboard />
-              </LandingOrApp>
-            }
-          />
-          <Route
-            path="/board"
-            element={
-              <ProtectedRoute>
-                <Board />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/stats"
-            element={
-              <ProtectedRoute>
-                <Stats />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/analytics"
-            element={
-              <ProtectedRoute>
-                <Analytics />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/shared/:id"
-            element={
-              <ProtectedRoute>
-                <SharedListView />
-              </ProtectedRoute>
-            }
-          />
-          <Route path="/signup" element={<Navigate to="/login" replace />} />
-          <Route path="/demo" element={<ComingSoon title="Live demo" />} />
-          <Route path="/docs" element={<ComingSoon title="Documentation" />} />
-          <Route path="/docs/:slug" element={<ComingSoon title="Documentation" />} />
-          <Route path="/webhooks" element={<ComingSoon title="Webhooks" />} />
-          <Route path="/changelog" element={<ComingSoon title="Changelog" />} />
-          <Route path="/help" element={<ComingSoon title="Help center" />} />
-          <Route path="/contact" element={<ComingSoon title="Contact" />} />
-          <Route path="/blog" element={<ComingSoon title="Blog" />} />
-          <Route path="/community" element={<ComingSoon title="Community" />} />
-          <Route path="/status" element={<ComingSoon title="Status page" />} />
-          <Route path="/privacy" element={<ComingSoon title="Privacy" />} />
-          <Route path="/terms" element={<ComingSoon title="Terms" />} />
-          <Route path="/solutions" element={<ComingSoon title="Solutions" />} />
-          <Route path="/solutions/:slug" element={<ComingSoon title="Solutions" />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-        <CollaborationBridge />
-        <OfflineBridge />
-        <ShortcutBridge />
-        <OfflineIndicator />
-        <InstallPrompt />
-        <ShortcutHelp />
-        <CommandPalette />
-        <PomodoroRunner />
-        <WizardRoot />
-        <OnboardingRoot />
-        <UndoToast />
-        <ToastContainer />
-        <VercelAnalytics />
-        </Router>
-      </ConfettiProvider>
-    </QueryClientProvider>
+      <QueryClientProvider client={queryClient}>
+        <ConfettiProvider>
+          <Router>
+            <Routes>
+              <Route path="/login" element={<Login />} />
+              <Route path="/pricing" element={<Pricing />} />
+              <Route path="/billing/callback" element={<BillingCallback />} />
+              <Route
+                path="/settings/license"
+                element={
+                  <ProtectedRoute>
+                    <Shell>
+                      <LicenseSettings />
+                    </Shell>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/settings/integrations"
+                element={
+                  <ProtectedRoute>
+                    <Shell>
+                      <IntegrationsSettings />
+                    </Shell>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/settings/billing"
+                element={
+                  <ProtectedRoute>
+                    <Shell>
+                      <BillingSettings />
+                    </Shell>
+                  </ProtectedRoute>
+                }
+              />
+              <Route path="/auth/callback" element={<AuthCallback />} />
+              <Route
+                path="/"
+                element={
+                  <LandingOrApp>
+                    <Dashboard />
+                  </LandingOrApp>
+                }
+              />
+              <Route
+                path="/board"
+                element={
+                  <ProtectedRoute>
+                    <Board />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/stats"
+                element={
+                  <ProtectedRoute>
+                    <Stats />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/analytics"
+                element={
+                  <ProtectedRoute>
+                    <Analytics />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/shared/:id"
+                element={
+                  <ProtectedRoute>
+                    <SharedListView />
+                  </ProtectedRoute>
+                }
+              />
+              <Route path="/signup" element={<Navigate to="/login" replace />} />
+              <Route path="/demo" element={<ComingSoon title="Live demo" />} />
+              <Route path="/docs" element={<ComingSoon title="Documentation" />} />
+              <Route path="/docs/:slug" element={<ComingSoon title="Documentation" />} />
+              <Route path="/webhooks" element={<ComingSoon title="Webhooks" />} />
+              <Route path="/changelog" element={<ComingSoon title="Changelog" />} />
+              <Route path="/help" element={<ComingSoon title="Help center" />} />
+              <Route path="/contact" element={<ComingSoon title="Contact" />} />
+              <Route path="/blog" element={<ComingSoon title="Blog" />} />
+              <Route path="/community" element={<ComingSoon title="Community" />} />
+              <Route path="/status" element={<ComingSoon title="Status page" />} />
+              <Route path="/privacy" element={<ComingSoon title="Privacy" />} />
+              <Route path="/terms" element={<ComingSoon title="Terms" />} />
+              <Route path="/solutions" element={<ComingSoon title="Solutions" />} />
+              <Route path="/solutions/:slug" element={<ComingSoon title="Solutions" />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+            <CollaborationBridge />
+            <OfflineBridge />
+            <ShortcutBridge />
+            <OfflineIndicator />
+            <InstallPrompt />
+            <ShortcutHelp />
+            <CommandPalette />
+            <PomodoroRunner />
+            <WizardRoot />
+            <OnboardingRoot />
+            <UndoToast />
+            <ToastContainer />
+            <VercelAnalytics />
+          </Router>
+        </ConfettiProvider>
+      </QueryClientProvider>
     </ErrorBoundary>
   );
 }
