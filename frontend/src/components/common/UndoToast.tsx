@@ -9,15 +9,13 @@ import { queryKeys } from '../../lib/queryClient';
 const UNDO_WINDOW_MS = 10_000;
 
 /**
- * Bottom-centred toast that offers to undo the last delete.
+ * Step 8: adds a shrinking progress bar under the pill (matches mockup).
+ * The progress bar is purely visual — the authoritative clock remains
+ * `pending.expiresAt` in the store.
  *
- * The pending state lives in `useUndoStore` so the toast can be rendered at
- * the top of the app (next to ToastContainer) rather than from the component
- * that triggered the delete — otherwise navigating away would lose the undo.
- *
- * The countdown is redrawn four times a second so the button label is smooth,
- * but the authoritative clock is the store's `expiresAt`; a slow tick only
- * affects the displayed number, never whether the undo is accepted.
+ * Behaviour unchanged: same useUndoStore selectors, same restore mutation,
+ * same Ctrl/Cmd+Z handler (skipped inside input/textarea), same auto-clear
+ * on token loss.
  */
 const UndoToast = () => {
   const pending = useUndoStore((s) => s.pending);
@@ -26,6 +24,7 @@ const UndoToast = () => {
   const queryClient = useQueryClient();
   const pushToast = useUiStore((s) => s.pushToast);
   const [secondsLeft, setSecondsLeft] = useState(10);
+  const [progressPct, setProgressPct] = useState(100);
 
   const restore = useMutation({
     mutationFn: (taskId: string) => taskService.restoreTask(token!, taskId),
@@ -42,21 +41,14 @@ const UndoToast = () => {
 
   useEffect(() => {
     if (!pending) return;
-
     const update = () => {
       const ms = pending.expiresAt - Date.now();
-      if (ms <= 0) {
-        clear();
-        return;
-      }
+      if (ms <= 0) { clear(); return; }
       setSecondsLeft(Math.max(1, Math.ceil(ms / 1000)));
+      setProgressPct(Math.max(0, Math.min(100, (ms / UNDO_WINDOW_MS) * 100)));
     };
-
     update();
-    const interval = window.setInterval(update, 250);
-
-    // Ctrl/Cmd+Z, but only when focus is not inside a text field so the
-    // browser's native undo in an input or textarea still works.
+    const interval = window.setInterval(update, 100);
     const onKey = (event: KeyboardEvent) => {
       if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== 'z') return;
       const tag = (document.activeElement as HTMLElement | null)?.tagName;
@@ -65,17 +57,13 @@ const UndoToast = () => {
       restore.mutate(pending.taskId);
     };
     window.addEventListener('keydown', onKey);
-
     return () => {
       window.clearInterval(interval);
       window.removeEventListener('keydown', onKey);
     };
-    // `pending.taskId` is included so the effect re-runs when a different
-    // task replaces the current one; `restore` is stable across renders.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pending?.taskId, pending?.expiresAt]);
 
-  // Logout or token loss hides any outstanding toast.
   useEffect(() => {
     if (!token && pending) clear();
   }, [token, pending, clear]);
@@ -88,18 +76,22 @@ const UndoToast = () => {
       role="status"
       aria-live="polite"
     >
-      <div className="flex items-center gap-3 rounded-full border border-hairline bg-surface-2 px-4 py-2.5 shadow-lg">
-        <span className="max-w-[16rem] truncate text-sm text-ink">
-          Deleted <span className="font-semibold">“{pending.title}”</span>
+      <div className="relative flex items-center gap-3 overflow-hidden rounded-md border border-line bg-surface px-3 py-2 shadow-lg">
+        <span className="max-w-[16rem] truncate text-[12px] text-ink-muted">
+          Deleted <span className="font-medium text-ink">{pending.title}</span>
         </span>
         <button
           type="button"
           onClick={() => restore.mutate(pending.taskId)}
           disabled={restore.isPending}
-          className="rounded-full bg-accent px-3 py-1 text-xs font-semibold text-white transition-all hover:brightness-110 disabled:opacity-60"
+          className="rounded-md bg-brand px-2.5 py-1 text-[11px] font-semibold text-ink-inverse transition-colors hover:bg-brand-hover disabled:opacity-60"
         >
           {restore.isPending ? 'Restoring…' : `Undo (${secondsLeft})`}
         </button>
+        <div
+          className="absolute bottom-0 left-0 h-0.5 bg-brand transition-[width] duration-100"
+          style={{ width: `${progressPct}%` }}
+        />
       </div>
     </div>
   );
