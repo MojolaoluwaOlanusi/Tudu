@@ -92,7 +92,12 @@ const BillingSettings: React.FC = () => {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
-      <h1 className="mb-6 font-handwritten text-3xl text-ink">Billing</h1>
+      <div className="mb-6">
+  <h1 className="font-handwritten text-3xl text-ink">Billing</h1>
+  <p className="mt-1 text-sm text-ink-muted">
+    Your plan, credits, and payment history.
+  </p>
+</div>
 
       {/* ---------------------- Current plan ---------------------- */}
       <section className="card mb-5 p-5">
@@ -148,14 +153,14 @@ const BillingSettings: React.FC = () => {
             type="button"
             onClick={handleCancel}
             disabled={cancel.isPending}
-            className="mt-5 rounded-lg border border-hairline bg-surface px-3 py-2 text-xs font-semibold text-red-500 hover:border-red-300 disabled:opacity-60"
+            className="mt-5 rounded-lg border border-hairline bg-surface px-3 py-2 text-xs font-semibold text-red-400 hover:border-red-400/60 disabled:opacity-60"
           >
             {cancel.isPending ? 'Cancelling...' : 'Cancel subscription'}
           </button>
         )}
 
         {ent?.subscription?.cancelAtPeriodEnd && (
-          <p className="mt-5 text-xs text-amber-500">
+          <p className="mt-5 text-xs text-amber-400">
             Your subscription will end on {formatDate(ent.subscription.currentPeriodEnd)}.
           </p>
         )}

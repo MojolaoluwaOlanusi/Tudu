@@ -313,7 +313,7 @@ const WebhooksModal: React.FC<WebhooksModalProps> = ({ onClose }) => {
                       onClick={() => handleDelete(endpoint)}
                       disabled={remove.isPending}
                       aria-label={'Delete ' + endpoint.url}
-                      className="rounded-lg border border-hairline bg-surface px-2.5 py-1.5 text-xs font-semibold text-red-500 hover:border-red-300 disabled:opacity-50"
+                      className="rounded-lg border border-hairline bg-surface px-2.5 py-1.5 text-xs font-semibold text-red-400 hover:border-red-400/60 disabled:opacity-50"
                     >
                       Delete
                     </button>

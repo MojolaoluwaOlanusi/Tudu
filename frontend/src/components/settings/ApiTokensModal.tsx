@@ -186,7 +186,7 @@ const ApiTokensModal: React.FC<ApiTokensModalProps> = ({ onClose }) => {
                     onClick={() => handleRevoke(t)}
                     disabled={busy}
                     aria-label={'Revoke ' + t.label}
-                    className="rounded-lg border border-hairline bg-surface px-2.5 py-1.5 text-xs font-semibold text-red-500 hover:border-red-300 disabled:opacity-40"
+                    className="rounded-lg border border-hairline bg-surface px-2.5 py-1.5 text-xs font-semibold text-red-400 hover:border-red-400/60 disabled:opacity-40"
                   >
                     Revoke
                   </button>

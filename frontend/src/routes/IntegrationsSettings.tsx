@@ -282,7 +282,7 @@ const IntegrationsSettings: React.FC = () => {
               <button
                 type="button"
                 onClick={handleDisconnectSlack}
-                className="rounded-lg border border-hairline bg-surface px-3 py-1.5 text-xs font-semibold text-red-500 hover:border-red-300"
+                className="rounded-lg border border-hairline bg-surface px-3 py-1.5 text-xs font-semibold text-red-400 hover:border-red-400/60"
               >
                 Disconnect
               </button>
@@ -395,7 +395,7 @@ const IntegrationsSettings: React.FC = () => {
             <button
               type="button"
               onClick={handleDisconnectGitHub}
-              className="rounded-lg border border-hairline bg-surface px-3 py-1.5 text-xs font-semibold text-red-500 hover:border-red-300"
+              className="rounded-lg border border-hairline bg-surface px-3 py-1.5 text-xs font-semibold text-red-400 hover:border-red-400/60"
             >
               Disconnect
             </button>

@@ -116,7 +116,7 @@ const ConflictResolutionModal: React.FC<Props> = ({ onClose, onResolved }) => {
                     <p className="truncate text-sm font-semibold text-ink">
                       {(c.currentState.title as string) || (c.payload.task.title as string) || 'Untitled task'}
                     </p>
-                    <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase text-amber-600">
+                    <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase text-amber-400">
                       {c.conflictReason}
                     </span>
                   </div>

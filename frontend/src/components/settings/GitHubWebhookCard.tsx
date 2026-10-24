@@ -153,7 +153,7 @@ const GitHubWebhookCard: React.FC = () => {
             type="button"
             onClick={handleRotate}
             disabled={busy}
-            className="rounded-lg border border-hairline bg-surface px-3 py-1.5 text-xs font-semibold text-red-500 hover:border-red-300 disabled:opacity-50"
+            className="rounded-lg border border-hairline bg-surface px-3 py-1.5 text-xs font-semibold text-red-400 hover:border-red-400/60 disabled:opacity-50"
           >
             {busy ? 'Rotating…' : 'Rotate secret'}
           </button>

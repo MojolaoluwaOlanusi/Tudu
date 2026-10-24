@@ -150,7 +150,7 @@ const IssuerView: React.FC<IssuerViewProps> = ({ issuerConfigured, licenses }) =
       <section className="card mb-5 p-5">
         <h2 className="mb-3 font-handwritten text-xl text-ink">Issue a license</h2>
         {!issuerConfigured && (
-          <p className="mb-3 rounded-lg border border-amber-400/40 bg-amber-400/5 p-3 text-xs text-amber-500">
+          <p className="mb-3 rounded-lg border border-amber-400/40 bg-amber-400/5 p-3 text-xs text-amber-400">
             The license issuer is not configured on this server. The
             operator needs to set LICENSE_PRIVATE_KEY before licenses can
             be signed.
@@ -158,10 +158,14 @@ const IssuerView: React.FC<IssuerViewProps> = ({ issuerConfigured, licenses }) =
         )}
         <form onSubmit={handleIssue} className="space-y-3">
           <div>
-            <label className="mb-1 block text-xs font-medium text-ink-muted">
+            <label
+              htmlFor="lic-fp"
+              className="mb-1 block text-xs font-medium text-ink-muted"
+            >
               Server fingerprint
             </label>
             <input
+              id="lic-fp"
               type="text"
               value={fingerprint}
               onChange={(e) => setFingerprint(e.target.value)}
@@ -170,15 +174,19 @@ const IssuerView: React.FC<IssuerViewProps> = ({ issuerConfigured, licenses }) =
               maxLength={128}
             />
             <p className="mt-1 text-[11px] text-ink-muted">
-              On the self-hosted instance open Settings &rarr; Self-hosting to
-              see the fingerprint.
+              On the self-hosted instance open Settings &rarr; Self-hosting to see the
+              fingerprint.
             </p>
           </div>
           <div>
-            <label className="mb-1 block text-xs font-medium text-ink-muted">
+            <label
+              htmlFor="lic-note"
+              className="mb-1 block text-xs font-medium text-ink-muted"
+            >
               Note (optional)
             </label>
             <input
+              id="lic-note"
               type="text"
               value={note}
               onChange={(e) => setNote(e.target.value)}
@@ -234,7 +242,7 @@ const IssuerView: React.FC<IssuerViewProps> = ({ issuerConfigured, licenses }) =
                     });
                   }}
                   disabled={revoke.isPending}
-                  className="rounded-lg border border-hairline bg-surface px-2.5 py-1.5 text-xs font-semibold text-red-500 hover:border-red-300 disabled:opacity-60"
+                  className="rounded-lg border border-hairline bg-surface px-2.5 py-1.5 text-xs font-semibold text-red-400 hover:border-red-400/60 disabled:opacity-60"
                 >
                   Revoke
                 </button>
@@ -323,7 +331,7 @@ const ConsumerView: React.FC<{ status: StatusInfo | null }> = ({ status }) => {
             <h2 className="font-handwritten text-xl text-ink">Current license</h2>
             <p
               className={
-                'mt-1 text-sm font-medium ' + (valid ? 'text-accent-strong' : 'text-amber-500')
+                'mt-1 text-sm font-medium ' + (valid ? 'text-accent-strong' : 'text-amber-400')
               }
             >
               {valid
@@ -338,7 +346,7 @@ const ConsumerView: React.FC<{ status: StatusInfo | null }> = ({ status }) => {
               type="button"
               onClick={handleRemove}
               disabled={deactivate.isPending}
-              className="shrink-0 rounded-lg border border-hairline bg-surface px-3 py-1.5 text-xs font-semibold text-red-500 hover:border-red-300 disabled:opacity-60"
+              className="shrink-0 rounded-lg border border-hairline bg-surface px-3 py-1.5 text-xs font-semibold text-red-400 hover:border-red-400/60 disabled:opacity-60"
             >
               {deactivate.isPending ? 'Removing...' : 'Remove license'}
             </button>
@@ -374,10 +382,14 @@ const ConsumerView: React.FC<{ status: StatusInfo | null }> = ({ status }) => {
             />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-medium text-ink-muted">
+            <label
+              htmlFor="lic-text"
+              className="mb-1 block text-xs font-medium text-ink-muted"
+            >
               Or paste the license contents
             </label>
             <textarea
+              id="lic-text"
               value={text}
               onChange={(e) => setText(e.target.value)}
               rows={5}
