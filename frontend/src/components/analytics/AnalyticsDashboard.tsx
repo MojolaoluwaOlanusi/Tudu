@@ -41,19 +41,27 @@ const RANGE_LABELS: Record<AnalyticsRange, string> = {
   quarter: 'Last 12 weeks',
 };
 
+/**
+ * Category colours, taken verbatim from the mockup's `computeTimeByCategory`
+ * (PersonalAnalytics.jsx) so the live charts match the design reference.
+ */
 const CATEGORY_COLOURS: Record<string, string> = {
-  work: '#6366f1',
-  personal: '#ec4899',
-  study: '#14b8a6',
-  none: '#94a3b8',
+  work: '#3b82f6',
+  personal: '#8b5cf6',
+  study: '#10b981',
+  none: '#6b6b78',
 };
 
 const PRIORITY_COLOURS: Record<string, string> = {
   high: '#ef4444',
   medium: '#f59e0b',
-  low: '#22c55e',
-  none: '#cbd5e1',
+  low: '#94a3b8',
+  none: '#3a3a3a',
 };
+
+/** Primary chart colour — mockup uses the brand green for bar and line. */
+const PRIMARY_CHART_COLOUR = '#22c55e';
+const PRIMARY_FILL = 'rgba(34, 197, 94, 0.15)';
 
 const humaniseMinutes = (minutes: number): string => {
   if (minutes <= 0) return '0m';
@@ -70,15 +78,17 @@ const MetricCard: React.FC<{
   tone?: 'default' | 'alert';
 }> = ({ label, value, hint, tone = 'default' }) => (
   <div className="card min-w-0 p-4">
-    <p className="text-xs uppercase tracking-wide text-ink-muted">{label}</p>
+    <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-muted">
+      {label}
+    </p>
     <p
-      className={`mt-1 text-2xl font-semibold ${
-        tone === 'alert' ? 'text-red-600' : 'text-ink'
+      className={`mt-2 font-handwritten text-3xl leading-none ${
+        tone === 'alert' ? 'text-red-400' : 'text-ink'
       }`}
     >
       {value}
     </p>
-    {hint && <p className="mt-0.5 text-xs text-ink-muted">{hint}</p>}
+    {hint && <p className="mt-1 text-[11px] text-ink-muted">{hint}</p>}
   </div>
 );
 
@@ -88,14 +98,14 @@ const ChartCard: React.FC<{
   children: React.ReactNode;
 }> = ({ title, subtitle, children }) => (
   <div className="card min-w-0 p-5">
-    <h3 className="font-handwritten text-xl text-ink">{title}</h3>
-    {subtitle && <p className="mb-3 text-xs text-ink-muted">{subtitle}</p>}
+    <h2 className="font-handwritten text-xl text-ink">{title}</h2>
+    {subtitle && <p className="mb-3 text-[11px] text-ink-faint">{subtitle}</p>}
     <div className="mt-3">{children}</div>
   </div>
 );
 
 const EmptyChart: React.FC<{ children?: React.ReactNode }> = ({ children }) => (
-  <div className="flex h-48 items-center justify-center rounded-md bg-base-100/50 text-sm text-ink-muted">
+  <div className="flex h-48 items-center justify-center rounded-md bg-raised text-sm text-ink-muted">
     {children ?? 'Nothing recorded in this period yet.'}
   </div>
 );
@@ -142,7 +152,7 @@ const AnalyticsDashboard: React.FC = () => {
         {
           label: 'Tasks completed',
           data: buckets.map((b) => b.count),
-          backgroundColor: '#6366f1',
+          backgroundColor: PRIMARY_CHART_COLOUR,
           borderRadius: 4,
         },
       ],
@@ -157,8 +167,8 @@ const AnalyticsDashboard: React.FC = () => {
         {
           label: 'Completions',
           data: buckets.map((b) => b.count),
-          borderColor: '#6366f1',
-          backgroundColor: 'rgba(99, 102, 241, 0.15)',
+          borderColor: PRIMARY_CHART_COLOUR,
+          backgroundColor: PRIMARY_FILL,
           fill: true,
           tension: 0.3,
           pointRadius: 2,
@@ -176,7 +186,7 @@ const AnalyticsDashboard: React.FC = () => {
         {
           data: slices.map((c) => c.minutes),
           backgroundColor: slices.map(
-            (c) => CATEGORY_COLOURS[c.category] ?? '#94a3b8'
+            (c) => CATEGORY_COLOURS[c.category] ?? CATEGORY_COLOURS.none
           ),
           borderWidth: 0,
         },
@@ -195,7 +205,7 @@ const AnalyticsDashboard: React.FC = () => {
         {
           data: entries.map(([, value]) => value),
           backgroundColor: entries.map(
-            ([key]) => PRIORITY_COLOURS[key] ?? '#cbd5e1'
+            ([key]) => PRIORITY_COLOURS[key] ?? PRIORITY_COLOURS.none
           ),
           borderWidth: 0,
         },
@@ -215,7 +225,7 @@ const AnalyticsDashboard: React.FC = () => {
 
   const scopeToggle = (
     <div
-      className="flex rounded-md border border-base-300 bg-base-100 p-0.5"
+      className="flex rounded-md border border-line bg-surface p-0.5"
       role="group"
       aria-label="Analytics scope"
     >
@@ -223,9 +233,9 @@ const AnalyticsDashboard: React.FC = () => {
         type="button"
         onClick={() => setScope('personal')}
         aria-pressed={scope === 'personal'}
-        className={`rounded px-3 py-1 text-sm transition ${
+        className={`rounded px-3 py-1.5 text-[12px] font-medium transition-colors ${
           scope === 'personal'
-            ? 'bg-accent text-white'
+            ? 'bg-raised text-ink'
             : 'text-ink-muted hover:text-ink'
         }`}
       >
@@ -236,9 +246,9 @@ const AnalyticsDashboard: React.FC = () => {
           type="button"
           onClick={() => setScope('team')}
           aria-pressed={scope === 'team'}
-          className={`rounded px-3 py-1 text-sm transition ${
+          className={`rounded px-3 py-1.5 text-[12px] font-medium transition-colors ${
             scope === 'team'
-              ? 'bg-accent text-white'
+              ? 'bg-raised text-ink'
               : 'text-ink-muted hover:text-ink'
           }`}
         >
@@ -258,7 +268,7 @@ const AnalyticsDashboard: React.FC = () => {
               type="button"
               disabled={!canExport}
               onClick={() => canExport && exportAnalyticsCsv(exportData)}
-              className="rounded-md border border-base-300 px-3 py-1.5 text-sm text-ink transition hover:bg-base-200 disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-md border border-line bg-surface px-3 py-1.5 text-[12px] font-medium text-ink-muted transition-colors hover:bg-raised hover:text-ink disabled:cursor-not-allowed disabled:opacity-50"
             >
               Export CSV
             </button>
@@ -266,7 +276,7 @@ const AnalyticsDashboard: React.FC = () => {
               type="button"
               disabled={!canExport}
               onClick={() => canExport && exportAnalyticsJson(exportData)}
-              className="rounded-md border border-base-300 px-3 py-1.5 text-sm text-ink transition hover:bg-base-200 disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-md border border-line bg-surface px-3 py-1.5 text-[12px] font-medium text-ink-muted transition-colors hover:bg-raised hover:text-ink disabled:cursor-not-allowed disabled:opacity-50"
             >
               Export JSON
             </button>
@@ -286,7 +296,7 @@ const AnalyticsDashboard: React.FC = () => {
         <>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div
-              className="flex rounded-md border border-base-300 bg-base-100 p-0.5"
+              className="flex rounded-md border border-line bg-surface p-0.5"
               role="group"
               aria-label="Date range"
             >
@@ -296,9 +306,9 @@ const AnalyticsDashboard: React.FC = () => {
                   type="button"
                   onClick={() => setRange(key)}
                   aria-pressed={range === key}
-                  className={`rounded px-3 py-1 text-sm transition ${
+                  className={`rounded px-3 py-1.5 text-[12px] font-medium transition-colors ${
                     range === key
-                      ? 'bg-accent text-white'
+                      ? 'bg-raised text-ink'
                       : 'text-ink-muted hover:text-ink'
                   }`}
                 >
@@ -316,7 +326,7 @@ const AnalyticsDashboard: React.FC = () => {
 
           {errored && !loading && (
             <div className="card p-6">
-              <p className="text-sm text-red-600">
+              <p className="text-sm text-red-400">
                 Could not load analytics. Check your connection and try again.
               </p>
             </div>
@@ -418,7 +428,7 @@ const AnalyticsDashboard: React.FC = () => {
 
               {timeSpent.byTask.length > 0 && (
                 <div className="card p-5">
-                  <h3 className="mb-3 font-handwritten text-xl text-ink">Time by task</h3>
+                  <h2 className="mb-3 font-handwritten text-xl text-ink">Time by task</h2>
                   <ul className="space-y-2">
                     {timeSpent.byTask.map((row) => (
                       <li
