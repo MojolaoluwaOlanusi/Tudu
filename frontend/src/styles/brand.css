@@ -1,0 +1,51 @@
+/* Brand utilities — mockup's brush stroke and glass.
+
+   These OVERRIDE the earlier definitions in src/index.css so the mockup's
+   exact recipe wins. Both files remain imported from main.tsx; the
+   cascade (brand.css after index.css) plus the fact that brand.css is
+   unlayered (so it beats @layer utilities) means the values here are what
+   renders.
+
+   Visual delta from the live versions (behaviourally identical):
+     .brush-stroke::before — underline 80 % wide (was 88 %), 4 px tall
+       (was 5 px), 0.55 opacity (was 0.7), single-tone gradient (was
+       two-stop). Affects every button already using .brush-stroke:
+       Login, TaskList, TaskForm, KanbanBoard, AiBreakdownModal,
+       Landing, BillingSettings, Pricing.
+     .glass — blur 20 px (was 14 px), saturate 180 % (was 160 %),
+       base 65 % opaque (was 72 %). Affects the sticky Header and
+       the ToastContainer.
+*/
+
+.brush-stroke {
+  position: relative;
+}
+
+.brush-stroke::before {
+  content: '';
+  position: absolute;
+  left: 10%;
+  right: 10%;
+  bottom: -4px;
+  height: 4px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  border-radius: 999px;
+  opacity: 0.55;
+  pointer-events: none;
+  transition: opacity 180ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.brush-stroke:hover::before {
+  opacity: 1;
+}
+
+.glass {
+  background-color: color-mix(in srgb, var(--bg-surface) 65%, transparent);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 80%, transparent);
+}
+
+.dark .glass {
+  background-color: color-mix(in srgb, var(--bg-surface) 60%, transparent);
+}

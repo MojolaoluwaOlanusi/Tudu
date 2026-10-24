@@ -1,0 +1,24 @@
+/* Density — compact mode hooks.
+
+   Everything here is gated behind [data-density="compact"] AND
+   [data-app-shell]. The live app does not yet set `data-app-shell`
+   (that attribute lands on the Shell in Step 8), so this file is a
+   scheduled no-op until then. It exists in Step 1 so the CSS contract
+   is set before any component starts relying on it.
+*/
+
+[data-density="compact"] [data-app-shell] .card.p-4,
+[data-density="compact"] [data-app-shell] .card.p-5 { padding: 0.75rem; }
+
+[data-density="compact"] [data-app-shell] .font-handwritten.text-3xl { font-size: 1.5rem; line-height: 1.15; }
+[data-density="compact"] [data-app-shell] .font-handwritten.text-4xl { font-size: 1.875rem; line-height: 1.1; }
+
+[data-density="compact"] [data-app-shell] .space-y-3 > * + * { margin-top: 0.5rem; }
+[data-density="compact"] [data-app-shell] .space-y-4 > * + * { margin-top: 0.75rem; }
+
+[data-density="compact"] [data-app-shell] .input { padding-top: 0.375rem; padding-bottom: 0.375rem; }
+[data-density="compact"] [data-app-shell] .btn-accent,
+[data-density="compact"] [data-app-shell] .btn-ghost { padding-top: 0.375rem; padding-bottom: 0.375rem; }
+
+[data-density="compact"] [data-app-shell] .card p.text-3xl,
+[data-density="compact"] [data-app-shell] .card p.text-4xl { font-size: 1.5rem; line-height: 1.1; }
