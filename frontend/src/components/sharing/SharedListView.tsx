@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { useSharedList, useUpdateSharedTask, useRemoveShare } from '../../hooks/useSharing';
 import { useUiStore } from '../../store/uiStore';
 import { CreateTaskInput, Task } from '../../types/task';
-import Header from '../layout/Header';
+import Topbar from '../app/Topbar';
 import TaskCard from '../tasks/TaskCard';
 import TaskForm from '../tasks/TaskForm';
 import Avatar from './Avatar';
@@ -64,7 +64,7 @@ const SharedListView: React.FC = () => {
   if (isError || !share) {
     return (
       <div className="min-h-screen bg-page">
-        <Header />
+        <Topbar />
         <div className="mx-auto max-w-3xl px-4 py-10">
           <div className="card p-8 text-center">
             <p className="text-red-400">This shared list is not available.</p>
@@ -79,7 +79,7 @@ const SharedListView: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-page">
-      <Header />
+      <Topbar />
       <div className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">

@@ -8,12 +8,21 @@ export interface Toast {
   variant: ToastVariant;
 }
 
+export type DetailTarget =
+  | { type: 'task'; id: string }
+  | { type: 'column'; id: string };
+
 interface UIState {
   /* ---------------- Modals ---------------- */
   isTaskFormOpen: boolean;
   editingTaskId: string | null;
   openTaskForm: (taskId?: string | null) => void;
   closeTaskForm: () => void;
+
+  /* ----------- Detail panel (right) ----------- */
+  detail: DetailTarget | null;
+  openDetail: (payload: DetailTarget) => void;
+  closeDetail: () => void;
 
   /* -------------- Sidebar -------------- */
   isSidebarOpen: boolean;
@@ -40,6 +49,10 @@ export const useUiStore = create<UIState>()((set, get) => ({
   editingTaskId: null,
   openTaskForm: (taskId) => set({ isTaskFormOpen: true, editingTaskId: taskId ?? null }),
   closeTaskForm: () => set({ isTaskFormOpen: false, editingTaskId: null }),
+
+  detail: null,
+  openDetail: (payload) => set({ detail: payload }),
+  closeDetail: () => set({ detail: null }),
 
   isSidebarOpen: false,
   toggleSidebar: () => set((state) => ({ isSidebarOpen: !state.isSidebarOpen })),

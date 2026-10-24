@@ -24,6 +24,7 @@ const CommandPaletteInner = () => {
   const close = useCommandPaletteStore((s) => s.close);
   const openShortcutHelp = useShortcutHelpStore((s) => s.open);
   const openTaskForm = useUiStore((s) => s.openTaskForm);
+  const openDetail = useUiStore((s) => s.openDetail);
   const setActiveBoard = useBoardStore((s) => s.setActiveBoard);
   const { data: boards } = useBoards();
   const { data: tasks } = useTasks({});
@@ -61,7 +62,7 @@ const CommandPaletteInner = () => {
       label: t.title,
       hint: t.status,
       group: 'Tasks',
-      run: () => { close(); openTaskForm(t.id); },
+      run: () => { close(); openDetail({ type: 'task', id: t.id }); },
     }));
     return [...actions, ...boardItems, ...taskItems];
   }, [boards, tasks, close, openTaskForm, openShortcutHelp, navigate, setActiveBoard]);
