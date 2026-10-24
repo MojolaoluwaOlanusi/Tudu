@@ -72,10 +72,10 @@ const AnalyticsDashboard = lazy(() => import('./components/analytics/AnalyticsDa
 
 /** App shell: header plus the shared-lists sidebar on large screens. */
 const Shell = ({ children }: { children: ReactNode }) => (
-  <div className="min-h-screen">
+  <div data-app-shell className="min-h-screen">
     <Header />
       <LicenseBanner />
-    <div className="mx-auto flex w-full max-w-6xl gap-6 px-4 py-6 sm:px-6 sm:py-8">
+    <div className="mx-auto flex w-full max-w-7xl gap-6 px-4 py-6 sm:px-6 sm:py-8">
       <aside className="hidden w-64 shrink-0 lg:block" data-tour="shared">
         <SharedListsSidebar />
       </aside>
