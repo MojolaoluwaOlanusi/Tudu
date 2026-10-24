@@ -196,7 +196,7 @@ const BoardsModal: React.FC<BoardsModalProps> = ({ onClose }) => {
                       onClick={() => handleDelete(board.id, board.name, board.task_count ?? 0)}
                       disabled={busy}
                       aria-label={`Delete ${board.name}`}
-                      className="rounded-lg border border-hairline bg-surface px-2.5 py-1.5 text-xs font-semibold text-red-500 hover:border-red-300 disabled:opacity-40"
+                      className="rounded-lg border border-hairline bg-surface px-2.5 py-1.5 text-xs font-semibold text-red-400 hover:border-red-300 disabled:opacity-40"
                     >
                       Delete
                     </button>

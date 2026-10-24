@@ -64,46 +64,58 @@
   }
 
   .dark {
-    color-scheme: dark;
+  color-scheme: dark;
 
-    --color-bg: #1a1a1a;             /* dark grey */
-    --color-surface: #242424;
-    --color-surface-2: #2e2e2e;
-    --color-border: #3a3a3a;
-    --color-text: #ededed;
-    --color-text-muted: #9aa4b2;
-    --color-accent: #22c55e;
-    --color-accent-strong: #4ade80;
-    --color-accent-soft: rgba(34, 197, 94, 0.16);
-    --shadow-surface: 0 14px 34px -18px rgba(0, 0, 0, 0.75);
+  /* Step 10: the warm-grey palette (#1a1a1a/#242424/#3a3a3a) has been
+     replaced with the mockup's cool near-black family. This is the change
+     that finally makes every screen (Board, List, Stats, Analytics,
+     Settings) look like the design reference, because they all read from
+     these tokens. Light mode keeps its existing #fafafa/#ffffff values,
+     which already match the mockup's light tokens byte for byte.
 
-    --grain-opacity: 0.28;
-        /* Design-system aliases (dark) — mirror the light block above. */
-    --bg-page:        var(--color-bg);
-    --bg-surface:     var(--color-surface);
-    --bg-elevated:    var(--color-surface-2);
-    --bg-hover:       #222228;
-    --bg-active:      #2A2A32;
+     Borders switch from solid #3a3a3a to translucent white at 10%. On the
+     new #16161A surface, that composites to about #2D2D31 — the soft
+     "hairline" the mockup uses, rather than a hard dark-grey line.
+     --color-accent-strong stays #4ade80 (deliberately NOT #16A34A): the
+     live app uses this token for emphasis text on dark surfaces where a
+     darker green would fail contrast. The mockup has no equivalent token. */
+  --color-bg: #0E0E10;
+  --color-surface: #16161A;
+  --color-surface-2: #1C1C21;
+  --color-border: rgba(255, 255, 255, 0.10);
+  --color-text: #ECECEF;
+  --color-text-muted: #A0A0AB;
+  --color-accent: #22c55e;
+  --color-accent-strong: #4ade80;
+  --color-accent-soft: rgba(34, 197, 94, 0.12);
+  --shadow-surface: 0 14px 34px -18px rgba(0, 0, 0, 0.75);
 
-    --border-subtle:  var(--color-border);
-    --border-default: var(--color-border);
-    --border-strong:  rgba(255, 255, 255, 0.16);
+  /* Design-system aliases (dark) — unchanged from Step 1. */
+  --bg-page:        var(--color-bg);
+  --bg-surface:     var(--color-surface);
+  --bg-elevated:    var(--color-surface-2);
+  --bg-hover:       #222228;
+  --bg-active:      #2A2A32;
 
-    --text-primary:   var(--color-text);
-    --text-secondary: var(--color-text-muted);
-    --text-tertiary:  #6B6B78;
-    --text-inverse:   #0E0E10;
+  --border-subtle:  var(--color-border);
+  --border-default: var(--color-border);
+  --border-strong:  rgba(255, 255, 255, 0.16);
 
-    --accent:         var(--color-accent);
-    --accent-hover:   var(--color-accent-strong);
-    --accent-subtle:  var(--color-accent-soft);
-    --accent-muted:   rgba(34, 197, 94, 0.25);
+  --text-primary:   var(--color-text);
+  --text-secondary: var(--color-text-muted);
+  --text-tertiary:  #6B6B78;
+  --text-inverse:   #0E0E10;
 
-    --status-todo:    #8B8B94;
-    --status-doing:   #F5A524;
-    --status-done:    #22C55E;
-    --status-overdue: #EF4444;
-  }
+  --accent:         var(--color-accent);
+  --accent-hover:   var(--color-accent-strong);
+  --accent-subtle:  var(--color-accent-soft);
+  --accent-muted:   rgba(34, 197, 94, 0.25);
+
+  --status-todo:    #8B8B94;
+  --status-doing:   #F5A524;
+  --status-done:    #22C55E;
+  --status-overdue: #EF4444;
+}
 
   * {
     border-color: var(--color-border);
