@@ -67,7 +67,7 @@ const SharedListView: React.FC = () => {
         <Header />
         <div className="mx-auto max-w-3xl px-4 py-10">
           <div className="card p-8 text-center">
-            <p className="text-red-500">This shared list is not available.</p>
+            <p className="text-red-400">This shared list is not available.</p>
             <Link to="/" className="btn-ghost mt-4">
               Back to my tasks
             </Link>

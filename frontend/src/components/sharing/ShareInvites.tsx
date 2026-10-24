@@ -74,7 +74,7 @@ const ShareInvites: React.FC = () => {
                 type="button"
                 onClick={() => handleRespond(share.id, 'accepted')}
                 disabled={respond.isPending}
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-[#22c55e] px-2.5 py-1.5 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-[#16a34a] disabled:opacity-50"
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-accent px-2.5 py-1.5 text-xs font-semibold text-white shadow-sm transition-all hover:brightness-110 disabled:opacity-50"
               >
                 <svg
                   className="h-3.5 w-3.5"
