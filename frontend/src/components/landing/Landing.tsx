@@ -9,6 +9,8 @@ import LiveBoardHero from './LiveBoardHero';
 import LogoStrip from './LogoStrip';
 import ProblemSection from './ProblemSection';
 import BentoGrid from './BentoGrid';
+import HowItWorks from './HowItWorks';
+import UnderTheHood from './UnderTheHood';
 import type { User } from '../../types/user';
 
 /**
@@ -72,6 +74,9 @@ const Landing = () => {
         <LogoStrip />
         <ProblemSection />
         <BentoGrid />
+
+        <HowItWorks />
+        <UnderTheHood />
 
         {/* --- Features (live copy, replaced by BentoGrid in Step 5) --- */}
         <section className="mx-auto max-w-5xl px-4 py-12">
