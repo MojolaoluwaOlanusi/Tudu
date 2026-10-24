@@ -66,7 +66,7 @@ const PurchasesList: React.FC = () => {
                 <p className="text-[11px] text-ink-muted">
                   {formatNaira(p.amount_kobo)} · purchased {formatDate(p.created_at)}
                   {p.status === 'refunded' && (
-                    <span className="text-amber-500"> · refunded {formatDate(p.refunded_at)}</span>
+                    <span className="text-amber-400"> · refunded {formatDate(p.refunded_at)}</span>
                   )}
                 </p>
               </div>
@@ -76,7 +76,7 @@ const PurchasesList: React.FC = () => {
                   type="button"
                   onClick={() => handleRefund(p.reference, p.amount_kobo)}
                   disabled={refund.isPending}
-                  className="shrink-0 rounded-lg border border-hairline bg-surface px-2.5 py-1.5 text-xs font-semibold text-red-500 hover:border-red-300 disabled:opacity-60"
+                  className="shrink-0 rounded-lg border border-hairline bg-surface px-2.5 py-1.5 text-xs font-semibold text-red-400 hover:border-red-400/60 disabled:opacity-60"
                 >
                   {refund.isPending ? 'Refunding...' : 'Refund'}
                 </button>

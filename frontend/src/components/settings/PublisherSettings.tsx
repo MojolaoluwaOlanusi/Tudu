@@ -81,7 +81,7 @@ const PublisherSettings: React.FC<PublisherSettingsProps> = ({ enabled }) => {
           </p>
           <p className="text-ink">
             <span className="text-ink-muted">Status: </span>
-            <span className={profile.payout_status === 'active' ? 'text-accent-strong' : 'text-amber-500'}>
+            <span className={profile.payout_status === 'active' ? 'text-accent-strong' : 'text-amber-400'}>
               {profile.payout_status || 'unknown'}
             </span>
           </p>

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import OAuthButton from './OAuthButton';
 import { useAuthStore } from '../../store/authStore';
 import { authService } from '../../services/authService';
@@ -7,6 +7,15 @@ import Wordmark from '../common/Wordmark';
 
 type EmailMode = 'signin' | 'signup';
 
+/**
+ * Login / Signup.
+ *
+ * The Step 12 restyle keeps the live app's flow intact (OAuth buttons first,
+ * "Continue with Email" toggles the form, "Sign Up" / "Sign In" toggles the
+ * mode) but adopts the mockup's two-column desktop layout: a marketing panel
+ * on the left, the form panel on the right. Below `lg` it collapses back to
+ * the single centred column the pre-restyle login already had.
+ */
 const Login: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -72,42 +81,77 @@ const Login: React.FC = () => {
     }
   };
 
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-page px-4 py-10">
-      <div className="w-full max-w-md">
-        <div className="mb-8 text-center">
-          <Wordmark className="mx-auto h-20 w-auto sm:h-24" />
-          <p className="mt-2 text-center text-lg text-ink-muted">
-            Your friendly todo app
-          </p>
-        </div>
+  const isSignup = showEmailForm && emailMode === 'signup';
+  const heading = isSignup ? 'Create your account' : 'Welcome back';
+  const sub = isSignup
+    ? 'Start free. No credit card required.'
+    : 'Sign in to your board.';
 
-        <div className="card p-6 sm:p-8">
-          <h2 className="mb-6 text-center font-handwritten text-3xl text-ink">
-            {showEmailForm && emailMode === 'signup'
-              ? 'Create your account'
-              : 'Welcome back'}
+  return (
+    <div className="flex min-h-screen bg-page text-ink">
+      {/* Left marketing panel — desktop only, ported from the mockup's AuthPage.jsx */}
+      <aside className="relative hidden w-1/2 flex-col justify-between overflow-hidden border-r border-hairline bg-surface p-10 lg:flex">
+        <Link to="/" className="inline-block" aria-label="Tudu home">
+          <Wordmark className="h-9 w-auto" />
+        </Link>
+        <div className="max-w-md">
+          <h2 className="font-handwritten text-4xl leading-tight text-ink">
+            Where simple boards become serious work.
           </h2>
+          <p className="mt-4 text-sm leading-relaxed text-ink-muted">
+            The fast, offline-first Kanban for teams tired of Trello&apos;s
+            limits and Jira&apos;s chaos. Free for personal use, scales when you
+            do.
+          </p>
+          <ul className="mt-6 space-y-2 text-[13px] text-ink-muted">
+            <li className="flex items-center gap-2">
+              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
+              Free forever for personal use
+            </li>
+            <li className="flex items-center gap-2">
+              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
+              Real-time sync across every device
+            </li>
+            <li className="flex items-center gap-2">
+              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
+              AI, Pomodoro, analytics, GitHub + Slack
+            </li>
+          </ul>
+        </div>
+        <p className="text-[11px] text-ink-muted">Made with love in Ibadan.</p>
+      </aside>
+
+      {/* Right form panel */}
+      <main className="flex w-full flex-col items-center justify-center px-6 py-10 lg:w-1/2">
+        <div className="w-full max-w-md">
+          {/* Mobile-only brand block */}
+          <div className="mb-8 text-center lg:hidden">
+            <Wordmark className="mx-auto h-20 w-auto sm:h-24" />
+            <p className="mt-2 text-center text-lg text-ink-muted">
+              Your friendly todo app
+            </p>
+          </div>
+
+          <h1 className="font-handwritten text-4xl text-ink">{heading}</h1>
+          <p className="mt-2 text-sm text-ink-muted">{sub}</p>
 
           {error && (
-            <div className="mb-4 rounded-lg bg-red-100 p-3 text-sm text-red-700 dark:bg-red-900/30 dark:text-red-300">
+            <div className="mt-4 rounded-lg bg-red-500/10 p-3 text-sm text-red-400">
               {error}
             </div>
           )}
 
           {!showEmailForm ? (
-            <>
-              <div className="space-y-4 mb-6">
-                <OAuthButton provider="google" onClick={handleGoogleLogin} />
-                <OAuthButton provider="github" onClick={handleGitHubLogin} />
-              </div>
+            <div className="mt-8 space-y-3">
+              <OAuthButton provider="google" onClick={handleGoogleLogin} />
+              <OAuthButton provider="github" onClick={handleGitHubLogin} />
 
-              <div className="relative mb-6">
+              <div className="relative my-6">
                 <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-hairline"></div>
+                  <div className="w-full border-t border-hairline" />
                 </div>
                 <div className="relative flex justify-center text-sm">
-                  <span className="bg-surface px-2 text-ink-muted">or</span>
+                  <span className="bg-page px-2 text-ink-muted">or</span>
                 </div>
               </div>
 
@@ -121,12 +165,14 @@ const Login: React.FC = () => {
               >
                 Continue with Email
               </button>
-            </>
+            </div>
           ) : (
-            <form onSubmit={handleEmailSubmit} className="space-y-4">
+            <form onSubmit={handleEmailSubmit} className="mt-8 space-y-4">
               {emailMode === 'signup' && (
                 <div>
-                  <label className="label" htmlFor="login-name">Name</label>
+                  <label className="label" htmlFor="login-name">
+                    Name
+                  </label>
                   <input
                     id="login-name"
                     type="text"
@@ -139,7 +185,9 @@ const Login: React.FC = () => {
               )}
 
               <div>
-                <label className="label" htmlFor="login-email">Email</label>
+                <label className="label" htmlFor="login-email">
+                  Email
+                </label>
                 <input
                   id="login-email"
                   type="email"
@@ -151,7 +199,9 @@ const Login: React.FC = () => {
               </div>
 
               <div>
-                <label className="label" htmlFor="login-password">Password</label>
+                <label className="label" htmlFor="login-password">
+                  Password
+                </label>
                 <input
                   id="login-password"
                   type="password"
@@ -180,7 +230,7 @@ const Login: React.FC = () => {
               <p className="text-center text-sm text-ink-muted">
                 {emailMode === 'signin' ? (
                   <>
-                    Don't have an account?{' '}
+                    Don&apos;t have an account?{' '}
                     <button
                       type="button"
                       onClick={() => {
@@ -222,11 +272,19 @@ const Login: React.FC = () => {
             </form>
           )}
 
-          <p className="mt-6 text-center text-sm text-gray-600 dark:text-gray-400">
-            By continuing, you agree to our Terms of Service and Privacy Policy
+          <p className="mt-6 text-center text-[11px] text-ink-muted">
+            By continuing, you agree to our{' '}
+            <Link to="/terms" className="underline hover:text-ink">
+              Terms
+            </Link>{' '}
+            and{' '}
+            <Link to="/privacy" className="underline hover:text-ink">
+              Privacy
+            </Link>
+            .
           </p>
         </div>
-      </div>
+      </main>
     </div>
   );
 };
