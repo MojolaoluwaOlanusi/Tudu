@@ -60,8 +60,14 @@ vi.mock('../hooks/useFeatureFlag', () => ({
   useFeatureFlag: () => false,
 }));
 
+// Single mock — do NOT add a second vi.mock for the same path (the
+// earlier duplicate was silently shadowed by this one).
 vi.mock('../hooks/useActivity', () => ({
   useTaskActivity: () => ({ data: [] }),
+  useActivityFeed: () => ({
+    data: { items: [], total: 0 },
+    isLoading: false,
+  }),
 }));
 
 vi.mock('../hooks/useSubtasks', () => ({
@@ -110,7 +116,12 @@ describe('TaskList — Step 9 restyle regression net', () => {
 
   it('renders one TaskCard for each task from the query', () => {
     wrap();
-    expect(screen.getByText('Ship the pricing page')).toBeInTheDocument();
+    // The task title appears twice in the DOM: once as the TaskCard <h3>,
+    // once as an <option> in RecentActivity's "Filter activity by task"
+    // select. Query by role so only the card's heading matches.
+    expect(
+      screen.getByRole('heading', { name: 'Ship the pricing page' })
+    ).toBeInTheDocument();
   });
 
   it('renders the empty-state card when the query returns no tasks', () => {
