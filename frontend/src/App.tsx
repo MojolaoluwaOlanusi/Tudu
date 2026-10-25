@@ -94,7 +94,7 @@ const Shell = ({ children }: { children: ReactNode }) => {
         <Sidebar />
         <main className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-line-subtle bg-surface">
           <div data-main ref={mainRef} className="min-h-0 flex-1 overflow-y-auto">
-            <div className="p-4 md:p-6">
+            <div className="flex min-h-full flex-col p-4 md:p-6">
               {/* Mobile-only. On lg+, the Sidebar owns these sections. */}
               <div className="mb-4 lg:hidden">
                 <ShareInvites />

@@ -1,3 +1,4 @@
+// src/components/kanban/BoardTaskForm.tsx
 import React, { useMemo } from 'react';
 import TaskForm from '../tasks/TaskForm';
 import { useCreateTask, useUpdateTask } from '../../hooks/useTasks';
@@ -7,16 +8,10 @@ import { useUiStore } from '../../store/uiStore';
 import { isNetworkError, shouldShowQueuedToast } from '../../lib/offlineQueue';
 import type { CreateTaskInput } from '../../types/task';
 
-/**
- * The create / edit form for the Board page.
- *
- * "+ New task" and clicking a card only flip `isTaskFormOpen` in the UI store;
- * the form itself is rendered by TaskList, which is not mounted on /board.
- * This mounts it there, and creates new tasks on the board that is open.
- */
 const BoardTaskForm: React.FC = () => {
   const isOpen = useUiStore((s) => s.isTaskFormOpen);
   const editingTaskId = useUiStore((s) => s.editingTaskId);
+  const composerColumnId = useUiStore((s) => s.composerColumnId);
   const closeTaskForm = useUiStore((s) => s.closeTaskForm);
   const pushToast = useUiStore((s) => s.pushToast);
   const { data: tasks } = useKanbanTasks();
@@ -37,7 +32,11 @@ const BoardTaskForm: React.FC = () => {
         await updateTask.mutateAsync({ id: editingTask.id, task: values });
         pushToast('Task updated', 'success');
       } else {
-        await createTask.mutateAsync({ ...values, board_id: activeBoardId ?? undefined });
+        await createTask.mutateAsync({
+          ...values,
+          board_id: activeBoardId ?? undefined,
+          column_id: composerColumnId ?? undefined,
+        });
         pushToast('Task created', 'success');
       }
       closeTaskForm();
