@@ -2,13 +2,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 
-// Chart.js needs a canvas; jsdom has none. Same stub trick as the existing
-// teamAnalytics.test.tsx.
-vi.mock('react-chartjs-2', () => ({
-  Bar: () => <div data-testid="bar-chart" />,
-  Line: () => <div data-testid="line-chart" />,
-  Pie: () => <div data-testid="pie-chart" />,
-}));
 
 vi.mock('../hooks/useAnalytics', () => ({
   useAnalyticsOverview: () => ({

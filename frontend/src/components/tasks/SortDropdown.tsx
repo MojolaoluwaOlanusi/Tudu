@@ -39,7 +39,7 @@ const SortDropdown = () => {
         value={value}
         onChange={(event) => onChange(event.target.value)}
         aria-label="Sort by"
-        className="rounded-full border border-hairline bg-surface-2 px-3 py-2 text-xs font-semibold text-ink transition-colors hover:border-accent focus:border-accent focus:outline-none"
+        className="rounded-xl border border-hairline bg-surface-2 px-3 py-2 text-xs font-semibold text-ink transition-colors hover:border-accent focus:border-accent focus:outline-none"
       >
         {OPTIONS.map((o) => (
           <option key={o.value} value={o.value}>
@@ -52,3 +52,4 @@ const SortDropdown = () => {
 };
 
 export default SortDropdown;
+

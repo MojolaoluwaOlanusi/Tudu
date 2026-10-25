@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { PanelLeftClose, PanelLeftOpen, Plus, MoreHorizontal, ArrowDown, ArrowUp } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import {
+  PanelLeftClose, PanelLeftOpen, Plus, MoreHorizontal,
+  Mail, Users, Send, ArrowUp, ArrowDown,
+} from 'lucide-react';
 import SidebarBoardList from './SidebarBoardList';
 import SidebarCollapsible from './SidebarCollapsible';
 import ShareInvitesList from '../sharing/ShareInvitesList';
@@ -11,34 +14,21 @@ import BoardsModal from '../kanban/BoardsModal';
 
 const COLLAPSE_KEY = 'tudu-sidebar-collapsed';
 
-/**
- * The left sidebar.
- *
- * Replaces the previous SharedListsSidebar + BoardSelector pair: it now
- * hosts the board list (grouped by workspace), the three share sections,
- * and a jump-to-recent-activity link — matching the mockup exactly.
- */
+const iconBtn =
+  'flex h-8 w-8 items-center justify-center rounded-md text-ink-muted transition-colors hover:bg-subtle hover:text-ink';
+
 const Sidebar: React.FC = () => {
   const [collapsed, setCollapsed] = useState(() => {
-    try {
-      return localStorage.getItem(COLLAPSE_KEY) === '1';
-    } catch {
-      return false;
-    }
+    try { return localStorage.getItem(COLLAPSE_KEY) === '1'; } catch { return false; }
   });
   const [atRecent, setAtRecent] = useState(false);
   const [manageOpen, setManageOpen] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    try {
-      localStorage.setItem(COLLAPSE_KEY, collapsed ? '1' : '0');
-    } catch {
-      /* quota or private mode */
-    }
+    try { localStorage.setItem(COLLAPSE_KEY, collapsed ? '1' : '0'); } catch {}
   }, [collapsed]);
 
-  // Track whether the main scroll pane is near the bottom, so the
-  // "Recent activity" button toggles between jump-to and back-to-top.
   useEffect(() => {
     const main = document.querySelector<HTMLElement>('[data-main]');
     if (!main) return;
@@ -65,8 +55,9 @@ const Sidebar: React.FC = () => {
   const { data: sharedWithMe } = useSharedWithMe();
   const { data: myShares } = useMyShares();
 
-  const pendingShares = flattenShares(sharedWithMe).filter((s) => s.status === 'pending');
-  const acceptedShares = flattenShares(sharedWithMe).filter((s) => s.status === 'accepted');
+  const withMe = flattenShares(sharedWithMe);
+  const pendingShares = withMe.filter((s) => s.status === 'pending');
+  const acceptedShares = withMe.filter((s) => s.status === 'accepted');
   const sharedByMe = flattenShares(myShares);
 
   if (collapsed) {
@@ -81,13 +72,61 @@ const Sidebar: React.FC = () => {
             onClick={() => setCollapsed(false)}
             title="Expand sidebar"
             aria-label="Expand sidebar"
-            className="flex h-8 w-8 items-center justify-center rounded-md text-ink-muted transition-colors hover:bg-subtle hover:text-ink"
+            className={iconBtn}
           >
             <PanelLeftOpen className="h-4 w-4" />
           </button>
         </div>
         <div className="flex-1 overflow-y-auto scroll-hidden">
           <SidebarBoardList collapsed />
+          <div className="my-2 border-t border-line-subtle" />
+          <div className="flex flex-col items-center gap-1 px-2 py-1">
+            <button
+              type="button"
+              onClick={() => navigate('/app')}
+              title={'Invitations (' + pendingShares.length + ')'}
+              aria-label={'Invitations (' + pendingShares.length + ')'}
+              className={'relative ' + iconBtn}
+            >
+              <Mail className="h-4 w-4" />
+              {pendingShares.length > 0 && (
+                <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-brand" />
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate('/app')}
+              title={'Shared with me (' + acceptedShares.length + ')'}
+              aria-label={'Shared with me (' + acceptedShares.length + ')'}
+              className={'relative ' + iconBtn}
+            >
+              <Users className="h-4 w-4" />
+              {acceptedShares.length > 0 && (
+                <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-brand" />
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate('/app')}
+              title={'Shared by me (' + sharedByMe.length + ')'}
+              aria-label={'Shared by me (' + sharedByMe.length + ')'}
+              className={iconBtn}
+            >
+              <Send className="h-4 w-4" />
+            </button>
+          </div>
+          <div className="my-2 border-t border-line-subtle" />
+          <div className="flex justify-center px-2">
+            <button
+              type="button"
+              onClick={handleRecentActivity}
+              title={atRecent ? 'Back to top' : 'Jump to recent activity'}
+              aria-label={atRecent ? 'Back to top' : 'Jump to recent activity'}
+              className={iconBtn}
+            >
+              {atRecent ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />}
+            </button>
+          </div>
         </div>
       </aside>
     );
@@ -107,7 +146,7 @@ const Sidebar: React.FC = () => {
           onClick={() => setManageOpen(true)}
           title="New / manage boards"
           aria-label="New or manage boards"
-          className="flex h-7 w-7 items-center justify-center rounded-md text-ink-muted transition-colors hover:bg-subtle hover:text-ink"
+          className={iconBtn + ' !h-7 !w-7'}
         >
           <Plus className="h-4 w-4" />
         </button>
@@ -116,7 +155,7 @@ const Sidebar: React.FC = () => {
           onClick={() => setManageOpen(true)}
           title="Board actions"
           aria-label="Board actions"
-          className="flex h-7 w-7 items-center justify-center rounded-md text-ink-muted transition-colors hover:bg-subtle hover:text-ink"
+          className={iconBtn + ' !h-7 !w-7'}
         >
           <MoreHorizontal className="h-4 w-4" />
         </button>
@@ -125,7 +164,7 @@ const Sidebar: React.FC = () => {
           onClick={() => setCollapsed(true)}
           title="Collapse sidebar"
           aria-label="Collapse sidebar"
-          className="flex h-7 w-7 items-center justify-center rounded-md text-ink-muted transition-colors hover:bg-subtle hover:text-ink"
+          className={iconBtn + ' !h-7 !w-7'}
         >
           <PanelLeftClose className="h-4 w-4" />
         </button>
@@ -142,8 +181,8 @@ const Sidebar: React.FC = () => {
             <ul className="space-y-1 px-2">
               {acceptedShares.map((share) => (
                 <li key={share.id}>
-                  <Link
-                    to={`/shared/${share.id}`}
+                  <a
+                    href={`#/shared/${share.id}`}
                     className="flex items-center gap-2 rounded-md px-2 py-1.5 transition-colors hover:bg-subtle"
                   >
                     <Avatar user={share.owner} size="h-6 w-6" />
@@ -155,7 +194,7 @@ const Sidebar: React.FC = () => {
                         {share.tasks_completed ?? 0}/{share.task_count ?? 0} done
                       </p>
                     </div>
-                  </Link>
+                  </a>
                 </li>
               ))}
             </ul>
@@ -174,9 +213,7 @@ const Sidebar: React.FC = () => {
                       <p className="truncate text-[12px] text-ink">
                         {share.shared_with?.name || share.shared_with?.email || 'Someone'}
                       </p>
-                      <p className="truncate text-[10px] uppercase text-ink-faint">
-                        {share.status}
-                      </p>
+                      <p className="truncate text-[10px] uppercase text-ink-faint">{share.status}</p>
                     </div>
                   </div>
                 </li>

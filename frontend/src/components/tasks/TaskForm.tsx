@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Task, CreateTaskInput, Category, Priority } from '../../types/task';
+import { X } from 'lucide-react';
 import { ParsedTaskText } from '../../types/nlp';
 import SmartTaskInput from './SmartTaskInput';
 
@@ -178,3 +179,4 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSubmit, onCancel, isLoading, init
 };
 
 export default TaskForm;
+

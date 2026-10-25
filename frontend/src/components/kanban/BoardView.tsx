@@ -38,6 +38,8 @@ const BoardView: React.FC = () => {
   const { mutate: createColumn } = useCreateColumn();
   const { mutate: reorderColumns } = useReorderColumns();
   const openTaskForm = useUiStore((s) => s.openTaskForm);
+  const closeTaskForm = useUiStore((s) => s.closeTaskForm);
+  const isTaskFormOpen = useUiStore((s) => s.isTaskFormOpen);
   const openDetail = useUiStore((s) => s.openDetail);
   const pushToast = useUiStore((s) => s.pushToast);
   const { burst } = useConfetti();
@@ -233,7 +235,7 @@ const BoardView: React.FC = () => {
   }
 
   return (
-    <div className="flex min-h-[calc(100vh-8rem)] flex-col">
+    <div className="flex h-full flex-col">
       <div className="shrink-0 border-b border-line-subtle px-4 py-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="min-w-0">
@@ -286,7 +288,7 @@ const BoardView: React.FC = () => {
                 columnDropTarget.id === column.id &&
                 draggedColId !== column.id;
               return (
-                <div key={column.id} className="relative shrink-0">
+                <div key={column.id} className="relative shrink-0 h-full">
                   {showDrop && (
                     <div
                       className={
@@ -318,7 +320,7 @@ const BoardView: React.FC = () => {
             <button
               type="button"
               onClick={handleAddColumn}
-              className="flex h-full w-72 shrink-0 items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-line-subtle text-[12px] font-medium text-ink-faint transition-colors hover:border-brand hover:text-brand"
+              className="flex w-72 shrink-0 self-stretch items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-line-subtle text-[12px] font-medium text-ink-faint transition-colors hover:border-brand hover:text-brand"
             >
               <Plus className="h-4 w-4" />
               Add column
@@ -345,3 +347,4 @@ const BoardView: React.FC = () => {
 };
 
 export default BoardView;
+

@@ -1,40 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import {
-  BarElement,
-  CategoryScale,
-  Chart as ChartJS,
-  Filler,
-  Legend,
-  LinearScale,
-  LineElement,
-  PointElement,
-  Tooltip,
-} from 'chart.js';
-import { Bar, Line } from 'react-chartjs-2';
 import { useWorkspaces } from '../../hooks/useWorkspaces';
 import { useTeamAnalytics } from '../../hooks/useAnalytics';
+import { BarChart, LineChart } from '../app/charts/Charts';
 import type { AnalyticsRange } from '../../types/analytics';
-
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  LineElement,
-  PointElement,
-  Tooltip,
-  Legend,
-  Filler,
-);
 
 const RANGE_LABELS: Record<AnalyticsRange, string> = {
   week: 'Last 7 days',
   month: 'Last 30 days',
   quarter: 'Last 12 weeks',
 };
-
-/** Primary chart colour — mockup uses brand green for the burndown and bars. */
-const PRIMARY_CHART_COLOUR = '#22c55e';
-const PRIMARY_FILL = 'rgba(34, 197, 94, 0.15)';
 
 const formatDay = (iso: string): string => {
   const d = new Date(`${iso}T00:00:00.000Z`);
@@ -92,45 +66,23 @@ const TeamAnalyticsView: React.FC = () => {
 
   const { data, isLoading, isError, refetch } = useTeamAnalytics(workspaceId, range);
 
-  const barData = useMemo(() => {
-    const points = data?.burndown ?? [];
-    return {
-      labels: points.map((p) => formatDay(p.date)),
-      datasets: [
-        {
-          label: 'Completed',
-          data: points.map((p) => p.completed),
-          backgroundColor: PRIMARY_CHART_COLOUR,
-          borderRadius: 4,
-        },
-      ],
-    };
-  }, [data]);
+  const barData = useMemo(
+    () =>
+      (data?.burndown ?? []).map((p) => ({
+        label: formatDay(p.date),
+        value: p.completed,
+      })),
+    [data]
+  );
 
-  const lineData = useMemo(() => {
-    const points = data?.burndown ?? [];
-    return {
-      labels: points.map((p) => formatDay(p.date)),
-      datasets: [
-        {
-          label: 'Remaining',
-          data: points.map((p) => p.remaining),
-          borderColor: PRIMARY_CHART_COLOUR,
-          backgroundColor: PRIMARY_FILL,
-          fill: true,
-          tension: 0.3,
-          pointRadius: 2,
-        },
-      ],
-    };
-  }, [data]);
-
-  const chartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: { legend: { display: false } },
-    scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
-  };
+  const lineData = useMemo(
+    () =>
+      (data?.burndown ?? []).map((p) => ({
+        label: formatDay(p.date),
+        value: p.remaining,
+      })),
+    [data]
+  );
 
   if (loadingWorkspaces) {
     return (
@@ -187,9 +139,7 @@ const TeamAnalyticsView: React.FC = () => {
               onClick={() => setRange(key)}
               aria-pressed={range === key}
               className={`rounded px-3 py-1.5 text-[12px] font-medium transition-colors ${
-                range === key
-                  ? 'bg-raised text-ink'
-                  : 'text-ink-muted hover:text-ink'
+                range === key ? 'bg-raised text-ink' : 'text-ink-muted hover:text-ink'
               }`}
             >
               {RANGE_LABELS[key]}
@@ -252,23 +202,19 @@ const TeamAnalyticsView: React.FC = () => {
               Remaining tasks, end of each day. The line rises when new cards are
               added and drops when they are completed.
             </p>
-            <div className="h-56">
-              {data.burndown.length > 0 ? (
-                <Line data={lineData} options={chartOptions} />
-              ) : (
-                <p className="flex h-full items-center justify-center text-sm text-ink-muted">
-                  No tasks in this period.
-                </p>
-              )}
-            </div>
+            {data.burndown.length > 0 ? (
+              <LineChart data={lineData} height={224} />
+            ) : (
+              <p className="flex h-56 items-center justify-center text-sm text-ink-muted">
+                No tasks in this period.
+              </p>
+            )}
           </div>
 
           <div className="card p-5">
             <h2 className="font-handwritten text-xl text-ink">Completed per day</h2>
             <p className="mb-3 text-[11px] text-ink-faint">Tasks finished each day.</p>
-            <div className="h-48">
-              <Bar data={barData} options={chartOptions} />
-            </div>
+            <BarChart data={barData} height={160} />
           </div>
 
           <div className="card p-5">
@@ -324,8 +270,7 @@ const TeamAnalyticsView: React.FC = () => {
               <h2 className="mb-3 font-handwritten text-xl text-ink">By board</h2>
               <ul className="space-y-2">
                 {data.overview.boards.map((b) => {
-                  const pct =
-                    b.total === 0 ? 0 : Math.round((b.done / b.total) * 100);
+                  const pct = b.total === 0 ? 0 : Math.round((b.done / b.total) * 100);
                   return (
                     <li key={b.id} className="flex items-center gap-3">
                       <span className="min-w-0 flex-1 truncate text-sm text-ink">

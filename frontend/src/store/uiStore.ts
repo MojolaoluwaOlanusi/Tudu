@@ -1,4 +1,3 @@
-// src/store/uiStore.ts
 import { create } from 'zustand';
 
 export type ToastVariant = 'success' | 'error' | 'info';
@@ -17,7 +16,6 @@ interface UIState {
   /* ---------------- Modals ---------------- */
   isTaskFormOpen: boolean;
   editingTaskId: string | null;
-  /** When the form was opened from a specific column's "+" button. */
   composerColumnId: string | null;
   openTaskForm: (taskId?: string | null, columnId?: string | null) => void;
   closeTaskForm: () => void;
@@ -26,6 +24,11 @@ interface UIState {
   detail: DetailTarget | null;
   openDetail: (payload: DetailTarget) => void;
   closeDetail: () => void;
+
+  /* -------------- Filter panel -------------- */
+  filtersOpen: boolean;
+  toggleFilters: () => void;
+  setFiltersOpen: (open: boolean) => void;
 
   /* -------------- Sidebar -------------- */
   isSidebarOpen: boolean;
@@ -58,15 +61,15 @@ export const useUiStore = create<UIState>()((set, get) => ({
       composerColumnId: columnId ?? null,
     }),
   closeTaskForm: () =>
-    set({
-      isTaskFormOpen: false,
-      editingTaskId: null,
-      composerColumnId: null,
-    }),
+    set({ isTaskFormOpen: false, editingTaskId: null, composerColumnId: null }),
 
   detail: null,
   openDetail: (payload) => set({ detail: payload }),
   closeDetail: () => set({ detail: null }),
+
+  filtersOpen: true,
+  toggleFilters: () => set((state) => ({ filtersOpen: !state.filtersOpen })),
+  setFiltersOpen: (open) => set({ filtersOpen: open }),
 
   isSidebarOpen: false,
   toggleSidebar: () => set((state) => ({ isSidebarOpen: !state.isSidebarOpen })),
@@ -83,6 +86,6 @@ export const useUiStore = create<UIState>()((set, get) => ({
     setTimeout(() => get().dismissToast(id), TOAST_TIMEOUT);
   },
   dismissToast: (id) =>
-    set((state) => ({ toasts: state.toasts.filter((toast) => toast.id !== id) })),
+    set((state) => ({ toasts: state.toasts.filter((t) => t.id !== id) })),
   clearToasts: () => set({ toasts: [] }),
 }));

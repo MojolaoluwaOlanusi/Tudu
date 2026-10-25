@@ -12,6 +12,7 @@ import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import { useUiStore } from '../../store/uiStore';
 import { isNetworkError, shouldShowQueuedToast } from '../../lib/offlineQueue';
 import { useUndoStore } from '../../store/undoStore';
+import { useBoardStore } from '../../store/boardStore';
 import {
   useFilterStore,
   useTaskFilters,
@@ -86,8 +87,8 @@ const TaskList: React.FC = () => {
   const openTaskForm = useUiStore((s) => s.openTaskForm);
   const closeTaskForm = useUiStore((s) => s.closeTaskForm);
   const openDetail = useUiStore((s) => s.openDetail);
-  const isSidebarOpen = useUiStore((s) => s.isSidebarOpen);
-  const toggleSidebar = useUiStore((s) => s.toggleSidebar);
+  const filtersOpen = useUiStore((s) => s.filtersOpen);
+  const toggleFilters = useUiStore((s) => s.toggleFilters);
   const pushToast = useUiStore((s) => s.pushToast);
   const isShareModalOpen = useUiStore((s) => s.isShareModalOpen);
   const openShareModal = useUiStore((s) => s.openShareModal);
@@ -96,7 +97,13 @@ const TaskList: React.FC = () => {
   const { data: tasks, isLoading, isFetching, isError, error, refetch } =
     useTasks(activeFilters);
   const { data: overdueTasks } = useOverdueTasks();
+  const explicitBoardId = useBoardStore((s) => s.activeBoardId);
   useUserPreferencesSync();
+  const visibleTasks = useMemo(() => {
+    const list = tasks ?? [];
+    if (!explicitBoardId) return list;
+    return list.filter((t) => t.board_id === explicitBoardId);
+  }, [tasks, explicitBoardId]);
 
   const [taskQueryParams] = useSearchParams();
   const setSearchFilter = useFilterStore((s) => s.setSearch);
@@ -279,7 +286,7 @@ const TaskList: React.FC = () => {
     );
   }
 
-  const taskCount = (tasks ?? []).length;
+  const taskCount = visibleTasks.length;
   const overdueCount = (overdueTasks ?? []).length;
 
   return (
@@ -297,14 +304,14 @@ const TaskList: React.FC = () => {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <button
-            onClick={toggleSidebar}
+            onClick={toggleFilters}
             className={
-              'btn-ghost !py-1.5 !text-[13px] sm:hidden ' +
-              (isSidebarOpen ? 'border-brand/40 text-brand' : '')
+              'btn-ghost !py-1.5 !text-[13px] ' +
+              (filtersOpen ? 'border-brand/40 text-brand' : '')
             }
-            aria-pressed={isSidebarOpen}
+            aria-pressed={filtersOpen}
           >
-            {isSidebarOpen ? 'Hide filters' : 'Filters'}
+            {filtersOpen ? 'Hide filters' : 'Filters'}
           </button>
           <button onClick={openShareModal} className="btn-ghost !py-1.5 !text-[13px] shrink-0">
             Share
@@ -347,7 +354,7 @@ const TaskList: React.FC = () => {
 
       {/* Filters panel (mobile collapsible, desktop always shown) */}
       <div
-        className={`card p-4 ${isSidebarOpen ? 'block' : 'hidden'} sm:block`}
+        className={`card p-4 ${filtersOpen ? 'block' : 'hidden'}`}
         data-tour="filters"
       >
         <div className="space-y-4">
@@ -424,7 +431,7 @@ const TaskList: React.FC = () => {
         />
       )}
 
-      {isShareModalOpen && <ShareModal tasks={tasks ?? []} />}
+      {isShareModalOpen && <ShareModal tasks={visibleTasks} />}
 
       <BulkActionBar
         count={selectedIds.size}
@@ -435,7 +442,7 @@ const TaskList: React.FC = () => {
         onClear={clearSelection}
       />
 
-      {!tasks || tasks.length === 0 ? (
+      {visibleTasks.length === 0 ? (
         <EmptyState
           variant={hasActiveFilters ? 'filtered' : 'empty'}
           onNew={() => openTaskForm(null)}
@@ -443,7 +450,7 @@ const TaskList: React.FC = () => {
         />
       ) : (
         <div className="grid gap-3">
-          {tasks.map((task) => {
+          {visibleTasks.map((task) => {
             const selected = selectedIds.has(task.id);
             return (
               <div
