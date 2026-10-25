@@ -1,3 +1,4 @@
+// src/store/uiStore.ts
 import { create } from 'zustand';
 
 export type ToastVariant = 'success' | 'error' | 'info';
@@ -16,7 +17,9 @@ interface UIState {
   /* ---------------- Modals ---------------- */
   isTaskFormOpen: boolean;
   editingTaskId: string | null;
-  openTaskForm: (taskId?: string | null) => void;
+  /** When the form was opened from a specific column's "+" button. */
+  composerColumnId: string | null;
+  openTaskForm: (taskId?: string | null, columnId?: string | null) => void;
   closeTaskForm: () => void;
 
   /* ----------- Detail panel (right) ----------- */
@@ -47,8 +50,19 @@ const TOAST_TIMEOUT = 4000;
 export const useUiStore = create<UIState>()((set, get) => ({
   isTaskFormOpen: false,
   editingTaskId: null,
-  openTaskForm: (taskId) => set({ isTaskFormOpen: true, editingTaskId: taskId ?? null }),
-  closeTaskForm: () => set({ isTaskFormOpen: false, editingTaskId: null }),
+  composerColumnId: null,
+  openTaskForm: (taskId, columnId) =>
+    set({
+      isTaskFormOpen: true,
+      editingTaskId: taskId ?? null,
+      composerColumnId: columnId ?? null,
+    }),
+  closeTaskForm: () =>
+    set({
+      isTaskFormOpen: false,
+      editingTaskId: null,
+      composerColumnId: null,
+    }),
 
   detail: null,
   openDetail: (payload) => set({ detail: payload }),
@@ -66,7 +80,6 @@ export const useUiStore = create<UIState>()((set, get) => ({
   pushToast: (message, variant = 'info') => {
     const id = `toast-${++toastCounter}`;
     set((state) => ({ toasts: [...state.toasts, { id, message, variant }] }));
-    // Auto-dismiss after a few seconds.
     setTimeout(() => get().dismissToast(id), TOAST_TIMEOUT);
   },
   dismissToast: (id) =>

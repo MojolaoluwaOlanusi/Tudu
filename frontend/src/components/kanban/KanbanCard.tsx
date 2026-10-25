@@ -1,6 +1,5 @@
-import React, { type CSSProperties, type ReactNode } from 'react';
-import { useSortable } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
+// src/components/kanban/KanbanCard.tsx
+import React, { type ReactNode } from 'react';
 import { format } from 'date-fns';
 import { Task } from '../../types/task';
 import { isOverdueTask } from '../../lib/taskCache';
@@ -47,16 +46,21 @@ export const KanbanCardBody: React.FC<KanbanCardBodyProps> = ({
       }`}
     >
       <div className="flex min-w-0 items-start gap-2">
+        {/* Checkbox: stop propagation so a click doesn't also open the card. */}
         <input
           type="checkbox"
           checked={isSelected}
           onChange={() => onToggleSelect(task.id)}
+          onClick={(e) => e.stopPropagation()}
           aria-label={`Select ${task.title}`}
           className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-[#22c55e]"
         />
         <button
           type="button"
-          onClick={() => onEdit(task)}
+          onClick={(e) => {
+            e.stopPropagation();
+            onEdit(task);
+          }}
           className="min-w-0 flex-1 break-words text-left text-sm font-semibold text-ink transition-colors hover:text-accent-strong"
         >
           {task.title}
@@ -119,45 +123,3 @@ export const KanbanCardBody: React.FC<KanbanCardBodyProps> = ({
     </div>
   );
 };
-
-const KanbanCard: React.FC<KanbanCardBodyProps> = ({
-  task,
-  isSelected,
-  onToggleSelect,
-  onEdit,
-}) => {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
-    useSortable({ id: task.id, data: { task } });
-
-  const style: CSSProperties = {
-    transform: CSS.Translate.toString(transform),
-    transition,
-    opacity: isDragging ? 0.35 : 1,
-  };
-
-  return (
-    <div ref={setNodeRef} style={style}>
-      <KanbanCardBody
-        task={task}
-        isSelected={isSelected}
-        onToggleSelect={onToggleSelect}
-        onEdit={onEdit}
-        dragHandle={
-          <button
-            type="button"
-            aria-label={`Drag ${task.title}`}
-            className="shrink-0 cursor-grab touch-none rounded-lg p-1 text-ink-muted transition-colors hover:bg-surface-2 hover:text-accent-strong active:cursor-grabbing"
-            {...attributes}
-            {...listeners}
-          >
-            <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M7 4a1 1 0 1 1-2 0 1 1 0 0 1 2 0Zm0 6a1 1 0 1 1-2 0 1 1 0 0 1 2 0Zm-1 7a1 1 0 1 0 0-2 1 1 0 0 0 0 2Zm9-13a1 1 0 1 1-2 0 1 1 0 0 1 2 0Zm-1 7a1 1 0 1 0 0-2 1 1 0 0 0 0 2Zm1 5a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z" />
-            </svg>
-          </button>
-        }
-      />
-    </div>
-  );
-};
-
-export default KanbanCard;

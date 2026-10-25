@@ -1,15 +1,32 @@
+// src/test/kanbanCard.test.tsx
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import KanbanCard from '../components/kanban/KanbanCard';
+import BoardCard from '../components/kanban/BoardCard';
 import type { Task } from '../types/task';
 
-// KanbanCard pulls in AssigneeChip (queries) and an overdue helper.
-// Mock both so we can isolate the render.
+// BoardCard pulls in AssigneeChip (queries) and the overdue helper.
 vi.mock('../hooks/useBoards', () => ({ useBoards: () => ({ data: [] }) }));
 vi.mock('../hooks/useWorkspaces', () => ({
   useWorkspaceMembers: () => ({ data: [] }),
   useAssignTask: () => ({ mutate: vi.fn(), isPending: false }),
 }));
+
+// dnd-kit's useDraggable needs a DndContext ancestor. A minimal wrapper is
+// enough for the presentational assertions these tests make.
+vi.mock('@dnd-kit/core', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@dnd-kit/core')>();
+  return {
+    ...actual,
+    useDraggable: () => ({
+      attributes: {},
+      listeners: {},
+      setNodeRef: () => {},
+      setActivatorNodeRef: () => {},
+      transform: null,
+      isDragging: false,
+    }),
+  };
+});
 
 const makeTask = (over: Partial<Task> = {}): Task =>
   ({
@@ -27,14 +44,14 @@ const makeTask = (over: Partial<Task> = {}): Task =>
     ...over,
   } as Task);
 
-describe('KanbanCard chip palettes', () => {
+describe('BoardCard chip palettes', () => {
   it('renders the priority chip with the mockup tint classes', () => {
     render(
-      <KanbanCard
+      <BoardCard
         task={makeTask()}
         isSelected={false}
         onToggleSelect={() => {}}
-        onEdit={() => {}}
+        onOpen={() => {}}
       />
     );
     const chip = screen.getByText(/^high$/i);
@@ -44,11 +61,11 @@ describe('KanbanCard chip palettes', () => {
 
   it('renders the category chip with the mockup tint classes', () => {
     render(
-      <KanbanCard
+      <BoardCard
         task={makeTask()}
         isSelected={false}
         onToggleSelect={() => {}}
-        onEdit={() => {}}
+        onOpen={() => {}}
       />
     );
     const chip = screen.getByText(/^work$/i);
@@ -58,11 +75,11 @@ describe('KanbanCard chip palettes', () => {
 
   it('renders the overdue due-date chip in red', () => {
     render(
-      <KanbanCard
+      <BoardCard
         task={makeTask({ due_date: '2020-01-01T00:00:00Z' })}
         isSelected={false}
         onToggleSelect={() => {}}
-        onEdit={() => {}}
+        onOpen={() => {}}
       />
     );
     expect(screen.getByText(/overdue/i).className).toMatch(/text-red-400/);
