@@ -30,7 +30,6 @@ import WizardRoot from './components/onboarding/WizardRoot';
 import WorkspaceInvites from './components/workspace/WorkspaceInvites';
 import ShareInvites from './components/sharing/ShareInvites';
 import SharedWithMeSection from './components/sharing/SharedWithMeSection';
-import RecentActivity from './components/activity/RecentActivity';
 import SharedListView from './components/sharing/SharedListView';
 import PomodoroStats from './components/pomodoro/PomodoroStats';
 import WeeklyReport from './components/time/WeeklyReport';
@@ -105,9 +104,6 @@ const Shell = ({ children }: { children: ReactNode }) => {
                 <SharedWithMeSection />
               </div>
               {children}
-              <div className="mt-6" data-tour="activity">
-                <RecentActivity />
-              </div>
             </div>
           </div>
         </main>
@@ -292,3 +288,4 @@ function App() {
 }
 
 export default App;
+
