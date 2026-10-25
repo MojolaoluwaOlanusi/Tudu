@@ -45,24 +45,31 @@ const SettingsNotifications: React.FC = () => {
               disabled={update.isPending}
             />
             {showPushToggle && (
-              <ToggleRow
-                label="Browser notifications"
-                description={
-                  push.support === 'denied'
-                    ? 'Notifications are blocked in your browser settings.'
-                    : 'A reminder appears even when Tudu is closed.'
-                }
-                checked={push.support === 'subscribed'}
-                onChange={async (v) => {
-                  try {
-                    if (v) await push.enable();
-                    else await push.disable();
-                  } catch {
-                    pushToast('Could not update browser notifications', 'error');
+              <>
+                <ToggleRow
+                  label="Browser notifications"
+                  description={
+                    push.support === 'denied'
+                      ? 'Notifications are blocked in your browser settings.'
+                      : 'A reminder appears even when Tudu is closed.'
                   }
-                }}
-                disabled={push.support === 'denied'}
-              />
+                  checked={push.support === 'subscribed'}
+                  onChange={async (v) => {
+                    try {
+                      if (v) await push.enable();
+                      else await push.disable();
+                    } catch {
+                      pushToast('Could not update browser notifications', 'error');
+                    }
+                  }}
+                  disabled={push.support === 'denied'}
+                />
+                <p className="text-[11px] leading-relaxed text-ink-faint">
+                  In-app browsers (Instagram, WhatsApp, Messenger) don’t support
+                  browser notifications. Open Tudu directly in Safari or Chrome
+                  for them to work.
+                </p>
+              </>
             )}
           </div>
         )}

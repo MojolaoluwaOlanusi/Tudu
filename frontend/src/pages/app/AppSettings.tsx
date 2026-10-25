@@ -15,9 +15,11 @@ const NAV = [
 ];
 
 const AppSettings: React.FC = () => (
-  <div className="flex gap-6">
-    <aside className="hidden w-56 shrink-0 md:block">
-      <nav className="sticky top-4 space-y-0.5">
+  <div className="-m-4 flex gap-0 md:-m-6">
+    <aside className="hidden w-56 shrink-0 border-r border-line-subtle md:block">
+      <div className="sticky top-0 p-4">
+        <h2 className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-wider text-ink-faint">Settings</h2>
+        <nav className="space-y-0.5">
         {NAV.map((item) => {
           const Icon = item.icon;
           return (
@@ -36,9 +38,10 @@ const AppSettings: React.FC = () => (
             </NavLink>
           );
         })}
-      </nav>
+        </nav>
+      </div>
     </aside>
-    <div className="min-w-0 flex-1">
+    <div className="min-w-0 flex-1 p-4 md:p-6">
       <Outlet />
     </div>
   </div>
