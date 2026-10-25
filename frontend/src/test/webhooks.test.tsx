@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import WebhooksModal from '../components/settings/WebhooksModal';
+import SettingsWebhooks from '../pages/app/settings/SettingsWebhooks';
 import type { WebhookEndpoint, WebhookDelivery } from '../services/webhookService';
 
 /**
@@ -97,14 +97,14 @@ describe('WebhooksModal', () => {
   });
 
   it('renders the title and both endpoints', () => {
-    render(<WebhooksModal onClose={() => {}} />);
+    render(<SettingsWebhooks />);
     expect(screen.getByRole('heading', { name: /webhooks/i })).toBeInTheDocument();
     expect(screen.getByText('https://example.com/hook')).toBeInTheDocument();
     expect(screen.getByText('https://staging.example.com/hook')).toBeInTheDocument();
   });
 
   it('rejects a non-https URL before calling the mutation', () => {
-    render(<WebhooksModal onClose={() => {}} />);
+    render(<SettingsWebhooks />);
     fireEvent.change(screen.getByPlaceholderText(/example\.com\/hooks\/tudu/i), {
       target: { value: 'http://insecure.local/hook' },
     });
@@ -114,7 +114,7 @@ describe('WebhooksModal', () => {
   });
 
   it('rejects a create with no events selected', () => {
-    render(<WebhooksModal onClose={() => {}} />);
+    render(<SettingsWebhooks />);
     fireEvent.change(screen.getByPlaceholderText(/example\.com\/hooks\/tudu/i), {
       target: { value: 'https://example.com/hook' },
     });
@@ -128,29 +128,29 @@ describe('WebhooksModal', () => {
   });
 
   it('pauses an active endpoint', () => {
-    render(<WebhooksModal onClose={() => {}} />);
+    render(<SettingsWebhooks />);
     const pauseButtons = screen.getAllByRole('button', { name: /^pause$/i });
     expect(pauseButtons).toHaveLength(1);
     fireEvent.click(pauseButtons[0]);
-    expect(mockUpdateMutate).toHaveBeenCalledWith(
-      expect.objectContaining({ id: 'ep-1', is_active: false }),
-      expect.any(Object),
-    );
+    expect(mockUpdateMutate).toHaveBeenCalledWith({
+      id: 'ep-1',
+      is_active: false,
+    });
   });
 
   it('resumes a paused endpoint', () => {
-    render(<WebhooksModal onClose={() => {}} />);
+    render(<SettingsWebhooks />);
     const resumeButtons = screen.getAllByRole('button', { name: /^resume$/i });
     expect(resumeButtons).toHaveLength(1);
     fireEvent.click(resumeButtons[0]);
-    expect(mockUpdateMutate).toHaveBeenCalledWith(
-      expect.objectContaining({ id: 'ep-2', is_active: true }),
-      expect.any(Object),
-    );
+    expect(mockUpdateMutate).toHaveBeenCalledWith({
+      id: 'ep-2',
+      is_active: true,
+    });
   });
 
   it('shows delivery history when expanded', () => {
-    render(<WebhooksModal onClose={() => {}} />);
+    render(<SettingsWebhooks />);
     fireEvent.click(screen.getAllByRole('button', { name: /deliveries/i })[0]);
     expect(screen.getByText('success')).toBeInTheDocument();
     expect(screen.getByText('dead')).toBeInTheDocument();
@@ -158,7 +158,7 @@ describe('WebhooksModal', () => {
   });
 
   it('offers a retry for dead deliveries only', () => {
-    render(<WebhooksModal onClose={() => {}} />);
+    render(<SettingsWebhooks />);
     fireEvent.click(screen.getAllByRole('button', { name: /deliveries/i })[0]);
     fireEvent.click(screen.getByRole('button', { name: /retry/i }));
     expect(mockRetryMutate).toHaveBeenCalledWith(

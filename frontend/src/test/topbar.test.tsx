@@ -81,23 +81,10 @@ describe('Topbar — every control still renders', () => {
       screen.getAllByRole('button', { name: /switch to (dark|light) mode/i }).length,
     ).toBeGreaterThanOrEqual(1);
   });
-
-  it('opens the settings menu and shows the key items', () => {
+  it('renders a settings link that routes to /settings/account', () => {
     wrap(<Topbar />);
-    const settingsButtons = screen.getAllByRole('button', { name: /settings menu/i });
-    fireEvent.click(settingsButtons[0]);
-    expect(
-      screen.getAllByRole('menuitem', { name: /notification settings/i }).length,
-    ).toBeGreaterThanOrEqual(1);
-    expect(
-      screen.getAllByRole('menuitem', { name: /api tokens/i }).length,
-    ).toBeGreaterThanOrEqual(1);
-    expect(
-      screen.getAllByRole('menuitem', { name: /manage boards/i }).length,
-    ).toBeGreaterThanOrEqual(1);
-    expect(
-      screen.getAllByRole('menuitem', { name: /team workspaces/i }).length,
-    ).toBeGreaterThanOrEqual(1);
+    const links = screen.getAllByRole('link', { name: /^settings$/i });
+    expect(links.length).toBeGreaterThanOrEqual(1);
   });
 
   it('renders the log out button', () => {

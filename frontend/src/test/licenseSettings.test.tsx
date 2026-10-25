@@ -31,7 +31,7 @@ vi.mock('../components/common/FeatureGate', () => ({
   default: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
-import LicenseSettings from '../routes/LicenseSettings';
+import SettingsLicense from '../pages/app/settings/SettingsLicense';
 
 describe('LicenseSettings — issuer view (cloud mode)', () => {
   beforeEach(() => {
@@ -39,7 +39,7 @@ describe('LicenseSettings — issuer view (cloud mode)', () => {
   });
 
   it('renders the Self-hosting heading and the issuer form on cloud mode', () => {
-    render(<LicenseSettings />);
+    render(<SettingsLicense />);
     expect(
       screen.getByRole('heading', { name: /self-hosting/i, level: 1 })
     ).toBeInTheDocument();
@@ -47,7 +47,7 @@ describe('LicenseSettings — issuer view (cloud mode)', () => {
   });
 
   it('calls issue.mutate with the fingerprint when Generate license is clicked', async () => {
-    render(<LicenseSettings />);
+    render(<SettingsLicense />);
     const fp = 'a'.repeat(64);
     fireEvent.change(screen.getByLabelText(/server fingerprint/i), {
       target: { value: fp },

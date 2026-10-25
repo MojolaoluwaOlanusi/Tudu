@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { useBoards, useBoardColumns } from '../hooks/useBoards';
+import { useBoards, useBoardColumns } from '../../../hooks/useBoards';
 import {
   integrationService,
   type GitHubRepo,
@@ -8,9 +8,9 @@ import {
   type GitHubMapping,
   type SlackStatus,
   type SlackChannel,
-} from '../services/integrationService';
-import { useAuthStore } from '../store/authStore';
-import { useUiStore } from '../store/uiStore';
+} from '../../../services/integrationService';
+import { useAuthStore } from '../../../store/authStore';
+import { useUiStore } from '../../../store/uiStore';
 
 const IntegrationsSettings: React.FC = () => {
   const { token } = useAuthStore();
@@ -247,7 +247,7 @@ const IntegrationsSettings: React.FC = () => {
   /* ------------------------------- render ------------------------------- */
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8">
+    <div className="">
       <h1 className="mb-2 font-handwritten text-3xl text-ink">Integrations</h1>
       <p className="mb-6 text-sm text-ink-muted">
         Link GitHub and Slack to your boards. A task ID in a PR title moves the
@@ -595,3 +595,4 @@ const IntegrationsSettings: React.FC = () => {
 };
 
 export default IntegrationsSettings;
+
