@@ -174,7 +174,7 @@ const AnalyticsDashboard: React.FC = () => {
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-row-reverse flex-wrap items-center justify-between gap-3">
         {scopeToggle}
         {personal && (
           <div className="flex gap-2">

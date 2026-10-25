@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { Filter } from 'lucide-react';
 import {
   useTasks,
   useCreateTask,
@@ -298,7 +299,7 @@ const TaskList: React.FC = () => {
             My tasks
           </h1>
           <p className="mt-2 text-[12px] text-ink-faint">
-            {taskCount} task{taskCount === 1 ? '' : 's'}
+            {taskCount} task{taskCount === 1 ? '' : 's'}{explicitBoardId ? ' on this board' : ''}
             {overdueCount > 0 && ` · ${overdueCount} overdue`}
           </p>
         </div>
@@ -311,6 +312,7 @@ const TaskList: React.FC = () => {
             }
             aria-pressed={filtersOpen}
           >
+            <Filter className="h-3.5 w-3.5" />
             {filtersOpen ? 'Hide filters' : 'Filters'}
           </button>
           <button onClick={openShareModal} className="btn-ghost !py-1.5 !text-[13px] shrink-0">

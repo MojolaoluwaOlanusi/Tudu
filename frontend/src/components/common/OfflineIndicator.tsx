@@ -49,7 +49,7 @@ const OfflineIndicator: React.FC = () => {
   else label = `${pending} change${pending === 1 ? '' : 's'} waiting to sync`;
 
   return (
-    <div className="pointer-events-none fixed left-1/2 top-4 z-[85] -translate-x-1/2" role="status" aria-live="polite">
+    <div className="pointer-events-none fixed bottom-4 right-4 z-[85]" role="status" aria-live="polite">
       <div className="pointer-events-auto flex items-center gap-2 rounded-md border border-amber-400/40 bg-amber-500/95 px-2.5 py-1 text-[11px] font-semibold text-white shadow-lg">
         {syncing ? (
           <ProgressRing done={progress.done} total={progress.total} />
