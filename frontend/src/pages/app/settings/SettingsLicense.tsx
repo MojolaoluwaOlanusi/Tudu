@@ -5,9 +5,9 @@ import {
   useRevokeLicense,
   useActivateLicense,
   useDeactivateLicense,
-} from '../hooks/useLicense';
-import { useUiStore } from '../store/uiStore';
-import FeatureGate from '../components/common/FeatureGate';
+} from '../../../hooks/useLicense';
+import { useUiStore } from '../../../store/uiStore';
+import FeatureGate from '../../../components/common/FeatureGate';
 
 const formatDate = (iso: string | null | undefined): string => {
   if (!iso) return 'Never';
@@ -42,7 +42,7 @@ const LicenseSettings: React.FC = () => {
   const mode = data?.mode ?? 'cloud';
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8">
+    <div className="">
       <h1 className="mb-2 font-handwritten text-3xl text-ink">Self-hosting</h1>
       <p className="mb-6 text-sm text-ink-muted">
         {mode === 'self_hosted'
@@ -417,3 +417,4 @@ const ConsumerView: React.FC<{ status: StatusInfo | null }> = ({ status }) => {
 };
 
 export default LicenseSettings;
+

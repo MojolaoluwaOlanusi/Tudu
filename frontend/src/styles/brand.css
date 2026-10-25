@@ -71,3 +71,22 @@
 [data-spotlight]:hover::before {
   opacity: 0.7;
 }
+/* Step 5.5 brush-stroke fix:
+   - .btn-accent's ::before is the wash that slides via translateX on hover.
+   - .brush-stroke's ::before is the underline.
+   - Both target the same pseudo-element, so hover inherits translateX and
+     slides the underline off the right edge.
+   - Since brand.css is unlayered it beats every @layer rule (including
+     .btn-accent:hover::before in components), so the override sticks. */
+.btn-accent.brush-stroke {
+  overflow: visible;
+}
+
+.btn-accent.brush-stroke::before {
+  opacity: 0.75;
+}
+
+.btn-accent.brush-stroke:hover::before {
+  transform: none;
+  opacity: 1;
+}

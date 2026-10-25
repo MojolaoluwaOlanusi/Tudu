@@ -1,8 +1,8 @@
 import React, { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useActiveBoardId, useBoards } from '../../hooks/useBoards';
 import { useBoardStore } from '../../store/boardStore';
 import BoardsModal from '../kanban/BoardsModal';
-import TeamModal from '../workspace/TeamModal';
 import type { Board } from '../../types/board';
 
 /**
@@ -26,7 +26,6 @@ const BoardSelector: React.FC = () => {
   const activeBoardId = useActiveBoardId();
   const setActiveBoard = useBoardStore((s) => s.setActiveBoard);
   const [managing, setManaging] = useState(false);
-  const [teamOpen, setTeamOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
   const groups = useMemo(() => {
@@ -90,15 +89,14 @@ const BoardSelector: React.FC = () => {
       >
         + Boards
       </button>
-      <button
-        type="button"
-        onClick={() => setTeamOpen(true)}
+      <Link
+        to="/settings/workspace"
         aria-label="Team workspaces"
         title="Workspaces and members"
         className={buttonClass}
       >
         Team
-      </button>
+      </Link>
 
       {menuOpen && (
         <>
@@ -173,7 +171,6 @@ const BoardSelector: React.FC = () => {
       )}
 
       {managing && <BoardsModal onClose={() => setManaging(false)} />}
-      {teamOpen && <TeamModal onClose={() => setTeamOpen(false)} />}
     </div>
   );
 };

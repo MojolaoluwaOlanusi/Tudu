@@ -5,10 +5,10 @@ import {
   useEntitlements,
   useCancelSubscription,
   useBuyCredits,
-} from '../hooks/useBilling';
-import { useUiStore } from '../store/uiStore';
-import PublisherSettings from '../components/settings/PublisherSettings';
-import PurchasesList from '../components/settings/PurchasesList';
+} from '../../../hooks/useBilling';
+import { useUiStore } from '../../../store/uiStore';
+import PublisherSettings from '../../../components/settings/PublisherSettings';
+import PurchasesList from '../../../components/settings/PurchasesList';
 
 
 const formatDate = (iso: string | null): string => {
@@ -91,7 +91,7 @@ const BillingSettings: React.FC = () => {
   };
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8">
+    <div className="">
       <div className="mb-6">
   <h1 className="font-handwritten text-3xl text-ink">Billing</h1>
   <p className="mt-1 text-sm text-ink-muted">

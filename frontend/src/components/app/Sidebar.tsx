@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   PanelLeftClose, PanelLeftOpen, Plus, MoreHorizontal,
   Mail, Users, Send, ArrowUp, ArrowDown,
@@ -23,8 +22,6 @@ const Sidebar: React.FC = () => {
   });
   const [atRecent, setAtRecent] = useState(false);
   const [manageOpen, setManageOpen] = useState(false);
-  const navigate = useNavigate();
-
   useEffect(() => {
     try { localStorage.setItem(COLLAPSE_KEY, collapsed ? '1' : '0'); } catch {}
   }, [collapsed]);
@@ -83,7 +80,7 @@ const Sidebar: React.FC = () => {
           <div className="flex flex-col items-center gap-1 px-2 py-1">
             <button
               type="button"
-              onClick={() => { setCollapsed(false); navigate('/app'); }}
+              onClick={() => setCollapsed(false)}
               title={'Invitations (' + pendingShares.length + ')'}
               aria-label={'Invitations (' + pendingShares.length + ')'}
               className={'relative ' + iconBtn}
@@ -95,7 +92,7 @@ const Sidebar: React.FC = () => {
             </button>
             <button
               type="button"
-              onClick={() => { setCollapsed(false); navigate('/app'); }}
+              onClick={() => setCollapsed(false)}
               title={'Shared with me (' + acceptedShares.length + ')'}
               aria-label={'Shared with me (' + acceptedShares.length + ')'}
               className={'relative ' + iconBtn}
@@ -107,7 +104,7 @@ const Sidebar: React.FC = () => {
             </button>
             <button
               type="button"
-              onClick={() => { setCollapsed(false); navigate('/app'); }}
+              onClick={() => setCollapsed(false)}
               title={'Shared by me (' + sharedByMe.length + ')'}
               aria-label={'Shared by me (' + sharedByMe.length + ')'}
               className={iconBtn}

@@ -25,7 +25,7 @@ vi.mock('../store/uiStore', () => ({
     selector({ pushToast: vi.fn() }),
 }));
 
-import ApiTokensModal from '../components/settings/ApiTokensModal';
+import SettingsApi from '../pages/app/settings/SettingsApi';
 
 describe('ApiTokensModal', () => {
   const originalConfirm = window.confirm;
@@ -41,7 +41,7 @@ describe('ApiTokensModal', () => {
   });
 
   it('renders the existing tokens', () => {
-    render(<ApiTokensModal onClose={() => {}} />);
+    render(<SettingsApi />);
     expect(screen.getByText('Home Assistant')).toBeInTheDocument();
   });
 
@@ -61,7 +61,7 @@ describe('ApiTokensModal', () => {
         });
       }
     );
-    render(<ApiTokensModal onClose={() => {}} />);
+    render(<SettingsApi />);
     fireEvent.change(screen.getByLabelText(/token label/i), {
       target: { value: 'My new token' },
     });
@@ -80,7 +80,7 @@ describe('ApiTokensModal', () => {
   });
 
   it('calls revoke.mutate for the token after the confirm prompt is accepted', () => {
-    render(<ApiTokensModal onClose={() => {}} />);
+    render(<SettingsApi />);
     fireEvent.click(
       screen.getByRole('button', { name: /revoke home assistant/i })
     );

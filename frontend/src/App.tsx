@@ -9,11 +9,18 @@ import { attachScrollbarAutoHide } from './lib/scrollbar';
 
 import Login from './components/auth/Login';
 import Pricing from './routes/Pricing';
-import BillingSettings from './routes/BillingSettings';
-import LicenseSettings from './routes/LicenseSettings';
-import IntegrationsSettings from './routes/IntegrationsSettings';
 import BillingCallback from './routes/BillingCallback';
 import AuthCallback from './components/auth/AuthCallback';
+import AppSettings from './pages/app/AppSettings';
+import SettingsAccount from './pages/app/settings/SettingsAccount';
+import SettingsNotifications from './pages/app/settings/SettingsNotifications';
+import SettingsAppearance from './pages/app/settings/SettingsAppearance';
+import SettingsIntegrations from './pages/app/settings/SettingsIntegrations';
+import SettingsWorkspace from './pages/app/settings/SettingsWorkspace';
+import SettingsBilling from './pages/app/settings/SettingsBilling';
+import SettingsLicense from './pages/app/settings/SettingsLicense';
+import SettingsApi from './pages/app/settings/SettingsApi';
+import SettingsWebhooks from './pages/app/settings/SettingsWebhooks';
 import ProtectedRoute from './components/common/ProtectedRoute';
 
 import Topbar from './components/app/Topbar';
@@ -190,35 +197,26 @@ function App() {
               <Route path="/pricing" element={<Pricing />} />
               <Route path="/billing/callback" element={<BillingCallback />} />
               <Route
-                path="/settings/license"
+                path="/settings"
                 element={
                   <ProtectedRoute>
                     <Shell>
-                      <LicenseSettings />
+                      <AppSettings />
                     </Shell>
                   </ProtectedRoute>
                 }
-              />
-              <Route
-                path="/settings/integrations"
-                element={
-                  <ProtectedRoute>
-                    <Shell>
-                      <IntegrationsSettings />
-                    </Shell>
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/settings/billing"
-                element={
-                  <ProtectedRoute>
-                    <Shell>
-                      <BillingSettings />
-                    </Shell>
-                  </ProtectedRoute>
-                }
-              />
+              >
+                <Route index element={<Navigate to="/settings/account" replace />} />
+                <Route path="account" element={<SettingsAccount />} />
+                <Route path="notifications" element={<SettingsNotifications />} />
+                <Route path="appearance" element={<SettingsAppearance />} />
+                <Route path="integrations" element={<SettingsIntegrations />} />
+                <Route path="workspace" element={<SettingsWorkspace />} />
+                <Route path="billing" element={<SettingsBilling />} />
+                <Route path="license" element={<SettingsLicense />} />
+                <Route path="api" element={<SettingsApi />} />
+                <Route path="webhooks" element={<SettingsWebhooks />} />
+              </Route>
               <Route path="/auth/callback" element={<AuthCallback />} />
               <Route
                 path="/"
