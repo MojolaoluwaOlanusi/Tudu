@@ -352,6 +352,10 @@
     transition: background-color 0.2s ease;
   }
 
+  .btn-accent.brush-stroke {
+    overflow: visible;
+  }
+
   .btn-ghost:hover {
     background-color: var(--color-surface-2);
   }

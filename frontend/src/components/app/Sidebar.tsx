@@ -83,7 +83,7 @@ const Sidebar: React.FC = () => {
           <div className="flex flex-col items-center gap-1 px-2 py-1">
             <button
               type="button"
-              onClick={() => navigate('/app')}
+              onClick={() => { setCollapsed(false); navigate('/app'); }}
               title={'Invitations (' + pendingShares.length + ')'}
               aria-label={'Invitations (' + pendingShares.length + ')'}
               className={'relative ' + iconBtn}
@@ -95,7 +95,7 @@ const Sidebar: React.FC = () => {
             </button>
             <button
               type="button"
-              onClick={() => navigate('/app')}
+              onClick={() => { setCollapsed(false); navigate('/app'); }}
               title={'Shared with me (' + acceptedShares.length + ')'}
               aria-label={'Shared with me (' + acceptedShares.length + ')'}
               className={'relative ' + iconBtn}
@@ -107,7 +107,7 @@ const Sidebar: React.FC = () => {
             </button>
             <button
               type="button"
-              onClick={() => navigate('/app')}
+              onClick={() => { setCollapsed(false); navigate('/app'); }}
               title={'Shared by me (' + sharedByMe.length + ')'}
               aria-label={'Shared by me (' + sharedByMe.length + ')'}
               className={iconBtn}

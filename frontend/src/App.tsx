@@ -140,7 +140,10 @@ const Board = () => (
 const Stats = () => (
   <Shell>
     <div data-tour="stats">
-      <h1 className="mb-4 font-handwritten text-3xl text-ink">Focus stats</h1>
+      <div className="mb-6">
+        <h1 className="font-handwritten text-3xl leading-none text-ink sm:text-4xl">Focus stats</h1>
+        <p className="mt-2 text-[11px] text-ink-faint">Pomodoro history and per-task time.</p>
+      </div>
       <PomodoroStats />
       <FeatureGate
         feature="time.tracking"
@@ -159,7 +162,10 @@ const Stats = () => (
 const Analytics = () => (
   <Shell>
     <div data-tour="analytics">
-      <h1 className="mb-4 font-handwritten text-3xl text-ink">Analytics</h1>
+      <div className="mb-6">
+        <h1 className="font-handwritten text-3xl leading-none text-ink sm:text-4xl">Analytics</h1>
+        <p className="mt-2 text-[11px] text-ink-faint">Workload, completion rate and focus — personal or team.</p>
+      </div>
       <Suspense
         fallback={
           <div className="card p-6">
