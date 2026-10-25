@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { User, Users } from 'lucide-react';
 import { useBoards } from '../../hooks/useBoards';
 import { useBoardStore } from '../../store/boardStore';
 import type { Board } from '../../types/board';
@@ -11,8 +12,9 @@ interface SidebarBoardListProps {
 /**
  * The user's boards, grouped Personal first then by workspace, with the
  * active board highlighted. Clicking a board sets it active and navigates
- * to /board (which is the only view that filters by board today — the list
- * view shows all of the user's tasks).
+ * to /board. The collapsed list shows one icon per group (User for
+ * Personal, Users for each workspace); clicking it navigates to that
+ * group's first board.
  */
 const SidebarBoardList: React.FC<SidebarBoardListProps> = ({ collapsed }) => {
   const { data: boards = [] } = useBoards();
@@ -22,13 +24,14 @@ const SidebarBoardList: React.FC<SidebarBoardListProps> = ({ collapsed }) => {
 
   const groups = useMemo(() => {
     const personal: Board[] = [];
-    const byWorkspace = new Map<string, { name: string; boards: Board[] }>();
+    const byWorkspace = new Map<string, { id: string; name: string; boards: Board[] }>();
     boards.forEach((board) => {
       if (!board.workspace_id) {
         personal.push(board);
         return;
       }
       const group = byWorkspace.get(board.workspace_id) ?? {
+        id: board.workspace_id,
         name: board.workspace_name ?? 'Team',
         boards: [],
       };
@@ -39,28 +42,45 @@ const SidebarBoardList: React.FC<SidebarBoardListProps> = ({ collapsed }) => {
   }, [boards]);
 
   const pick = (id: string) => {
-    setActive(id);
-    navigate('/board');
-  };
+  setActive(id);
+  // No navigate: List stays on `/` and filters to this board (see TaskList);
+  // Board stays on `/board` and just switches the active column set.
+};
 
   if (collapsed) {
     return (
       <div className="flex flex-col items-center gap-1 px-2 py-2">
-        {boards.slice(0, 6).map((b) => (
+        {groups.personal.length > 0 && (
           <button
-            key={b.id}
             type="button"
-            title={b.name}
-            aria-label={b.name}
-            onClick={() => pick(b.id)}
+            title="Personal"
+            aria-label="Personal"
+            onClick={() => pick(groups.personal[0].id)}
             className={
-              'flex h-8 w-8 items-center justify-center rounded-md text-[10px] font-semibold transition-colors ' +
-              (b.id === activeId
+              'flex h-8 w-8 items-center justify-center rounded-md transition-colors ' +
+              (groups.personal.some((b) => b.id === activeId)
                 ? 'bg-brand text-ink-inverse'
                 : 'text-ink-muted hover:bg-subtle hover:text-ink')
             }
           >
-            {b.name.charAt(0).toUpperCase()}
+            <User className="h-4 w-4" />
+          </button>
+        )}
+        {groups.workspaces.map((group) => (
+          <button
+            key={group.id}
+            type="button"
+            title={group.name}
+            aria-label={group.name}
+            onClick={() => pick(group.boards[0].id)}
+            className={
+              'flex h-8 w-8 items-center justify-center rounded-md transition-colors ' +
+              (group.boards.some((b) => b.id === activeId)
+                ? 'bg-brand text-ink-inverse'
+                : 'text-ink-muted hover:bg-subtle hover:text-ink')
+            }
+          >
+            <Users className="h-4 w-4" />
           </button>
         ))}
       </div>
@@ -97,17 +117,23 @@ const SidebarBoardList: React.FC<SidebarBoardListProps> = ({ collapsed }) => {
     <div className="space-y-3 px-2 pb-2 pt-1">
       {groups.personal.length > 0 && (
         <div>
-          <p className="mb-1 px-2 text-[10px] font-semibold uppercase tracking-wider text-ink-faint">
-            Personal
-          </p>
+          <div className="mb-1 flex items-center gap-1.5 px-2 py-1">
+            <User className="h-3 w-3 shrink-0 text-ink-faint" />
+            <span className="truncate text-[10px] font-semibold uppercase tracking-wider text-ink-faint">
+              Personal
+            </span>
+          </div>
           <ul>{groups.personal.map(row)}</ul>
         </div>
       )}
-      {groups.workspaces.map((group, i) => (
-        <div key={i}>
-          <p className="mb-1 px-2 text-[10px] font-semibold uppercase tracking-wider text-ink-faint">
-            {group.name}
-          </p>
+      {groups.workspaces.map((group) => (
+        <div key={group.id}>
+          <div className="mb-1 flex items-center gap-1.5 px-2 py-1">
+            <Users className="h-3 w-3 shrink-0 text-ink-faint" />
+            <span className="truncate text-[10px] font-semibold uppercase tracking-wider text-ink-faint">
+              {group.name}
+            </span>
+          </div>
           <ul>{group.boards.map(row)}</ul>
         </div>
       ))}
@@ -116,3 +142,5 @@ const SidebarBoardList: React.FC<SidebarBoardListProps> = ({ collapsed }) => {
 };
 
 export default SidebarBoardList;
+
+

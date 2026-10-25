@@ -9,25 +9,23 @@ const TITLES: Record<'live' | 'connecting' | 'offline', string> = {
 
 const COLORS: Record<'live' | 'connecting' | 'offline', string> = {
   live: 'bg-brand',
-  connecting: 'bg-white',
+  connecting: 'bg-brand',
   offline: 'bg-red-500',
 };
 
 /**
- * A single pulsing dot reflecting the live socket connection.
+ * A single dot reflecting the live socket connection.
  *
- * The mockup renders a pill with a "N people building" caption — that live
- * number is landing-page only. Inside the app shell it is the caller's own
- * connection status, so this component reads the socket store directly and
- * renders a bare dot (matching the mockup's `SyncDot`).
+ * Pulses whenever the socket is `connected` OR `connecting` (so the dot
+ * always looks alive, like the mockup's), and `isSyncing` adds a second,
+ * offset ripple on top. `offline` stops the ripple and turns the dot red.
  */
 const SyncDot: React.FC = () => {
   const status = useSocketStore((s) => s.status);
   const isSyncing = useSocketStore((s) => s.isSyncing);
 
-  const display: 'live' | 'connecting' | 'offline' = isSyncing
-    ? 'connecting'
-    : status === 'connected'
+  const display: 'live' | 'connecting' | 'offline' =
+    status === 'connected'
       ? 'live'
       : status === 'connecting'
         ? 'connecting'
@@ -42,8 +40,14 @@ const SyncDot: React.FC = () => {
       className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md"
     >
       <span className="relative flex h-2 w-2">
-        {display === 'live' && (
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand opacity-50" />
+        {display !== 'offline' && (
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand opacity-60" />
+        )}
+        {display === 'live' && isSyncing && (
+          <span
+            className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand opacity-40"
+            style={{ animationDelay: '0.3s' }}
+          />
         )}
         <span
           className={

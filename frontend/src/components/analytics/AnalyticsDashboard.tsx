@@ -1,18 +1,5 @@
 import React, { useMemo, useState } from 'react';
 import {
-  ArcElement,
-  BarElement,
-  CategoryScale,
-  Chart as ChartJS,
-  Filler,
-  Legend,
-  LinearScale,
-  LineElement,
-  PointElement,
-  Tooltip,
-} from 'chart.js';
-import { Bar, Line, Pie } from 'react-chartjs-2';
-import {
   useAnalyticsOverview,
   useCompletedTasks,
   useTimeSpent,
@@ -22,18 +9,7 @@ import { exportAnalyticsCsv, exportAnalyticsJson } from '../../lib/analyticsExpo
 import type { AnalyticsRange } from '../../types/analytics';
 import FeatureGate from '../common/FeatureGate';
 import TeamAnalyticsView from './TeamAnalyticsView';
-
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  ArcElement,
-  LineElement,
-  PointElement,
-  Tooltip,
-  Legend,
-  Filler
-);
+import { BarChart, LineChart, PieChart } from '../app/charts/Charts';
 
 const RANGE_LABELS: Record<AnalyticsRange, string> = {
   week: 'Last 7 days',
@@ -41,10 +17,6 @@ const RANGE_LABELS: Record<AnalyticsRange, string> = {
   quarter: 'Last 12 weeks',
 };
 
-/**
- * Category colours, taken verbatim from the mockup's `computeTimeByCategory`
- * (PersonalAnalytics.jsx) so the live charts match the design reference.
- */
 const CATEGORY_COLOURS: Record<string, string> = {
   work: '#3b82f6',
   personal: '#8b5cf6',
@@ -58,10 +30,6 @@ const PRIORITY_COLOURS: Record<string, string> = {
   low: '#94a3b8',
   none: '#3a3a3a',
 };
-
-/** Primary chart colour — mockup uses the brand green for bar and line. */
-const PRIMARY_CHART_COLOUR = '#22c55e';
-const PRIMARY_FILL = 'rgba(34, 197, 94, 0.15)';
 
 const humaniseMinutes = (minutes: number): string => {
   if (minutes <= 0) return '0m';
@@ -110,19 +78,6 @@ const EmptyChart: React.FC<{ children?: React.ReactNode }> = ({ children }) => (
   </div>
 );
 
-const PIE_OPTIONS = {
-  responsive: true,
-  maintainAspectRatio: false,
-  plugins: { legend: { position: 'bottom' as const } },
-};
-
-const AXIS_OPTIONS = {
-  responsive: true,
-  maintainAspectRatio: false,
-  plugins: { legend: { display: false } },
-  scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
-};
-
 const AnalyticsDashboard: React.FC = () => {
   const [scope, setScope] = useState<'personal' | 'team'>('personal');
   const [range, setRange] = useState<AnalyticsRange>('week');
@@ -146,71 +101,34 @@ const AnalyticsDashboard: React.FC = () => {
   const hasCompletions = (completed?.total ?? 0) > 0;
 
   const barData = useMemo(
-    () => ({
-      labels: buckets.map((b) => b.label),
-      datasets: [
-        {
-          label: 'Tasks completed',
-          data: buckets.map((b) => b.count),
-          backgroundColor: PRIMARY_CHART_COLOUR,
-          borderRadius: 4,
-        },
-      ],
-    }),
+    () => buckets.map((b) => ({ label: b.label, value: b.count })),
     [buckets]
   );
 
   const lineData = useMemo(
-    () => ({
-      labels: buckets.map((b) => b.label),
-      datasets: [
-        {
-          label: 'Completions',
-          data: buckets.map((b) => b.count),
-          borderColor: PRIMARY_CHART_COLOUR,
-          backgroundColor: PRIMARY_FILL,
-          fill: true,
-          tension: 0.3,
-          pointRadius: 2,
-        },
-      ],
-    }),
+    () => buckets.map((b) => ({ label: b.label, value: b.count })),
     [buckets]
   );
 
   const pieData = useMemo(() => {
     const slices = timeSpent?.byCategory ?? [];
-    return {
-      labels: slices.map((c) => c.label),
-      datasets: [
-        {
-          data: slices.map((c) => c.minutes),
-          backgroundColor: slices.map(
-            (c) => CATEGORY_COLOURS[c.category] ?? CATEGORY_COLOURS.none
-          ),
-          borderWidth: 0,
-        },
-      ],
-    };
+    return slices.map((c) => ({
+      label: c.label,
+      value: c.minutes,
+      color: CATEGORY_COLOURS[c.category] ?? CATEGORY_COLOURS.none,
+    }));
   }, [timeSpent]);
 
   const priorityData = useMemo(() => {
-    if (!overview) return null;
-    const entries = Object.entries(overview.byPriority);
-    return {
-      labels: entries.map(([key]) =>
-        key === 'none' ? 'Unset' : key.charAt(0).toUpperCase() + key.slice(1)
-      ),
-      datasets: [
-        {
-          data: entries.map(([, value]) => value),
-          backgroundColor: entries.map(
-            ([key]) => PRIORITY_COLOURS[key] ?? PRIORITY_COLOURS.none
-          ),
-          borderWidth: 0,
-        },
-      ],
-    };
+    if (!overview) return [];
+    return Object.entries(overview.byPriority).map(([key, value]) => ({
+      label:
+        key === 'none'
+          ? 'Unset'
+          : key.charAt(0).toUpperCase() + key.slice(1),
+      value,
+      color: PRIORITY_COLOURS[key] ?? PRIORITY_COLOURS.none,
+    }));
   }, [overview]);
 
   const canExport = Boolean(overview && completed && timeSpent);
@@ -234,9 +152,7 @@ const AnalyticsDashboard: React.FC = () => {
         onClick={() => setScope('personal')}
         aria-pressed={scope === 'personal'}
         className={`rounded px-3 py-1.5 text-[12px] font-medium transition-colors ${
-          scope === 'personal'
-            ? 'bg-raised text-ink'
-            : 'text-ink-muted hover:text-ink'
+          scope === 'personal' ? 'bg-raised text-ink' : 'text-ink-muted hover:text-ink'
         }`}
       >
         Personal
@@ -247,9 +163,7 @@ const AnalyticsDashboard: React.FC = () => {
           onClick={() => setScope('team')}
           aria-pressed={scope === 'team'}
           className={`rounded px-3 py-1.5 text-[12px] font-medium transition-colors ${
-            scope === 'team'
-              ? 'bg-raised text-ink'
-              : 'text-ink-muted hover:text-ink'
+            scope === 'team' ? 'bg-raised text-ink' : 'text-ink-muted hover:text-ink'
           }`}
         >
           Team
@@ -307,9 +221,7 @@ const AnalyticsDashboard: React.FC = () => {
                   onClick={() => setRange(key)}
                   aria-pressed={range === key}
                   className={`rounded px-3 py-1.5 text-[12px] font-medium transition-colors ${
-                    range === key
-                      ? 'bg-raised text-ink'
-                      : 'text-ink-muted hover:text-ink'
+                    range === key ? 'bg-raised text-ink' : 'text-ink-muted hover:text-ink'
                   }`}
                 >
                   {RANGE_LABELS[key]}
@@ -376,9 +288,7 @@ const AnalyticsDashboard: React.FC = () => {
                 }
               >
                 {hasCompletions ? (
-                  <div className="h-56">
-                    <Bar data={barData} options={AXIS_OPTIONS} />
-                  </div>
+                  <BarChart data={barData} height={224} />
                 ) : (
                   <EmptyChart />
                 )}
@@ -387,9 +297,7 @@ const AnalyticsDashboard: React.FC = () => {
               <div className="grid gap-5 lg:grid-cols-2">
                 <ChartCard title="Time spent by category" subtitle="Tracked via Pomodoro">
                   {timeSpent.byCategory.length > 0 ? (
-                    <div className="h-64">
-                      <Pie data={pieData} options={PIE_OPTIONS} />
-                    </div>
+                    <PieChart data={pieData} size={200} />
                   ) : (
                     <EmptyChart>No focus sessions in this period yet.</EmptyChart>
                   )}
@@ -399,10 +307,8 @@ const AnalyticsDashboard: React.FC = () => {
                   title="Tasks by priority"
                   subtitle="All time, not just the selected range"
                 >
-                  {overview.tasks.total > 0 && priorityData ? (
-                    <div className="h-64">
-                      <Pie data={priorityData} options={PIE_OPTIONS} />
-                    </div>
+                  {overview.tasks.total > 0 && priorityData.length > 0 ? (
+                    <PieChart data={priorityData} size={200} />
                   ) : (
                     <EmptyChart>No tasks yet.</EmptyChart>
                   )}
@@ -418,9 +324,7 @@ const AnalyticsDashboard: React.FC = () => {
                 }
               >
                 {hasCompletions ? (
-                  <div className="h-64">
-                    <Line data={lineData} options={AXIS_OPTIONS} />
-                  </div>
+                  <LineChart data={lineData} height={224} />
                 ) : (
                   <EmptyChart />
                 )}

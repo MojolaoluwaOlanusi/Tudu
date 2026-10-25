@@ -79,7 +79,7 @@ const AnalyticsDashboard = lazy(() => import('./components/analytics/AnalyticsDa
  * for small screens — otherwise a mobile user has no way to accept an
  * invite or open a shared list. On `lg` the Sidebar owns both.
  */
-const Shell = ({ children }: { children: ReactNode }) => {
+const Shell = ({ children, noPadding = false }: { children: ReactNode; noPadding?: boolean }) => {
   const mainRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!mainRef.current) return;
@@ -94,15 +94,19 @@ const Shell = ({ children }: { children: ReactNode }) => {
         <Sidebar />
         <main className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-line-subtle bg-surface">
           <div data-main ref={mainRef} className="min-h-0 flex-1 overflow-y-auto">
-            <div className="flex min-h-full flex-col p-4 md:p-6">
-              {/* Mobile-only. On lg+, the Sidebar owns these sections. */}
-              <div className="mb-4 lg:hidden">
-                <ShareInvites />
-              </div>
-              <WorkspaceInvites />
-              <div className="lg:hidden">
-                <SharedWithMeSection />
-              </div>
+            <div className={`flex min-h-full flex-col ${noPadding ? '' : 'p-4 md:p-6'}`}>
+              {!noPadding && (
+                <>
+                  {/* Mobile-only. On lg+, the Sidebar owns these sections. */}
+                  <div className="mb-4 lg:hidden">
+                    <ShareInvites />
+                  </div>
+                  <WorkspaceInvites />
+                  <div className="lg:hidden">
+                    <SharedWithMeSection />
+                  </div>
+                </>
+              )}
               {children}
             </div>
           </div>
@@ -125,7 +129,7 @@ const Dashboard = () => (
 );
 
 const Board = () => (
-  <Shell>
+  <Shell noPadding>
     <div data-tour="board">
       <KanbanBoard />
       <BoardTaskForm />

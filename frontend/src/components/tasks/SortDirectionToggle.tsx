@@ -24,7 +24,7 @@ const SortDirectionToggle = () => {
       onClick={toggle}
       aria-label={order === 'asc' ? 'Sort descending' : 'Sort ascending'}
       title={order === 'asc' ? 'Switch to descending' : 'Switch to ascending'}
-      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-hairline bg-surface-2 text-ink-muted transition-colors hover:border-accent hover:text-ink focus:border-accent focus:outline-none"
+      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-hairline bg-surface-2 text-ink-muted transition-colors hover:border-accent hover:text-ink focus:border-accent focus:outline-none"
     >
       {order === 'asc' ? (
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -40,3 +40,4 @@ const SortDirectionToggle = () => {
 };
 
 export default SortDirectionToggle;
+

@@ -182,7 +182,7 @@ const QueryBar = () => {
   return (
     <div className="relative">
       <div
-        className="flex min-h-[42px] cursor-text flex-wrap items-center gap-1.5 rounded-full border border-hairline bg-surface py-1.5 pl-10 pr-12 transition-colors focus-within:border-accent"
+        className="flex min-h-[42px] cursor-text flex-wrap items-center gap-1.5 rounded-xl border border-hairline bg-surface py-1.5 pl-10 pr-12 transition-colors focus-within:border-accent"
         onClick={() => inputRef.current?.focus()}
       >
         {chips.map((chip, i) => (

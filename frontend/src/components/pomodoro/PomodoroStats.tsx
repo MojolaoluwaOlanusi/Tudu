@@ -2,12 +2,8 @@ import React from 'react';
 import { format } from 'date-fns';
 import { Flame, Calendar, Award, Timer as TimerIcon } from 'lucide-react';
 import { usePomodoroStats } from '../../hooks/usePomodoro';
+import { BarChart } from '../app/charts/Charts';
 
-/**
- * A single metric tile. The mockup (StatsView.jsx) pairs each number with a
- * small green-tinted icon, an uppercase label and a handwritten Caveat value.
- * The `hint` line is unchanged from the pre-restyle version.
- */
 const StatCard: React.FC<{
   icon: React.ComponentType<{ className?: string }>;
   label: string;
@@ -28,7 +24,6 @@ const StatCard: React.FC<{
   </div>
 );
 
-/** 125 -> "2h 5m", 45 -> "45m" */
 const humaniseMinutes = (minutes: number): string => {
   if (minutes <= 0) return '0m';
   const hours = Math.floor(minutes / 60);
@@ -56,7 +51,10 @@ const PomodoroStats: React.FC = () => {
     );
   }
 
-  const maxMinutes = Math.max(...data.daily.map((d) => d.minutes), 1);
+  const dailyChart = data.daily.map((d) => ({
+    label: format(new Date(`${d.date}T00:00:00`), 'EEE'),
+    value: d.minutes,
+  }));
 
   return (
     <div className="space-y-5">
@@ -87,29 +85,12 @@ const PomodoroStats: React.FC = () => {
         />
       </div>
 
-      {/* Last seven days */}
       <div className="card p-5">
         <h2 className="font-handwritten text-xl text-ink">Last 7 days</h2>
         <p className="mb-3 text-[11px] text-ink-faint">Minutes of focus per day</p>
-        <div className="flex h-32 items-end gap-2">
-          {data.daily.map((day) => (
-            <div key={day.date} className="flex flex-1 flex-col items-center gap-1">
-              <div className="flex w-full flex-1 items-end">
-                <div
-                  className="w-full rounded-t-md bg-accent transition-all"
-                  style={{ height: `${(day.minutes / maxMinutes) * 100}%` }}
-                  title={`${day.date}: ${humaniseMinutes(day.minutes)}`}
-                />
-              </div>
-              <span className="text-[10px] text-ink-muted">
-                {format(new Date(`${day.date}T00:00:00`), 'EEE')}
-              </span>
-            </div>
-          ))}
-        </div>
+        <BarChart data={dailyChart} height={120} />
       </div>
 
-      {/* Per task */}
       {data.byTask.length > 0 && (
         <div className="card p-5">
           <h2 className="font-handwritten text-xl text-ink">Where the time went</h2>
@@ -131,7 +112,6 @@ const PomodoroStats: React.FC = () => {
         </div>
       )}
 
-      {/* Recent sessions */}
       {data.recent.length > 0 && (
         <div className="card p-5">
           <h2 className="mb-3 font-handwritten text-xl text-ink">Recent sessions</h2>

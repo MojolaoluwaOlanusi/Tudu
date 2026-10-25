@@ -25,10 +25,6 @@ vi.mock('../hooks/useAnalytics', () => ({
   }),
 }));
 
-vi.mock('react-chartjs-2', () => ({
-  Bar: () => <div data-testid='bar-chart' />,
-  Line: () => <div data-testid='line-chart' />,
-}));
 
 describe('TeamAnalyticsView', () => {
   it('renders the overview cards, leaderboard and charts', () => {
@@ -41,3 +37,4 @@ describe('TeamAnalyticsView', () => {
     expect(screen.getByTestId('bar-chart')).toBeInTheDocument();
   });
 });
+

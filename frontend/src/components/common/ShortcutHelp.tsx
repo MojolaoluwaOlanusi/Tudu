@@ -16,6 +16,7 @@ const GROUPS: { title: string; items: { keys: string[]; label: string }[] }[] = 
     items: [
       { keys: ['n'], label: 'New task' },
       { keys: ['/'], label: 'Focus the search bar' },
+      { keys: ['f'], label: 'Toggle filters' },
       { keys: ['Esc'], label: 'Close modal / deselect' },
     ],
   },
@@ -97,3 +98,4 @@ const ShortcutHelp = () => {
 };
 
 export default ShortcutHelp;
+
