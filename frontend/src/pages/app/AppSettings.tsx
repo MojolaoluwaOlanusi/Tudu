@@ -46,6 +46,30 @@ const AppSettings: React.FC = () => (
       </div>
     </aside>
     <div className="min-w-0 flex-1 p-4 md:p-6">
+      {/* Mobile: horizontal, scrollable tabs. The sidebar above is md+ only. */}
+      <nav
+        aria-label="Settings sections"
+        className="mb-4 -mx-4 flex gap-1 overflow-x-auto border-b border-line-subtle px-4 pb-2 md:hidden scroll-hidden"
+      >
+        {NAV.map((item) => {
+          const Icon = item.icon;
+          return (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              className={({ isActive }) =>
+                'flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 text-[12px] transition-colors ' +
+                (isActive
+                  ? 'bg-brand-subtle font-medium text-brand'
+                  : 'text-ink-muted hover:bg-subtle hover:text-ink')
+              }
+            >
+              <Icon className="h-3.5 w-3.5 shrink-0" />
+              {item.label}
+            </NavLink>
+          );
+        })}
+      </nav>
       <Outlet />
     </div>
   </div>
