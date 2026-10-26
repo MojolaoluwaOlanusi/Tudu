@@ -43,6 +43,13 @@ const wrap = () =>
     </MemoryRouter>
   );
 
+const wrapSignup = () =>
+  render(
+    <MemoryRouter>
+      <Login mode="signup" />
+    </MemoryRouter>
+  );
+
 describe('Login page', () => {
   beforeEach(() => {
     mockNavigate.mockReset();
@@ -101,5 +108,20 @@ describe('Login page', () => {
     wrap();
     fireEvent.click(screen.getByRole('button', { name: /continue with google/i }));
     expect(mockGoogleLogin).toHaveBeenCalledTimes(1);
+  });
+
+  // --- Step 7: /signup mode ---
+
+  it('shows the Create your account heading when opened in signup mode', () => {
+    wrapSignup();
+    expect(
+      screen.getByRole('heading', { name: /create your account/i })
+    ).toBeInTheDocument();
+  });
+
+  it('shows a Name field when the signup form is opened', () => {
+    wrapSignup();
+    fireEvent.click(screen.getByRole('button', { name: /continue with email/i }));
+    expect(screen.getByLabelText(/^name$/i)).toBeInTheDocument();
   });
 });

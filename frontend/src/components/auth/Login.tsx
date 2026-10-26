@@ -5,69 +5,67 @@ import { useAuthStore } from '../../store/authStore';
 import { authService } from '../../services/authService';
 import Wordmark from '../common/Wordmark';
 
+type AuthMode = 'login' | 'signup';
 type EmailMode = 'signin' | 'signup';
+
+interface LoginProps {
+  /** Page mode. `/login` (or no prop) = 'login', `/signup` = 'signup'. */
+  mode?: AuthMode;
+}
 
 /**
  * Login / Signup.
  *
- * The Step 12 restyle keeps the live app's flow intact (OAuth buttons first,
- * "Continue with Email" toggles the form, "Sign Up" / "Sign In" toggles the
- * mode) but adopts the mockup's two-column desktop layout: a marketing panel
- * on the left, the form panel on the right. Below `lg` it collapses back to
- * the single centred column the pre-restyle login already had.
+ * The visible heading, sub-copy and submit label follow the *page* mode
+ * (the route prop, or ?mode=signup), matching the mockup's AuthPage. The
+ * form's internal signin/signup toggle still lives in `emailMode` so a
+ * user who switches mid-flow does not lose their input.
  */
-const Login: React.FC = () => {
+const Login: React.FC<LoginProps> = ({ mode }) => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { setUser, isAuthenticated } = useAuthStore();
+
+  // Initial mode: prop wins, then ?mode=signup, then 'signin'.
+  const queryMode = searchParams.get('mode');
+  const initialMode: EmailMode =
+    mode === 'signup' || queryMode === 'signup' ? 'signup' : 'signin';
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [showEmailForm, setShowEmailForm] = useState(false);
-  const [emailMode, setEmailMode] = useState<EmailMode>('signin');
+  const [emailMode, setEmailMode] = useState<EmailMode>(initialMode);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    // Surface OAuth errors redirected back from the backend
     if (searchParams.get('error')) {
       setError('Authentication failed. Please try again.');
       return;
     }
-
-    // If already authenticated, redirect to dashboard
     if (isAuthenticated) {
       navigate('/', { replace: true });
       return;
     }
-
-    // If a token is present, hand off to the dedicated callback route
     const token = searchParams.get('token');
     if (token) {
       navigate(`/auth/callback?token=${token}`, { replace: true });
     }
   }, [searchParams, navigate, isAuthenticated]);
 
-  const handleGoogleLogin = () => {
-    authService.googleLogin();
-  };
-
-  const handleGitHubLogin = () => {
-    authService.githubLogin();
-  };
+  const handleGoogleLogin = () => authService.googleLogin();
+  const handleGitHubLogin = () => authService.githubLogin();
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setIsSubmitting(true);
-
     try {
       const { user, token } =
         emailMode === 'signup'
           ? await authService.emailRegister(email, password, name)
           : await authService.emailLogin(email, password);
-
-      // Persist the session so ProtectedRoute lets the user through
       setUser(user, token);
       navigate('/', { replace: true });
     } catch (err: any) {
@@ -81,11 +79,17 @@ const Login: React.FC = () => {
     }
   };
 
-  const isSignup = showEmailForm && emailMode === 'signup';
+  // Heading / sub / submit label reflect the page mode (mockup), but fall
+  // back to `emailMode` once the form is visible so a mid-form toggle updates
+  // the labels too.
+  const isSignup = showEmailForm
+    ? emailMode === 'signup'
+    : initialMode === 'signup';
   const heading = isSignup ? 'Create your account' : 'Welcome back';
   const sub = isSignup
     ? 'Start free. No credit card required.'
     : 'Sign in to your board.';
+  const submitLabel = isSignup ? 'Sign Up' : 'Sign In';
 
   return (
     <div className="flex min-h-screen bg-page text-ink">
@@ -157,7 +161,7 @@ const Login: React.FC = () => {
 
               <button
                 onClick={() => {
-                  setEmailMode('signin');
+                  setEmailMode(initialMode);
                   setError('');
                   setShowEmailForm(true);
                 }}
@@ -222,27 +226,11 @@ const Login: React.FC = () => {
                   ? emailMode === 'signup'
                     ? 'Creating account...'
                     : 'Signing in...'
-                  : emailMode === 'signup'
-                    ? 'Sign Up'
-                    : 'Sign In'}
+                  : submitLabel}
               </button>
 
               <p className="text-center text-sm text-ink-muted">
-                {emailMode === 'signin' ? (
-                  <>
-                    Don&apos;t have an account?{' '}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEmailMode('signup');
-                        setError('');
-                      }}
-                      className="font-medium text-accent-strong hover:text-accent"
-                    >
-                      Sign Up
-                    </button>
-                  </>
-                ) : (
+                {emailMode === 'signup' ? (
                   <>
                     Already have an account?{' '}
                     <button
@@ -254,6 +242,20 @@ const Login: React.FC = () => {
                       className="font-medium text-accent-strong hover:text-accent"
                     >
                       Sign In
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    Don&apos;t have an account?{' '}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEmailMode('signup');
+                        setError('');
+                      }}
+                      className="font-medium text-accent-strong hover:text-accent"
+                    >
+                      Sign Up
                     </button>
                   </>
                 )}
