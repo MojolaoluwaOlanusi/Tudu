@@ -90,6 +90,10 @@ export const useRealtimeSync = (): void => {
       // of hammering the server; the next sign-in remounts this hook.
       if (/unauthorized/i.test(error.message)) {
         socket.io.opts.reconnection = false;
+        // The JWT was refused at handshake time. Clear the session so the
+        // user is sent to /login by ProtectedRoute instead of sitting in
+        // a dead SPA that silently stops receiving events.
+        useAuthStore.getState().logout();
       }
     };
 
