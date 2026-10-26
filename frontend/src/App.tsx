@@ -260,7 +260,7 @@ function App() {
                   </ProtectedRoute>
                 }
               />
-              <Route path="/signup" element={<Navigate to="/login" replace />} />
+              <Route path="/signup" element={<Login mode="signup" />} />
               <Route path="/demo" element={<ComingSoon title="Live demo" />} />
               <Route path="/docs" element={<ComingSoon title="Documentation" />} />
               <Route path="/docs/:slug" element={<ComingSoon title="Documentation" />} />
