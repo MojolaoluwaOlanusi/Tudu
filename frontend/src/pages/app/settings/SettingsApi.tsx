@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Copy } from 'lucide-react';
 import { useApiTokens, useCreateApiToken, useRevokeApiToken } from '../../../hooks/useApiTokens';
 import { useUiStore } from '../../../store/uiStore';
 import type { ApiToken } from '../../../services/apiTokenService';
@@ -138,9 +139,28 @@ const SettingsApi: React.FC = () => {
       </Section>
 
       <Section title="Example">
-        <pre className="overflow-x-auto rounded-lg bg-canvas p-3 font-mono text-[11px] leading-relaxed text-ink-muted">
-          {'curl -H "Authorization: Bearer <token>" https://your-tudu-api/api/v1/tasks'}
-        </pre>
+        <div className="group relative">
+          <pre className="overflow-x-auto rounded-lg bg-canvas p-3 pr-12 font-mono text-[11px] leading-relaxed text-ink-muted">
+            {'curl -H "Authorization: Bearer <token>" https://tudu-backend-iuyu.onrender.com/api/v1/tasks'}
+          </pre>
+          <button
+            type="button"
+            onClick={async () => {
+              try {
+                await navigator.clipboard.writeText(
+                  'curl -H "Authorization: Bearer <token>" https://tudu-backend-iuyu.onrender.com/api/v1/tasks'
+                );
+                pushToast('Copied', 'success');
+              } catch {
+                pushToast('Could not copy', 'error');
+              }
+            }}
+            aria-label="Copy example"
+            className="absolute right-2 top-2 rounded-md border border-line bg-surface p-1.5 text-ink-muted opacity-100 transition-opacity hover:text-ink md:opacity-0 md:group-hover:opacity-100"
+          >
+            <Copy className="h-3.5 w-3.5" />
+          </button>
+        </div>
         <p className="mt-2 text-[11px] text-ink-muted">
           Reads are available on every account. Writes (POST, PUT, DELETE) are a Pro feature.
         </p>

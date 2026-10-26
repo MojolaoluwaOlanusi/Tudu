@@ -24,35 +24,50 @@ const DeliveriesList: React.FC<{ endpointId: string }> = ({ endpointId }) => {
   const { data: deliveries = [], isLoading } = useWebhookDeliveries(endpointId);
   const retry = useRetryWebhookDelivery();
   const pushToast = useUiStore((s) => s.pushToast);
+  const [limit, setLimit] = useState(10);
 
   if (isLoading) return <p className="p-3 text-xs text-ink-muted">Loading deliveries…</p>;
   if (deliveries.length === 0) return <p className="p-3 text-xs text-ink-muted">No deliveries yet.</p>;
 
+  const shown = deliveries.slice(0, limit);
+  const remaining = deliveries.length - limit;
+
   return (
-    <ul className="space-y-1.5 p-3">
-      {deliveries.map((d) => (
-        <li key={d.id} className="flex flex-wrap items-center gap-2 rounded-lg border border-line-subtle bg-surface p-2 text-[11px]">
-          <span className="font-mono text-ink-muted">{d.event_type}</span>
-          <span className={'font-semibold ' + statusTone(d.status)}>{d.status}</span>
-          <span className="text-ink-muted">attempts {d.attempt_count}</span>
-          {d.status === 'dead' && (
-            <button
-              type="button"
-              onClick={() =>
-                retry.mutate(
-                  { deliveryId: d.id, endpointId },
-                  { onSuccess: () => pushToast('Delivery requeued', 'success') },
-                )
-              }
-              disabled={retry.isPending}
-              className="ml-auto rounded-full border border-line bg-surface px-2 py-0.5 text-[10px] font-semibold text-brand hover:border-brand"
-            >
-              Retry
-            </button>
-          )}
-        </li>
-      ))}
-    </ul>
+    <div className="space-y-1.5 p-3">
+      <ul className="space-y-1.5">
+        {shown.map((d) => (
+          <li key={d.id} className="flex flex-wrap items-center gap-2 rounded-lg border border-line-subtle bg-surface p-2 text-[11px]">
+            <span className="font-mono text-ink-muted">{d.event_type}</span>
+            <span className={'font-semibold ' + statusTone(d.status)}>{d.status}</span>
+            <span className="text-ink-muted">attempts {d.attempt_count}</span>
+            {d.status === 'dead' && (
+              <button
+                type="button"
+                onClick={() =>
+                  retry.mutate(
+                    { deliveryId: d.id, endpointId },
+                    { onSuccess: () => pushToast('Delivery requeued', 'success') },
+                  )
+                }
+                disabled={retry.isPending}
+                className="ml-auto rounded-full border border-line bg-surface px-2 py-0.5 text-[10px] font-semibold text-brand hover:border-brand"
+              >
+                Retry
+              </button>
+            )}
+          </li>
+        ))}
+      </ul>
+      {remaining > 0 && (
+        <button
+          type="button"
+          onClick={() => setLimit((v) => v + 10)}
+          className="w-full rounded-lg border border-line bg-surface px-3 py-1.5 text-xs font-semibold text-ink-muted transition-colors hover:border-brand hover:text-ink"
+        >
+          Show more ({remaining} remaining)
+        </button>
+      )}
+    </div>
   );
 };
 

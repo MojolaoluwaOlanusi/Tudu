@@ -590,6 +590,28 @@ const IntegrationsSettings: React.FC = () => {
           </section>
         </>
       )}
+      {/* Coming soon */}
+      <section className="card mt-5 p-4">
+        <h2 className="mb-3 font-handwritten text-xl text-ink">Coming soon</h2>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          {[
+            { name: 'Linear', desc: 'Sync issues and cycles' },
+            { name: 'Notion', desc: 'Link pages to cards' },
+            { name: 'Jira', desc: 'Two-way issue sync' },
+            { name: 'Trello', desc: 'Import boards in one click' },
+            { name: 'Asana', desc: 'Cross-project tasks' },
+            { name: 'Figma', desc: 'Attach designs to tasks' },
+          ].map((item) => (
+            <div key={item.name} className="rounded-lg border border-line-subtle bg-canvas p-3">
+              <p className="text-sm font-semibold text-ink">{item.name}</p>
+              <p className="mt-0.5 text-[11px] text-ink-muted">{item.desc}</p>
+              <span className="mt-2 inline-flex rounded-sm bg-raised px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-ink-faint">
+                Soon
+              </span>
+            </div>
+          ))}
+        </div>
+      </section>
     </div>
   );
 };

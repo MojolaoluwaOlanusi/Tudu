@@ -12,7 +12,7 @@ export const Section: React.FC<{ title?: string; description?: string; children:
   description,
   children,
 }) => (
-  <section className="mb-5 rounded-xl border border-line bg-surface p-5">
+  <section className="mb-4 rounded-xl border border-line bg-surface p-4">
     {title && <h2 className="mb-1 font-handwritten text-xl text-ink">{title}</h2>}
     {description && <p className="mb-3 text-xs text-ink-muted">{description}</p>}
     {children}
@@ -40,7 +40,7 @@ export const ToggleRow: React.FC<{
   onChange: (v: boolean) => void;
   disabled?: boolean;
 }> = ({ label, description, checked, onChange, disabled }) => (
-  <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-line-subtle bg-canvas p-3">
+  <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-line-subtle bg-canvas p-2.5">
     <input
       type="checkbox"
       checked={checked}
