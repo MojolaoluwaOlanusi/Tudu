@@ -24,12 +24,13 @@ const SettingsNotifications: React.FC = () => {
 
   return (
     <div>
-      <PageHeader title="Notifications" description="We will only email you about what you ask for." />
-      <Section>
-        {isLoading ? (
-          <p className="text-sm text-ink-muted">Loading...</p>
-        ) : (
-          <div className="space-y-3">
+      <PageHeader title="Notifications" description="What we send you and when." />
+
+      {isLoading ? (
+        <p className="text-sm text-ink-muted">Loading...</p>
+      ) : (
+        <>
+          <Section title="Email">
             <ToggleRow
               label="Daily due-date reminders"
               description="One email a day listing tasks that are due or overdue. Sent at 07:00 UTC."
@@ -37,6 +38,9 @@ const SettingsNotifications: React.FC = () => {
               onChange={(v) => toggle({ reminders: v })}
               disabled={update.isPending}
             />
+          </Section>
+
+          <Section title="In-app">
             <ToggleRow
               label="Celebrations"
               description="A small confetti pop when you finish a task, and a bigger one at milestones."
@@ -44,7 +48,10 @@ const SettingsNotifications: React.FC = () => {
               onChange={(v) => toggle({ celebrations: v })}
               disabled={update.isPending}
             />
-            {showPushToggle && (
+          </Section>
+
+          <Section title="Browser">
+            {showPushToggle ? (
               <>
                 <ToggleRow
                   label="Browser notifications"
@@ -65,15 +72,18 @@ const SettingsNotifications: React.FC = () => {
                   disabled={push.support === 'denied'}
                 />
                 <p className="text-[11px] leading-relaxed text-ink-faint">
-                  In-app browsers (Instagram, WhatsApp, Messenger) don’t support
-                  browser notifications. Open Tudu directly in Safari or Chrome
-                  for them to work.
+                  In-app browsers (Instagram, WhatsApp, Messenger) don’t support browser
+                  notifications. Open Tudu directly in Safari or Chrome for them to work.
                 </p>
               </>
+            ) : (
+              <p className="text-sm text-ink-muted">
+                Browser notifications are not available on this device.
+              </p>
             )}
-          </div>
-        )}
-      </Section>
+          </Section>
+        </>
+      )}
     </div>
   );
 };

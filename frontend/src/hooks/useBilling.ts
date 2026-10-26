@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { billingService, type Entitlements } from '../services/billingService';
+import { billingService, type Entitlements, type Payment } from '../services/billingService';
 import { useAuthStore } from '../store/authStore';
 
 const QUERY_KEY = ['billing', 'entitlements'] as const;
@@ -46,5 +46,15 @@ export const useBuyCredits = () => {
   >({
     mutationFn: (bundle) => billingService.buyAiCredits(token!, bundle),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: QUERY_KEY }),
+  });
+};
+
+export const usePaymentHistory = () => {
+  const { token } = useAuthStore();
+  return useQuery<Payment[]>({
+    queryKey: ['billing', 'history'],
+    queryFn: () => billingService.history(token!),
+    enabled: !!token,
+    staleTime: 60_000,
   });
 };

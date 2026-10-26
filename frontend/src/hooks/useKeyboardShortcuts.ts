@@ -5,6 +5,7 @@ import { useUiStore } from '../store/uiStore';
 import { useShortcutHelpStore } from '../store/shortcutHelpStore';
 import { useCommandPaletteStore } from '../store/commandPaletteStore';
 import { toggleDensity } from '../lib/density';
+import { useThemeStore } from '../store/themeStore';
 
 const CHORD_TIMEOUT_MS = 1200;
 
@@ -36,6 +37,7 @@ export const useKeyboardShortcuts = (): void => {
   const openShortcutHelp = useShortcutHelpStore((s) => s.open);
   const closeShortcutHelp = useShortcutHelpStore((s) => s.close);
   const openCommandPalette = useCommandPaletteStore((s) => s.open);
+  const toggleTheme = useThemeStore((s) => s.toggleTheme);
 
   const chordRef = useRef<{ key: string; at: number } | null>(null);
 
@@ -84,6 +86,10 @@ export const useKeyboardShortcuts = (): void => {
           if (next === 'l') { event.preventDefault(); navigate('/'); return; }
           if (next === 's') { event.preventDefault(); navigate('/stats'); return; }
           if (next === 'a') { event.preventDefault(); navigate('/analytics'); return; }
+          if (next === ',') { event.preventDefault(); navigate('/settings/account'); return; }
+          if (next === 't') { event.preventDefault(); navigate('/settings/templates'); return; }
+          if (next === 'i') { event.preventDefault(); navigate('/settings/integrations'); return; }
+          if (next === 'p') { event.preventDefault(); navigate('/pricing'); return; }
         }
       }
 
@@ -109,6 +115,18 @@ export const useKeyboardShortcuts = (): void => {
         toggleFilters();
         return;
       }
+      if (event.key.toLowerCase() === 't') {
+        event.preventDefault();
+        toggleTheme();
+        return;
+      }
+
+      // optional direct settings shortcut:
+      if (event.key === ',') {
+        event.preventDefault();
+        navigate('/settings/account');
+        return;
+      }
       if (event.key === '?') {
         event.preventDefault();
         openShortcutHelp();
@@ -119,6 +137,6 @@ export const useKeyboardShortcuts = (): void => {
     return () => window.removeEventListener('keydown', handler);
   }, [
     token, navigate, openTaskForm, closeTaskForm, isTaskFormOpen, toggleFilters,
-    openShortcutHelp, closeShortcutHelp, openCommandPalette,
+    openShortcutHelp, closeShortcutHelp, openCommandPalette, toggleTheme,
   ]);
 };

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Moon, Sun } from 'lucide-react';
 import { useThemeStore } from '../../../store/themeStore';
 import { getDensity, applyDensity, type Density } from '../../../lib/density';
 import { PageHeader, Section } from './primitives';
@@ -15,46 +16,117 @@ const SettingsAppearance: React.FC = () => {
 
   return (
     <div>
-      <PageHeader title="Appearance" description="Theme and layout density." />
+      <PageHeader title="Appearance" description="How Tudu looks and feels." />
+
       <Section title="Theme">
-        <div className="flex gap-2">
-          {(['light', 'dark'] as const).map((t) => (
-            <button
-              key={t}
-              type="button"
-              onClick={() => setTheme(t)}
-              aria-pressed={theme === t}
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            aria-label="Dark"
+            aria-pressed={theme === 'dark'}
+            onClick={() => setTheme('dark')}
+            className={
+              'flex items-center gap-3 rounded-lg border p-4 text-left transition-colors ' +
+              (theme === 'dark'
+                ? 'border-brand bg-brand-subtle'
+                : 'border-line hover:border-line-strong')
+            }
+          >
+            <Moon
               className={
-                'flex-1 rounded-lg border px-4 py-3 text-sm font-medium capitalize transition-colors ' +
-                (theme === t
-                  ? 'border-brand bg-brand-subtle text-brand'
-                  : 'border-line bg-surface text-ink-muted hover:border-line-strong')
+                'h-4 w-4 ' +
+                (theme === 'dark' ? 'text-brand' : 'text-ink-muted')
               }
-            >
-              {t}
-            </button>
-          ))}
+            />
+            <div>
+              <p className="text-sm font-medium text-ink">Dark</p>
+              <p className="text-[11px] text-ink-faint">Grey with tudu green</p>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            aria-label="Light"
+            aria-pressed={theme === 'light'}
+            onClick={() => setTheme('light')}
+            className={
+              'flex items-center gap-3 rounded-lg border p-4 text-left transition-colors ' +
+              (theme === 'light'
+                ? 'border-brand bg-brand-subtle'
+                : 'border-line hover:border-line-strong')
+            }
+          >
+            <Sun
+              className={
+                'h-4 w-4 ' +
+                (theme === 'light' ? 'text-brand' : 'text-ink-muted')
+              }
+            />
+            <div>
+              <p className="text-sm font-medium text-ink">Light</p>
+              <p className="text-[11px] text-ink-faint">Paper and ink</p>
+            </div>
+          </button>
         </div>
       </Section>
-      <Section title="Density" description="Comfortable gives everything more breathing room.">
-        <div className="flex gap-2">
-          {(['comfortable', 'compact'] as const).map((d) => (
-            <button
-              key={d}
-              type="button"
-              onClick={() => setDensity(d)}
-              aria-pressed={density === d}
-              className={
-                'flex-1 rounded-lg border px-4 py-3 text-sm font-medium capitalize transition-colors ' +
-                (density === d
-                  ? 'border-brand bg-brand-subtle text-brand'
-                  : 'border-line bg-surface text-ink-muted hover:border-line-strong')
-              }
-            >
-              {d}
-            </button>
-          ))}
+
+      <Section
+        title="Density"
+        description="Compact shrinks padding and font sizes so more fits on screen."
+      >
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            aria-label="Comfortable"
+            aria-pressed={density === 'comfortable'}
+            onClick={() => setDensity('comfortable')}
+            className={
+              'rounded-lg border p-4 text-left transition-colors ' +
+              (density === 'comfortable'
+                ? 'border-brand bg-brand-subtle'
+                : 'border-line hover:border-line-strong')
+            }
+          >
+            <p className="text-sm font-medium text-ink">Comfortable</p>
+            <p className="mt-1 text-[11px] text-ink-faint">Default spacing</p>
+            <div className="mt-3 space-y-1.5">
+              <div className="h-1.5 rounded bg-line-subtle" />
+              <div className="h-1.5 rounded bg-line-subtle" />
+              <div className="h-1.5 rounded bg-line-subtle" />
+            </div>
+          </button>
+
+          <button
+            type="button"
+            aria-label="Compact"
+            aria-pressed={density === 'compact'}
+            onClick={() => setDensity('compact')}
+            className={
+              'rounded-lg border p-3 text-left transition-colors ' +
+              (density === 'compact'
+                ? 'border-brand bg-brand-subtle'
+                : 'border-line hover:border-line-strong')
+            }
+          >
+            <p className="text-sm font-medium text-ink">Compact</p>
+            <p className="mt-1 text-[11px] text-ink-faint">Tighter spacing</p>
+            <div className="mt-2 space-y-0.5">
+              <div className="h-1 rounded bg-line-subtle" />
+              <div className="h-1 rounded bg-line-subtle" />
+              <div className="h-1 rounded bg-line-subtle" />
+              <div className="h-1 rounded bg-line-subtle" />
+              <div className="h-1 rounded bg-line-subtle" />
+            </div>
+          </button>
         </div>
+
+        <p className="text-[11px] text-ink-faint">
+          Tip: press{' '}
+          <kbd className="rounded border border-line bg-raised px-1 font-mono text-[10px]">
+            Ctrl+Shift+D
+          </kbd>{' '}
+          anywhere in the app to toggle.
+        </p>
       </Section>
     </div>
   );

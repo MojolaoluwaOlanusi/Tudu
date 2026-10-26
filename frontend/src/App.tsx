@@ -20,6 +20,7 @@ import SettingsWorkspace from './pages/app/settings/SettingsWorkspace';
 import SettingsBilling from './pages/app/settings/SettingsBilling';
 import SettingsLicense from './pages/app/settings/SettingsLicense';
 import SettingsApi from './pages/app/settings/SettingsApi';
+import SettingsTemplates from './pages/app/settings/SettingsTemplates';
 import SettingsWebhooks from './pages/app/settings/SettingsWebhooks';
 import ProtectedRoute from './components/common/ProtectedRoute';
 
@@ -215,6 +216,7 @@ function App() {
                 <Route path="billing" element={<SettingsBilling />} />
                 <Route path="license" element={<SettingsLicense />} />
                 <Route path="api" element={<SettingsApi />} />
+                <Route path="templates" element={<SettingsTemplates />} />
                 <Route path="webhooks" element={<SettingsWebhooks />} />
               </Route>
               <Route path="/auth/callback" element={<AuthCallback />} />

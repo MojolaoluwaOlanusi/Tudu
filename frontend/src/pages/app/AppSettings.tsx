@@ -1,11 +1,15 @@
 import React from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
-import { User, Bell, Palette, Plug, Users, CreditCard, Key, KeyRound, Webhook } from 'lucide-react';
+import {
+  User, Bell, Palette, Plug, Users, CreditCard,
+  Key, KeyRound, Webhook, LayoutTemplate,
+} from 'lucide-react';
 
 const NAV = [
   { to: '/settings/account', label: 'Account', icon: User },
   { to: '/settings/notifications', label: 'Notifications', icon: Bell },
   { to: '/settings/appearance', label: 'Appearance', icon: Palette },
+  { to: '/settings/templates', label: 'Templates', icon: LayoutTemplate },
   { to: '/settings/integrations', label: 'Integrations', icon: Plug },
   { to: '/settings/workspace', label: 'Workspace', icon: Users },
   { to: '/settings/billing', label: 'Billing', icon: CreditCard },
@@ -15,7 +19,7 @@ const NAV = [
 ];
 
 const AppSettings: React.FC = () => (
-  <div className="-m-4 flex gap-0 md:-m-6">
+  <div className="-m-4 flex flex-1 gap-0 md:-m-6">
     <aside className="hidden w-56 shrink-0 border-r border-line-subtle md:block">
       <div className="sticky top-0 p-4">
         <h2 className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-wider text-ink-faint">Settings</h2>

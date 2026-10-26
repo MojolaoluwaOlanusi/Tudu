@@ -5,6 +5,7 @@ import {
   useEntitlements,
   useCancelSubscription,
   useBuyCredits,
+  usePaymentHistory,
 } from '../../../hooks/useBilling';
 import { useUiStore } from '../../../store/uiStore';
 import PublisherSettings from '../../../components/settings/PublisherSettings';
@@ -74,6 +75,7 @@ const BillingSettings: React.FC = () => {
   const { data: ent, isLoading } = useEntitlements();
   const cancel = useCancelSubscription();
   const pushToast = useUiStore((s) => s.pushToast);
+  const { data: payments = [], isLoading: paymentsLoading } = usePaymentHistory();
 
   if (isLoading) {
     return <p className="text-sm text-ink-muted">Loading...</p>;
@@ -93,11 +95,11 @@ const BillingSettings: React.FC = () => {
   return (
     <div className="">
       <div className="mb-6">
-  <h1 className="font-handwritten text-3xl text-ink">Billing</h1>
-  <p className="mt-1 text-sm text-ink-muted">
-    Your plan, credits, and payment history.
-  </p>
-</div>
+      <h1 className="font-handwritten text-3xl text-ink">Billing</h1>
+      <p className="mt-1 text-sm text-ink-muted">
+        Your plan, credits, and payment history.
+      </p>
+    </div>
 
       {/* ---------------------- Current plan ---------------------- */}
       <section className="card mb-5 p-5">
@@ -211,6 +213,44 @@ const BillingSettings: React.FC = () => {
           </div>
         </section>
       )}
+
+      <section className="card mb-5 p-5">
+        <h2 className="mb-3 font-handwritten text-xl text-ink">Payment history</h2>
+        {paymentsLoading ? (
+          <p className="text-sm text-ink-muted">Loading...</p>
+        ) : payments.length === 0 ? (
+          <p className="text-sm text-ink-muted">No payments yet.</p>
+        ) : (
+          <ul className="space-y-2">
+            {payments.map((p) => (
+              <li
+                key={p.id}
+                className="flex flex-wrap items-center gap-2 rounded-xl border border-hairline bg-surface-2 p-3"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm text-ink">
+                    {p.purpose === 'subscription'
+                      ? 'Tudu Pro subscription'
+                      : p.purpose === 'ai_credits'
+                        ? 'AI credits purchase'
+                        : p.purpose}
+                  </p>
+                  <p className="truncate text-[11px] text-ink-muted">
+                    {formatDate(p.created_at)} · {p.reference}
+                  </p>
+                </div>
+                <span className="shrink-0 text-sm font-medium text-ink tabular-nums">
+                  ₦{(p.amount_kobo / 100).toLocaleString()}
+                </span>
+                <span className="shrink-0 rounded-sm bg-brand-subtle px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-brand">
+                  {p.status}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
     </div>
   );
 };

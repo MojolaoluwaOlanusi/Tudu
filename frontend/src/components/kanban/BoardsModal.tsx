@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useBoards, useCreateBoard, useDeleteBoard, useRenameBoard } from '../../hooks/useBoards';
 import { useWorkspaces } from '../../hooks/useWorkspaces';
 import { useBoardStore } from '../../store/boardStore';
 import { useUiStore } from '../../store/uiStore';
-import TemplateGalleryModal from './TemplateGalleryModal';
 import PublishTemplateModal from './PublishTemplateModal';
 import FeatureGate from '../common/FeatureGate';
 
@@ -22,7 +22,6 @@ const BoardsModal: React.FC<BoardsModalProps> = ({ onClose }) => {
   const pushToast = useUiStore((s) => s.pushToast);
   const [newName, setNewName] = useState('');
   const [workspaceId, setWorkspaceId] = useState('');
-  const [galleryOpen, setGalleryOpen] = useState(false);
   const [publishBoard, setPublishBoard] = useState<{ id: string; name: string } | null>(null);
 
   // Viewers cannot add boards to a workspace.
@@ -84,58 +83,57 @@ const BoardsModal: React.FC<BoardsModalProps> = ({ onClose }) => {
         aria-modal="true"
         aria-label="Manage boards"
       >
-        <div className="mb-4 flex items-start justify-between gap-3">
-          <div>
-            <h2 className="font-handwritten text-2xl text-ink">Boards</h2>
-            <p className="text-xs text-ink-muted">
-              Each board has its own columns and its own tasks.
+        <div className="mb-4 rounded-xl border border-line-subtle bg-surface-2/40 p-4">
+          <div className="mb-3">
+            <h3 className="text-sm font-semibold text-ink">Create a board</h3>
+            <p className="mt-0.5 text-xs text-ink-muted">
+              Name it and choose where it lives. Press Enter to create.
             </p>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close"
-            className="rounded-full border border-hairline bg-surface-2 px-3 py-1.5 text-sm text-ink-muted hover:text-ink"
-          >
-            Close
-          </button>
-        </div>
 
-        <form onSubmit={handleCreate} className="mb-4 flex flex-wrap items-center gap-2">
-          <input
-            type="text"
-            value={newName}
-            onChange={(event) => setNewName(event.target.value)}
-            placeholder="New board name"
-            maxLength={255}
-            aria-label="New board name"
-            className="min-w-0 flex-1 rounded-lg border border-hairline bg-surface px-2.5 py-2 text-sm text-ink focus:border-accent focus:outline-none"
-          />
-          {creatable.length > 0 && (
-            <select
-              value={workspaceId}
-              onChange={(event) => setWorkspaceId(event.target.value)}
-              aria-label="Where to create the board"
-              className="rounded-lg border border-hairline bg-surface px-2 py-2 text-sm text-ink"
+          <form onSubmit={handleCreate} className="flex flex-wrap items-center gap-2">
+            <input
+              type="text"
+              value={newName}
+              onChange={(event) => setNewName(event.target.value)}
+              placeholder="New board name"
+              maxLength={255}
+              aria-label="New board name"
+              className="min-w-0 flex-1 rounded-lg border border-hairline bg-surface px-2.5 py-2 text-sm text-ink focus:border-accent focus:outline-none"
+            />
+            {creatable.length > 0 && (
+              <select
+                value={workspaceId}
+                onChange={(event) => setWorkspaceId(event.target.value)}
+                aria-label="Where to create the board"
+                className="rounded-lg border border-hairline bg-surface px-2 py-2 text-sm text-ink"
+              >
+                <option value="">Personal</option>
+                {creatable.map((w) => (
+                  <option key={w.id} value={w.id}>{w.name}</option>
+                ))}
+              </select>
+            )}
+            <button
+              type="submit"
+              disabled={!newName.trim() || busy}
+              className="btn-accent rounded-lg px-3 py-2 text-sm font-semibold disabled:opacity-50"
             >
-              <option value="">Personal</option>
-              {creatable.map((w) => (
-                <option key={w.id} value={w.id}>
-                  {w.name}
-                </option>
-              ))}
-            </select>
-          )}
-<button
-            type="button"
-            onClick={() => setGalleryOpen(true)}
-            data-tour="browse-templates"
-            className="text-xs font-semibold text-accent-strong hover:text-accent"
-          >
-            Or browse templates →
-          </button>
-        </form>
+              Create board
+            </button>
+          </form>
 
+          <div className="mt-3">
+            <Link
+              to="/settings/templates"
+              onClick={onClose}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-surface px-3 py-1.5 text-xs font-semibold text-ink-muted transition-colors hover:border-brand hover:text-brand"
+            >
+              Browse templates
+              <span aria-hidden="true">→</span>
+            </Link>
+          </div>
+        </div>
 
         <ul className="space-y-2">
           {boards.map((board) => {
@@ -207,9 +205,7 @@ const BoardsModal: React.FC<BoardsModalProps> = ({ onClose }) => {
           })}
         </ul>
       </div>
-            {publishBoard && <PublishTemplateModal boardId={publishBoard.id} initialName={publishBoard.name} onClose={() => setPublishBoard(null)} />}
-
-{galleryOpen && <TemplateGalleryModal onClose={() => setGalleryOpen(false)} />}
+      {publishBoard && <PublishTemplateModal boardId={publishBoard.id} initialName={publishBoard.name} onClose={() => setPublishBoard(null)} />}
     </div>
   );
 };
