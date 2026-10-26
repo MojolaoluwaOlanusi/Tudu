@@ -21,6 +21,7 @@ export interface MarketplaceTemplate {
   author_id: string;
   created_at: string;
   author_name?: string;
+  author_avatar_url?: string | null;
   status?: string;
 }
 
@@ -38,21 +39,7 @@ export interface TemplatePurchase {
   rental_days_paid: number;
 }
 
-export interface TemplatePurchase {
-  id: string;
-  reference: string;
-  amount_kobo: number;
-  status: string;
-  created_at: string;
-  refunded_at: string | null;
-  template_id: string;
-  template_name: string;
-}
-
 export const templateService = {
-  /** Create a new board from a built-in template. */
-
-  // Marketplace endpoints
   listMarketplace: async (): Promise<MarketplaceTemplate[]> =>
     (await axios.get(API_URL + '/api/templates/marketplace')).data,
 
