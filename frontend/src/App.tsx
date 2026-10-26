@@ -22,6 +22,15 @@ import SettingsLicense from './pages/app/settings/SettingsLicense';
 import SettingsApi from './pages/app/settings/SettingsApi';
 import SettingsTemplates from './pages/app/settings/SettingsTemplates';
 import SettingsWebhooks from './pages/app/settings/SettingsWebhooks';
+import DocsPage from './pages/marketing/DocsPage';
+import ChangelogPage from './pages/marketing/ChangelogPage';
+import HelpPage from './pages/marketing/HelpPage';
+import ContactPage from './pages/marketing/ContactPage';
+import BlogPage from './pages/marketing/BlogPage';
+import CommunityPage from './pages/marketing/CommunityPage';
+import StatusPage from './pages/marketing/StatusPage';
+import LegalPage from './pages/marketing/LegalPage';
+import SolutionsPage from './pages/marketing/SolutionsPage';
 import ProtectedRoute from './components/common/ProtectedRoute';
 
 import Topbar from './components/app/Topbar';
@@ -262,19 +271,19 @@ function App() {
               />
               <Route path="/signup" element={<Login mode="signup" />} />
               <Route path="/demo" element={<ComingSoon title="Live demo" />} />
-              <Route path="/docs" element={<ComingSoon title="Documentation" />} />
-              <Route path="/docs/:slug" element={<ComingSoon title="Documentation" />} />
-              <Route path="/webhooks" element={<ComingSoon title="Webhooks" />} />
-              <Route path="/changelog" element={<ComingSoon title="Changelog" />} />
-              <Route path="/help" element={<ComingSoon title="Help center" />} />
-              <Route path="/contact" element={<ComingSoon title="Contact" />} />
-              <Route path="/blog" element={<ComingSoon title="Blog" />} />
-              <Route path="/community" element={<ComingSoon title="Community" />} />
-              <Route path="/status" element={<ComingSoon title="Status page" />} />
-              <Route path="/privacy" element={<ComingSoon title="Privacy" />} />
-              <Route path="/terms" element={<ComingSoon title="Terms" />} />
-              <Route path="/solutions" element={<ComingSoon title="Solutions" />} />
-              <Route path="/solutions/:slug" element={<ComingSoon title="Solutions" />} />
+              <Route path="/docs" element={<DocsPage />} />
+              <Route path="/docs/:slug" element={<DocsPage />} />
+              <Route path="/webhooks" element={<DocsPage forcedSlug="webhooks" />} />
+              <Route path="/changelog" element={<ChangelogPage />} />
+              <Route path="/help" element={<HelpPage />} />
+              <Route path="/contact" element={<ContactPage />} />
+              <Route path="/blog" element={<BlogPage />} />
+              <Route path="/community" element={<CommunityPage />} />
+              <Route path="/status" element={<StatusPage />} />
+              <Route path="/privacy" element={<LegalPage mode="privacy" />} />
+              <Route path="/terms" element={<LegalPage mode="terms" />} />
+              <Route path="/solutions" element={<Navigate to="/solutions/teams" replace />} />
+              <Route path="/solutions/:slug" element={<SolutionsPage />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
             <CollaborationBridge />
