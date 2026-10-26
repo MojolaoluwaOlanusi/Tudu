@@ -53,7 +53,12 @@ const Login: React.FC<LoginProps> = ({ mode }) => {
   }, [initialMode]);
 
   useEffect(() => {
-    if (searchParams.get('error')) {
+    const errorParam = searchParams.get('error');
+    if (errorParam === 'session_expired') {
+      setError('Your session expired. Please sign in again.');
+      return;
+    }
+    if (errorParam) {
       setError('Authentication failed. Please try again.');
       return;
     }

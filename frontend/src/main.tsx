@@ -5,6 +5,30 @@ import './index.css';
 import './styles/brand.css';
 import './styles/density.css';
 import './lib/axiosSetup';
+
+// Dynamic imports (React.lazy) can reference chunk filenames that
+// were removed by a deploy. When the service worker is still serving
+// the old index.html, the chunk 404s and React.lazy throws. Vite
+// fires this event before the throw, so reload once to fetch the
+// new index.html and pick up the current chunk names. A 10s guard
+// prevents a reload loop if the SW itself is stuck.
+if (typeof window !== 'undefined') {
+  window.addEventListener(
+    'vite:preloadError',
+    ((event: Event) => {
+      const e = event as CustomEvent;
+      e.preventDefault();
+      const key = 'tudu.chunk-reload';
+      const last = Number(sessionStorage.getItem(key) ?? '0');
+      if (Date.now() - last < 10_000) {
+        console.error('[chunk-load] repeated failure; not reloading again', e);
+        return;
+      }
+      sessionStorage.setItem(key, String(Date.now()));
+      window.location.reload();
+    }) as EventListener,
+  );
+}
 import { applyTheme, useThemeStore } from './store/themeStore';
 import { applyDensity, getDensity } from './lib/density';
 import { queryClient } from './lib/queryClient';

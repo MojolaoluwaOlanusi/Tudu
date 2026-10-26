@@ -70,6 +70,13 @@ function bucketDaily(
   return buckets;
 }
 
+/**
+ * Step 12 polish: the range toggle wraps on narrow phones (three labels
+ * overflow a 320px viewport otherwise), the two-column grid gets `min-w-0`
+ * so long content can shrink, and the task title in "Where the time went"
+ * gets `min-w-0 flex-1` so `truncate` actually truncates instead of pushing
+ * the card wider.
+ */
 const PomodoroStats: React.FC = () => {
   const [range, setRange] = useState<Range>('week');
   const days = RANGE_DAYS[range];
@@ -100,7 +107,7 @@ const PomodoroStats: React.FC = () => {
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div
-          className="flex rounded-md border border-line bg-surface p-0.5"
+          className="flex flex-wrap rounded-md border border-line bg-surface p-0.5"
           role="group"
           aria-label="Date range"
         >
@@ -111,7 +118,7 @@ const PomodoroStats: React.FC = () => {
               onClick={() => setRange(key)}
               aria-pressed={range === key}
               className={
-                'rounded px-3 py-1.5 text-[12px] font-medium transition-colors ' +
+                'whitespace-nowrap rounded px-2 py-1.5 text-[11px] font-medium transition-colors sm:px-3 sm:text-[12px] ' +
                 (range === key ? 'bg-raised text-ink' : 'text-ink-muted hover:text-ink')
               }
             >
@@ -149,13 +156,13 @@ const PomodoroStats: React.FC = () => {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <div className="card p-5">
+        <div className="card min-w-0 overflow-hidden p-5">
           <h2 className="font-handwritten text-xl text-ink">{RANGE_LABELS[range]}</h2>
           <p className="mb-3 text-[11px] text-ink-faint">Minutes of focus per day</p>
           <BarChart data={chartData} height={140} />
         </div>
 
-        <div className="card p-5">
+        <div className="card min-w-0 overflow-hidden p-5">
           <h2 className="font-handwritten text-xl text-ink">Where the time went</h2>
           <p className="mb-3 text-[11px] text-ink-faint">Per task, all-time</p>
           {data.byTask.length === 0 ? (
@@ -169,7 +176,9 @@ const PomodoroStats: React.FC = () => {
                   key={row.taskId ?? 'unassigned'}
                   className="flex items-center justify-between gap-3 text-sm"
                 >
-                  <span className="truncate text-ink">{row.title ?? 'No task'}</span>
+                  <span className="min-w-0 flex-1 truncate text-ink">
+                    {row.title ?? 'No task'}
+                  </span>
                   <span className="shrink-0 text-ink-muted">
                     {humaniseMinutes(row.minutes)} · {row.sessions} session
                     {row.sessions === 1 ? '' : 's'}
@@ -181,7 +190,7 @@ const PomodoroStats: React.FC = () => {
         </div>
       </div>
 
-      <div className="card p-5">
+      <div className="card min-w-0 overflow-hidden p-5">
         <h2 className="mb-3 font-handwritten text-xl text-ink">Recent sessions</h2>
         {data.recent.length === 0 ? (
           <p className="py-4 text-center text-[12px] text-ink-faint">
@@ -200,7 +209,7 @@ const PomodoroStats: React.FC = () => {
                 <span className="shrink-0 tabular-nums text-ink-muted">
                   {session.duration}m
                 </span>
-                <span className="shrink-0 text-ink-faint">
+                <span className="hidden shrink-0 text-ink-faint sm:inline">
                   {session.completed_at
                     ? format(new Date(session.completed_at), 'd MMM, HH:mm')
                     : 'not finished'}
