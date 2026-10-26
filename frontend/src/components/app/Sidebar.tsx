@@ -29,12 +29,49 @@ const Sidebar: React.FC = () => {
   useEffect(() => {
     const main = document.querySelector<HTMLElement>('[data-main]');
     if (!main) return;
-    const onScroll = () => {
-      setAtRecent(main.scrollTop + main.clientHeight >= main.scrollHeight - 120);
+
+    const update = () => {
+      const maxScroll = main.scrollHeight - main.clientHeight;
+      // Content fits inside the viewport: there is nowhere to scroll, so
+      // never claim the user is "at recent activity" - the arrow should
+      // point down (its actual job is a no-op in this case).
+      if (maxScroll <= 4) {
+        setAtRecent(false);
+        return;
+      }
+      // Near the bottom. Cap the tolerance at 120px, but for pages that
+      // only overflow by a little, scale it so a barely-scrolling list
+      // does not report "at the bottom" while the user is at the top.
+      const threshold = Math.min(120, maxScroll / 2);
+      setAtRecent(main.scrollTop >= maxScroll - threshold);
     };
-    main.addEventListener('scroll', onScroll, { passive: true });
-    onScroll();
-    return () => main.removeEventListener('scroll', onScroll);
+
+    main.addEventListener('scroll', update, { passive: true });
+
+    // React Query fills the page after mount, and fonts/images change
+    // layout. In all three cases scrollHeight changes without a scroll
+    // event, so the arrow used to get stuck in the wrong direction until
+    // the user scrolled manually. Observe both the scroll container (its
+    // clientHeight changes on viewport resize) and its content wrapper
+    // (its height grows with children, which is what changes scrollHeight).
+    const ro =
+      typeof ResizeObserver !== 'undefined' ? new ResizeObserver(update) : null;
+    if (ro) {
+      const wrapper = main.firstElementChild;
+      if (wrapper) ro.observe(wrapper);
+      ro.observe(main);
+    }
+
+    // Seed the state once, after the first paint has settled. rAF fires
+    // after layout, so clientHeight and scrollHeight are already correct
+    // for the initial content; the ResizeObserver covers growth after this.
+    const raf = window.requestAnimationFrame(update);
+
+    return () => {
+      main.removeEventListener('scroll', update);
+      ro?.disconnect();
+      window.cancelAnimationFrame(raf);
+    };
   }, []);
 
   const handleRecentActivity = () => {
