@@ -148,7 +148,7 @@ export const listMarketplace = async (_req: Request, res: Response) => {
     const result = await pool.query(
       'SELECT m.id, m.name, m.description, m.category, m.install_count, ' +
         '       m.price_kobo::int AS price_kobo, m.rental_days, m.version, ' +
-        '       m.author_id, m.created_at, u.name AS author_name ' +
+        '       m.author_id, m.created_at, u.name AS author_name, u.avatar_url AS author_avatar_url ' +
         'FROM marketplace_templates m ' +
         'JOIN users u ON u.id = m.author_id ' +
         'WHERE m.status = \'approved\' ' +

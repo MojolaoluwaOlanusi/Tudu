@@ -21,19 +21,11 @@ interface MarketplacePickerProps {
 const formatPrice = (t: MarketplaceTemplate): string => {
   if (t.price_kobo === 0) return 'Free';
   const naira =
-    '₦' +
+    '\u20a6' +
     (t.price_kobo / 100).toLocaleString('en-NG', { maximumFractionDigits: 0 });
   return t.rental_days > 0 ? `Rent ${naira} / ${t.rental_days}d` : naira;
 };
 
-/**
- * Step 11 polish: the card header is now emoji + name + price pill in one
- * row, description sits under it, chips are quieter (`bg-surface-2` pills),
- * and the action button inherits `btn-accent brush-stroke` for paid
- * installs so the primary action reads like every other primary action in
- * the app. Behaviour unchanged: same hooks, same install/sync flow, same
- * modals for buy / edit / sync-terms-changed.
- */
 const MarketplacePicker: React.FC<MarketplacePickerProps> = ({
   onInstalled,
   disabled,
@@ -77,9 +69,7 @@ const MarketplacePicker: React.FC<MarketplacePickerProps> = ({
         pushToast(detail, 'error');
       }
     }
-  };
-
-  if (isLoading) return <p className="text-sm text-ink-muted">Loading...</p>;
+  };  if (isLoading) return <p className="text-sm text-ink-muted">Loading...</p>;
   if (templates.length === 0)
     return <p className="text-sm text-ink-muted">No community templates yet.</p>;
 
@@ -92,6 +82,7 @@ const MarketplacePicker: React.FC<MarketplacePickerProps> = ({
             (p) => p.template_id === t.id && p.status === 'success',
           );
           const hasUpdate = purchase && t.version > purchase.version_bought;
+          const authorInitial = (t.author_name || '?').charAt(0).toUpperCase();
 
           return (
             <div
@@ -126,7 +117,20 @@ const MarketplacePicker: React.FC<MarketplacePickerProps> = ({
                 {t.description || 'No description'}
               </p>
 
-              <div className="mt-3 flex flex-wrap gap-1.5 text-[10px] text-ink-faint">
+              <div className="mt-2 flex items-center gap-1.5 text-[10px] text-ink-faint">
+                {t.author_avatar_url ? (
+                  <img
+                    src={t.author_avatar_url}
+                    alt=""
+                    className="h-4 w-4 shrink-0 rounded-full object-cover"
+                  />
+                ) : (
+                  <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-brand text-[8px] font-semibold text-ink-inverse">
+                    {authorInitial}
+                  </span>
+                )}
+                <span className="truncate">by {t.author_name || 'Unknown'}</span>
+              </div>              <div className="mt-3 flex flex-wrap gap-1.5 text-[10px] text-ink-faint">
                 <span className="rounded-sm bg-surface-2 px-1.5 py-0.5">
                   {t.category}
                 </span>
@@ -152,7 +156,7 @@ const MarketplacePicker: React.FC<MarketplacePickerProps> = ({
                     disabled={sync.isPending}
                     className="btn-accent w-full rounded-lg px-3 py-1.5 text-xs font-semibold disabled:opacity-60"
                   >
-                    {sync.isPending ? 'Updating…' : 'Update available'}
+                    {sync.isPending ? 'Updating\u2026' : 'Update available'}
                   </button>
                 ) : (
                   <button

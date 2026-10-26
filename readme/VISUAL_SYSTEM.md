@@ -1,8 +1,8 @@
 # Tudu — Visual System (Post-Port)
 
-State: after Step 13. The port reused the mockup's token vocabulary, so
-anything that reads `bg-surface`, `text-ink`, `border-hairline`, `bg-brand-subtle`,
-`text-brand`, etc. resolves to the mockup's values.
+State: after Step 12. The port reused the mockup's token vocabulary, so
+anything that reads `bg-surface`, `text-ink`, `border-hairline`,
+`bg-brand-subtle`, `text-brand`, etc. resolves to the mockup's values.
 
 ## Design tokens
 
@@ -45,10 +45,10 @@ Defined in `frontend/src/index.css`.
 --accent-muted: rgba(34, 197, 94, 0.25)
 
 **The Step 10 pivot.** The old `.dark` block used a warm-grey palette
-(#1a1a1a / #242424 / #3a3a3a). Step 10 swapped seven values for the mockup's
-cool near-black family and switched borders from solid hex to translucent
-white. Because every component reads from these tokens, no component needed
-editing — the app repainted across the board.
+(#1a1a1a / #242424 / #3a3a3a). Step 10 swapped seven values for the
+mockup's cool near-black family and switched borders from solid hex to
+translucent white. Because every component reads from these tokens, no
+component needed editing — the app repainted across the board.
 
 `--color-accent-strong` stays `#4ade80` in dark mode. The mockup has no
 equivalent token; the live app uses it for emphasis text on dark surfaces
@@ -76,6 +76,7 @@ Tailwind defaults.
 Theme-agnostic translucent tints. The same class works in light and dark
 because the tint is derived from the brand colour at 10% alpha — no
 `dark:` variant needed.
+
 Category — work: bg-blue-500/10 text-blue-400
 Category — personal: bg-purple-500/10 text-purple-400
 Category — study: bg-emerald-500/10 text-emerald-400
@@ -96,23 +97,29 @@ lowercase.
 `border 1px solid var(--color-border)`, `background var(--color-surface)`.
 Hover lifts by 1px and adds a subtle shadow.
 
+Marketing and modal panels use explicit `rounded-2xl border border-hairline
+bg-surface shadow-xl` rather than `.card` so the brush-edge `.card::after`
+never overlaps a pop-in animation or a boxed dialog.
+
 ### Buttons
 
 - `.btn-accent` — brand green, white text, `rounded-0.75rem`, hover uses
   `--accent-strong`
 - `.btn-ghost` — surface bg, hairline border, `--text-primary`
 - `.brush-stroke` — the mockup's signature green underline (defined in
-  `styles/brand.css`); applied to the primary CTA in the hero and a few
-  other places
+  `styles/brand.css`); applied to the primary CTA in the hero and the
+  primary action inside most cards/modals
 
 ### Pro badge
+
 rounded-sm bg-brand/15 px-1.5 py-0.5
 text-[9px] font-semibold uppercase tracking-wider text-brand
 
 Inline, small, green tint. Used on the Topbar Pro chip, on gated feature
 cards, and in the `UpgradePrompt`.
 
-### Upgrade card (`UpgradePrompt`, Step 13)
+### Upgrade card (`UpgradePrompt`, Step 12)
+
 .card border-accent/30 bg-brand-subtle/10 p-6
 flex items-start gap-3
 green Lock icon (bg-brand-subtle text-brand rounded-lg)
@@ -146,29 +153,52 @@ Top-center, per-variant icons, `glass` background. Dismiss button on the
 right.
 
 ### Login — two-column split (Step 12)
+
 min-h-screen flex
 left half (hidden lg:flex): marketing panel + wordmark
 right half (lg:w-1/2): form panel, mobile brand block at top
 
 Below `lg` it collapses to the single centered card.
 
+### Marketing chrome (`MarketingShell`, Step 10)
+
+Every public marketing page is wrapped in `MarketingShell`, which is:
+
+  <div className="min-h-screen bg-canvas">
+    <Navbar />
+    <main className="pt-14">{children}</main>
+    <Footer />
+  </div>
+
+`pt-14` matches the fixed Navbar's height. `Navbar` is the same component
+the landing page uses, so a fix to the nav or footer propagates to every
+marketing route.
+
+Body copy uses the `Prose` primitives from
+`components/marketing/Prose.tsx`:
+
+  <H1> — font-handwritten text-4xl/5xl
+  <H2> — mb-3 mt-10 text-xl font-semibold
+  <P>  — mb-4 text-[14px] leading-relaxed text-ink-muted
+  <UL> — bulleted list with brand dots
+  <Code> — pre + <code> on a dark card
+  <Kbd> — inline mono chip
+
+### Docs sidebar (`DocsLayout`, Step 10)
+
+`DocsLayout` renders a sticky `w-56` sidebar (`hidden md:block`) with a
+search field and a vertical list of every doc. Active doc:
+`bg-brand-subtle text-brand`. The right column is the article body,
+rendered through `Prose`.
+
+On `< md` the sidebar is hidden; the doc body still renders full-width.
+Search falls back to a no-op on mobile rather than a broken menu.
+
 ## Where to look for the code
 
 - Tokens: `frontend/src/index.css`
 - Tailwind aliases: `frontend/tailwind.config.js`
-- Brush stroke + glass: `frontend/src/styles/brand.css`
+- Brush stroke + glass + cursor spotlight: `frontend/src/styles/brand.css`
 - Density (compact): `frontend/src/styles/density.css`
-
-## What changed in the port (Steps 1–13)
-
-1. Tokens added (aliases for the mockup's names, mapped to the live app's
-   old values)
-2. `Wordmark`, `BrushButton`, `LiveDot`, `Spinner`
-3–7. Landing page ported section by section
-8. Header restyled
-9. List view restyled (chips, `EmptyState`)
-10. **Dark palette swapped to the mockup's cool near-black family** — the
-    visual pivot
-11. Stats + Analytics restyled (icons, chart colours, chart chrome)
-12. Settings + Auth restyled (login split, colour polish)
-13. `UpgradePrompt` + `ProBadge` + AI modal polish
+- Marketing chrome: `frontend/src/components/marketing/`
+- Marketing pages: `frontend/src/pages/marketing/`
