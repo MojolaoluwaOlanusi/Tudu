@@ -7,11 +7,15 @@ const buttonRow = 'flex flex-wrap items-center gap-2';
 /**
  * The "would you like a tour?" prompt shown to new accounts.
  *
- * Three ways out, and they are deliberately not the same:
- *  - "Show me around" starts the tour.
- *  - Tapping the backdrop (or "Maybe later") snoozes for a week, so someone
- *    busy right now still gets offered it later.
- *  - "Don't show again" opts out permanently.
+ * Step 11 polish: the emoji badge uses `bg-brand/15` (brand tint) instead
+ * of the older `bg-accent-soft`, the "Don't show again" link is quieter,
+ * and the helper line at the bottom reads at `text-ink-faint`.
+ *
+ * Behaviour unchanged: three ways out are still
+ *   - "Show me around" → startTour
+ *   - "Maybe later" / backdrop → snoozePrompt (7-day snooze)
+ *   - "Don't show again" → optOut (permanent)
+ * The `data-testid="onboarding-prompt"` contract is preserved.
  */
 const OnboardingPrompt: React.FC = () => {
   const user = useAuthStore((state) => state.user);
@@ -37,18 +41,16 @@ const OnboardingPrompt: React.FC = () => {
       aria-modal="true"
       aria-labelledby="onboarding-prompt-title"
       data-testid="onboarding-prompt"
-      // Tapping the backdrop is a "not right now", not a permanent opt-out.
       onClick={snoozePrompt}
     >
       <div
         ref={cardRef}
-        // Keep clicks inside the card from reaching the backdrop handler above.
         onClick={(event) => event.stopPropagation()}
-        className="card animate-pop-in w-full max-w-md p-6 text-center sm:p-7"
+        className="animate-pop-in w-full max-w-md rounded-2xl border border-hairline bg-surface p-6 text-center shadow-xl sm:p-7"
       >
         <div
           aria-hidden="true"
-          className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-accent-soft text-3xl"
+          className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-brand/15 text-3xl"
         >
           👋
         </div>
@@ -70,7 +72,7 @@ const OnboardingPrompt: React.FC = () => {
             type="button"
             onClick={startTour}
             autoFocus
-            className="btn-accent"
+            className="btn-accent brush-stroke"
             data-testid="onboarding-start"
           >
             Show me around
@@ -83,12 +85,12 @@ const OnboardingPrompt: React.FC = () => {
         <button
           type="button"
           onClick={optOut}
-          className="mt-4 text-xs font-medium text-ink-muted underline-offset-2 transition-colors hover:text-accent-strong hover:underline"
+          className="mt-4 text-[11px] font-medium text-ink-faint underline-offset-2 transition-colors hover:text-ink hover:underline"
         >
           Don&apos;t show again
         </button>
 
-        <p className="mt-3 text-[11px] text-ink-muted">
+        <p className="mt-3 text-[11px] text-ink-faint">
           No rush — we&apos;ll offer the tour again in a week if you tap away.
         </p>
       </div>
