@@ -5,10 +5,11 @@ import { useCommandPaletteStore } from '../../store/commandPaletteStore';
 import { useShortcutHelpStore } from '../../store/shortcutHelpStore';
 import { useUiStore } from '../../store/uiStore';
 import { useBoardStore } from '../../store/boardStore';
+import { useThemeStore } from '../../store/themeStore';
 import { useBoards } from '../../hooks/useBoards';
 import { useTasks } from '../../hooks/useTasks';
 
-type Group = 'Actions' | 'Boards' | 'Tasks';
+type Group = 'Actions' | 'Navigation' | 'Boards' | 'Tasks';
 
 interface Item {
   id: string;
@@ -18,7 +19,7 @@ interface Item {
   run: () => void;
 }
 
-const GROUP_ORDER: Group[] = ['Actions', 'Boards', 'Tasks'];
+const GROUP_ORDER: Group[] = ['Actions', 'Navigation', 'Boards', 'Tasks'];
 
 const CommandPaletteInner = () => {
   const close = useCommandPaletteStore((s) => s.close);
@@ -26,6 +27,7 @@ const CommandPaletteInner = () => {
   const openTaskForm = useUiStore((s) => s.openTaskForm);
   const openDetail = useUiStore((s) => s.openDetail);
   const setActiveBoard = useBoardStore((s) => s.setActiveBoard);
+  const toggleTheme = useThemeStore((s) => s.toggleTheme);
   const { data: boards } = useBoards();
   const { data: tasks } = useTasks({});
   const navigate = useNavigate();
@@ -44,11 +46,19 @@ const CommandPaletteInner = () => {
   const items: Item[] = useMemo(() => {
     const actions: Item[] = [
       { id: 'new-task', label: 'New task', hint: 'N', group: 'Actions', run: () => { close(); openTaskForm(null); } },
-      { id: 'go-list', label: 'Go to List', hint: 'G L', group: 'Actions', run: () => { close(); navigate('/'); } },
-      { id: 'go-board', label: 'Go to Board', hint: 'G B', group: 'Actions', run: () => { close(); navigate('/board'); } },
-      { id: 'go-stats', label: 'Go to Stats', hint: 'G S', group: 'Actions', run: () => { close(); navigate('/stats'); } },
-      { id: 'go-analytics', label: 'Go to Analytics', hint: 'G A', group: 'Actions', run: () => { close(); navigate('/analytics'); } },
+      { id: 'toggle-theme', label: 'Toggle theme', hint: 'T', group: 'Actions', run: () => { close(); toggleTheme(); } },
       { id: 'help', label: 'Keyboard shortcuts', hint: '?', group: 'Actions', run: () => { close(); openShortcutHelp(); } },
+    ];
+    const navigation: Item[] = [
+      { id: 'go-list', label: 'Go to List', hint: 'G L', group: 'Navigation', run: () => { close(); navigate('/'); } },
+      { id: 'go-board', label: 'Go to Board', hint: 'G B', group: 'Navigation', run: () => { close(); navigate('/board'); } },
+      { id: 'go-stats', label: 'Go to Stats', hint: 'G S', group: 'Navigation', run: () => { close(); navigate('/stats'); } },
+      { id: 'go-analytics', label: 'Go to Analytics', hint: 'G A', group: 'Navigation', run: () => { close(); navigate('/analytics'); } },
+      { id: 'go-settings', label: 'Go to Settings', hint: 'G ,', group: 'Navigation', run: () => { close(); navigate('/settings/account'); } },
+      { id: 'go-templates', label: 'Go to Templates', hint: 'G T', group: 'Navigation', run: () => { close(); navigate('/settings/templates'); } },
+      { id: 'go-integrations', label: 'Go to Integrations', hint: 'G I', group: 'Navigation', run: () => { close(); navigate('/settings/integrations'); } },
+      { id: 'go-billing', label: 'Go to Billing', hint: '', group: 'Navigation', run: () => { close(); navigate('/settings/billing'); } },
+      { id: 'go-pricing', label: 'Go to Pricing', hint: 'G P', group: 'Navigation', run: () => { close(); navigate('/pricing'); } },
     ];
     const boardItems: Item[] = (boards ?? []).map((b) => ({
       id: 'board-' + b.id,
@@ -64,8 +74,8 @@ const CommandPaletteInner = () => {
       group: 'Tasks',
       run: () => { close(); openDetail({ type: 'task', id: t.id }); },
     }));
-    return [...actions, ...boardItems, ...taskItems];
-  }, [boards, tasks, close, openTaskForm, openShortcutHelp, navigate, setActiveBoard]);
+    return [...actions, ...navigation, ...boardItems, ...taskItems];
+  }, [boards, tasks, close, openTaskForm, openShortcutHelp, navigate, setActiveBoard, toggleTheme, openDetail]);
 
   const filtered = useMemo(() => {
     if (!query.trim()) return items.slice(0, 12);
@@ -98,7 +108,7 @@ const CommandPaletteInner = () => {
       (acc[item.group] = acc[item.group] || []).push(item);
       return acc;
     },
-    { Actions: [], Boards: [], Tasks: [] },
+    { Actions: [], Navigation: [], Boards: [], Tasks: [] },
   );
 
   let flatIdx = -1;
