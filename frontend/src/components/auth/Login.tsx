@@ -16,17 +16,23 @@ interface LoginProps {
 /**
  * Login / Signup.
  *
- * The visible heading, sub-copy and submit label follow the *page* mode
- * (the route prop, or ?mode=signup), matching the mockup's AuthPage. The
- * form's internal signin/signup toggle still lives in `emailMode` so a
- * user who switches mid-flow does not lose their input.
+ * Both pages start on the OAuth-first view (Google + GitHub + "Continue
+ * with Email"). The heading, sub-copy and initial form mode follow the
+ * *page* mode (`mode` prop, `?mode=signup` query fallback, or 'signin').
+ *
+ * A "switch to the other page" link sits below "Continue with Email",
+ * so a user on /login can reach /signup in one click (and vice versa)
+ * without needing to open the email form first.
+ *
+ * When the user switches between /login and /signup via that link, the
+ * component re-renders with a new `mode`; an effect resets `emailMode`
+ * and closes the form so the new page starts clean.
  */
 const Login: React.FC<LoginProps> = ({ mode }) => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { setUser, isAuthenticated } = useAuthStore();
 
-  // Initial mode: prop wins, then ?mode=signup, then 'signin'.
   const queryMode = searchParams.get('mode');
   const initialMode: EmailMode =
     mode === 'signup' || queryMode === 'signup' ? 'signup' : 'signin';
@@ -38,6 +44,13 @@ const Login: React.FC<LoginProps> = ({ mode }) => {
   const [emailMode, setEmailMode] = useState<EmailMode>(initialMode);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+
+  // Sync the form mode when the page mode changes (login <-> signup).
+  // On mount this runs once with the initial value and is a no-op.
+  useEffect(() => {
+    setEmailMode(initialMode);
+    setShowEmailForm(false);
+  }, [initialMode]);
 
   useEffect(() => {
     if (searchParams.get('error')) {
@@ -79,9 +92,6 @@ const Login: React.FC<LoginProps> = ({ mode }) => {
     }
   };
 
-  // Heading / sub / submit label reflect the page mode (mockup), but fall
-  // back to `emailMode` once the form is visible so a mid-form toggle updates
-  // the labels too.
   const isSignup = showEmailForm
     ? emailMode === 'signup'
     : initialMode === 'signup';
@@ -169,6 +179,30 @@ const Login: React.FC<LoginProps> = ({ mode }) => {
               >
                 Continue with Email
               </button>
+
+              <p className="pt-2 text-center text-sm text-ink-muted">
+                {isSignup ? (
+                  <>
+                    Already have an account?{' '}
+                    <Link
+                      to="/login"
+                      className="font-medium text-accent-strong hover:text-accent"
+                    >
+                      Sign In
+                    </Link>
+                  </>
+                ) : (
+                  <>
+                    Don&apos;t have an account?{' '}
+                    <Link
+                      to="/signup"
+                      className="font-medium text-accent-strong hover:text-accent"
+                    >
+                      Sign Up
+                    </Link>
+                  </>
+                )}
+              </p>
             </div>
           ) : (
             <form onSubmit={handleEmailSubmit} className="mt-8 space-y-4">
