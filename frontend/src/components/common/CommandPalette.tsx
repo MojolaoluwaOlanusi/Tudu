@@ -1,6 +1,19 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search } from 'lucide-react';
+import {
+  Search,
+  Plus,
+  Moon,
+  HelpCircle,
+  List,
+  KanbanSquare,
+  BarChart3,
+  PieChart,
+  Settings,
+  LayoutTemplate,
+  Plug,
+  CreditCard,
+} from 'lucide-react';
 import { useCommandPaletteStore } from '../../store/commandPaletteStore';
 import { useShortcutHelpStore } from '../../store/shortcutHelpStore';
 import { useUiStore } from '../../store/uiStore';
@@ -11,11 +24,16 @@ import { useTasks } from '../../hooks/useTasks';
 
 type Group = 'Actions' | 'Navigation' | 'Boards' | 'Tasks';
 
+type IconComponent = React.ComponentType<{ className?: string }>;
+
 interface Item {
   id: string;
   label: string;
   hint?: string;
   group: Group;
+  /** Actions and Navigation have icons (mockup parity). Boards and Tasks
+   *  render a dot instead so a long list stays visually quiet. */
+  icon?: IconComponent;
   run: () => void;
 }
 
@@ -45,43 +63,188 @@ const CommandPaletteInner = () => {
 
   const items: Item[] = useMemo(() => {
     const actions: Item[] = [
-      { id: 'new-task', label: 'New task', hint: 'N', group: 'Actions', run: () => { close(); openTaskForm(null); } },
-      { id: 'toggle-theme', label: 'Toggle theme', hint: 'T', group: 'Actions', run: () => { close(); toggleTheme(); } },
-      { id: 'help', label: 'Keyboard shortcuts', hint: '?', group: 'Actions', run: () => { close(); openShortcutHelp(); } },
+      {
+        id: 'new-task',
+        label: 'New task',
+        hint: 'N',
+        group: 'Actions',
+        icon: Plus,
+        run: () => {
+          close();
+          openTaskForm(null);
+        },
+      },
+      {
+        id: 'toggle-theme',
+        label: 'Toggle theme',
+        hint: 'T',
+        group: 'Actions',
+        icon: Moon,
+        run: () => {
+          close();
+          toggleTheme();
+        },
+      },
+      {
+        id: 'help',
+        label: 'Keyboard shortcuts',
+        hint: '?',
+        group: 'Actions',
+        icon: HelpCircle,
+        run: () => {
+          close();
+          openShortcutHelp();
+        },
+      },
     ];
+
     const navigation: Item[] = [
-      { id: 'go-list', label: 'Go to List', hint: 'G L', group: 'Navigation', run: () => { close(); navigate('/'); } },
-      { id: 'go-board', label: 'Go to Board', hint: 'G B', group: 'Navigation', run: () => { close(); navigate('/board'); } },
-      { id: 'go-stats', label: 'Go to Stats', hint: 'G S', group: 'Navigation', run: () => { close(); navigate('/stats'); } },
-      { id: 'go-analytics', label: 'Go to Analytics', hint: 'G A', group: 'Navigation', run: () => { close(); navigate('/analytics'); } },
-      { id: 'go-settings', label: 'Go to Settings', hint: 'G ,', group: 'Navigation', run: () => { close(); navigate('/settings/account'); } },
-      { id: 'go-templates', label: 'Go to Templates', hint: 'G T', group: 'Navigation', run: () => { close(); navigate('/settings/templates'); } },
-      { id: 'go-integrations', label: 'Go to Integrations', hint: 'G I', group: 'Navigation', run: () => { close(); navigate('/settings/integrations'); } },
-      { id: 'go-billing', label: 'Go to Billing', hint: '', group: 'Navigation', run: () => { close(); navigate('/settings/billing'); } },
-      { id: 'go-pricing', label: 'Go to Pricing', hint: 'G P', group: 'Navigation', run: () => { close(); navigate('/pricing'); } },
+      {
+        id: 'go-list',
+        label: 'Go to List',
+        hint: 'G L',
+        group: 'Navigation',
+        icon: List,
+        run: () => {
+          close();
+          navigate('/');
+        },
+      },
+      {
+        id: 'go-board',
+        label: 'Go to Board',
+        hint: 'G B',
+        group: 'Navigation',
+        icon: KanbanSquare,
+        run: () => {
+          close();
+          navigate('/board');
+        },
+      },
+      {
+        id: 'go-stats',
+        label: 'Go to Stats',
+        hint: 'G S',
+        group: 'Navigation',
+        icon: BarChart3,
+        run: () => {
+          close();
+          navigate('/stats');
+        },
+      },
+      {
+        id: 'go-analytics',
+        label: 'Go to Analytics',
+        hint: 'G A',
+        group: 'Navigation',
+        icon: PieChart,
+        run: () => {
+          close();
+          navigate('/analytics');
+        },
+      },
+      {
+        id: 'go-settings',
+        label: 'Go to Settings',
+        hint: 'G ,',
+        group: 'Navigation',
+        icon: Settings,
+        run: () => {
+          close();
+          navigate('/settings/account');
+        },
+      },
+      {
+        id: 'go-templates',
+        label: 'Go to Templates',
+        hint: 'G T',
+        group: 'Navigation',
+        icon: LayoutTemplate,
+        run: () => {
+          close();
+          navigate('/settings/templates');
+        },
+      },
+      {
+        id: 'go-integrations',
+        label: 'Go to Integrations',
+        hint: 'G I',
+        group: 'Navigation',
+        icon: Plug,
+        run: () => {
+          close();
+          navigate('/settings/integrations');
+        },
+      },
+      {
+        id: 'go-billing',
+        label: 'Go to Billing',
+        hint: '',
+        group: 'Navigation',
+        icon: CreditCard,
+        run: () => {
+          close();
+          navigate('/settings/billing');
+        },
+      },
+      {
+        id: 'go-pricing',
+        label: 'Go to Pricing',
+        hint: 'G P',
+        group: 'Navigation',
+        icon: CreditCard,
+        run: () => {
+          close();
+          navigate('/pricing');
+        },
+      },
     ];
+
     const boardItems: Item[] = (boards ?? []).map((b) => ({
       id: 'board-' + b.id,
       label: b.name,
       hint: b.workspace_name ?? 'Board',
       group: 'Boards',
-      run: () => { close(); setActiveBoard(b.id); navigate('/board'); },
+      run: () => {
+        close();
+        setActiveBoard(b.id);
+        navigate('/board');
+      },
     }));
+
     const taskItems: Item[] = (tasks ?? []).slice(0, 40).map((t) => ({
       id: 'task-' + t.id,
       label: t.title,
       hint: t.status,
       group: 'Tasks',
-      run: () => { close(); openDetail({ type: 'task', id: t.id }); },
+      run: () => {
+        close();
+        openDetail({ type: 'task', id: t.id });
+      },
     }));
+
     return [...actions, ...navigation, ...boardItems, ...taskItems];
-  }, [boards, tasks, close, openTaskForm, openShortcutHelp, navigate, setActiveBoard, toggleTheme, openDetail]);
+  }, [
+    boards,
+    tasks,
+    close,
+    openTaskForm,
+    openShortcutHelp,
+    navigate,
+    setActiveBoard,
+    toggleTheme,
+    openDetail,
+  ]);
 
   const filtered = useMemo(() => {
     if (!query.trim()) return items.slice(0, 12);
     const q = query.toLowerCase();
     return items
-      .filter((i) => i.label.toLowerCase().includes(q) || (i.hint ?? '').toLowerCase().includes(q))
+      .filter(
+        (i) =>
+          i.label.toLowerCase().includes(q) ||
+          (i.hint ?? '').toLowerCase().includes(q),
+      )
       .slice(0, 12);
   }, [items, query]);
 
@@ -97,10 +260,25 @@ const CommandPaletteInner = () => {
   }, [active]);
 
   const onKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === 'ArrowDown') { event.preventDefault(); setActive((i) => Math.min(i + 1, filtered.length - 1)); return; }
-    if (event.key === 'ArrowUp') { event.preventDefault(); setActive((i) => Math.max(i - 1, 0)); return; }
-    if (event.key === 'Enter') { event.preventDefault(); filtered[active]?.run(); return; }
-    if (event.key === 'Escape') { event.preventDefault(); close(); }
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      setActive((i) => Math.min(i + 1, filtered.length - 1));
+      return;
+    }
+    if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      setActive((i) => Math.max(i - 1, 0));
+      return;
+    }
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      filtered[active]?.run();
+      return;
+    }
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      close();
+    }
   };
 
   const grouped = filtered.reduce<Record<Group, Item[]>>(
@@ -140,20 +318,30 @@ const CommandPaletteInner = () => {
             spellCheck={false}
             className="min-w-0 flex-1 bg-transparent text-sm text-ink placeholder:text-ink-faint focus:outline-none"
           />
-          <kbd className="shrink-0 rounded border border-line bg-raised px-1.5 py-0.5 font-mono text-[10px] text-ink-faint">Esc</kbd>
+          <kbd className="shrink-0 rounded border border-line bg-raised px-1.5 py-0.5 font-mono text-[10px] text-ink-faint">
+            Esc
+          </kbd>
         </div>
 
         {filtered.length === 0 ? (
-          <p className="px-4 py-6 text-center text-[12px] text-ink-faint">No matches.</p>
+          <p className="px-4 py-6 text-center text-[12px] text-ink-faint">
+            No matches.
+          </p>
         ) : (
-          <ul ref={listRef} className="max-h-[50vh] overflow-y-auto py-1">
+          <ul
+            ref={listRef}
+            className="max-h-[50vh] overflow-y-auto py-1"
+          >
             {GROUP_ORDER.filter((g) => grouped[g].length > 0).map((g) => (
               <li key={g}>
-                <p className="px-4 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wider text-ink-faint">{g}</p>
+                <p className="px-4 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wider text-ink-faint">
+                  {g}
+                </p>
                 <ul>
                   {grouped[g].map((item) => {
                     flatIdx += 1;
                     const idx = flatIdx;
+                    const Icon = item.icon;
                     return (
                       <li key={item.id}>
                         <button
@@ -162,13 +350,23 @@ const CommandPaletteInner = () => {
                           onClick={item.run}
                           className={
                             'flex w-full items-center gap-3 px-4 py-2 text-left text-[13px] transition-colors ' +
-                            (idx === active ? 'bg-brand-subtle text-ink' : 'text-ink-muted hover:bg-subtle')
+                            (idx === active
+                              ? 'bg-brand-subtle text-ink'
+                              : 'text-ink-muted hover:bg-subtle')
                           }
                         >
-                          <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-line-strong" />
-                          <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                          {Icon ? (
+                            <Icon className="h-3.5 w-3.5 shrink-0" />
+                          ) : (
+                            <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-line-strong" />
+                          )}
+                          <span className="min-w-0 flex-1 truncate">
+                            {item.label}
+                          </span>
                           {item.hint && (
-                            <kbd className="shrink-0 rounded border border-line bg-raised px-1.5 py-0.5 font-mono text-[10px] text-ink-faint">{item.hint}</kbd>
+                            <kbd className="shrink-0 rounded border border-line bg-raised px-1.5 py-0.5 font-mono text-[10px] text-ink-faint">
+                              {item.hint}
+                            </kbd>
                           )}
                         </button>
                       </li>
