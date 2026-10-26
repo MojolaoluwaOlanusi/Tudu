@@ -4,14 +4,10 @@ import { useOnboardingStore } from '../../store/onboardingStore';
 import { useUiStore } from '../../store/uiStore';
 import { TOUR_STEPS, type Placement } from '../../data/onboardingSteps';
 
-/** Breathing room between the spotlight cutout and the real element. */
 const PAD = 6;
-/** Gap between the spotlight and the card. */
 const GAP = 14;
-/** Keep the card this far from the viewport edges. */
 const MARGIN = 12;
 const CARD_WIDTH = 320;
-/** Below this much free space we would rather flip the card to the other side. */
 const MIN_SPACE = 200;
 
 const clamp = (value: number, min: number, max: number) =>
@@ -20,7 +16,6 @@ const clamp = (value: number, min: number, max: number) =>
 interface PlacementBox {
   top: number;
   left: number;
-  /** Where the little arrow points, as an offset along the cross axis. */
   arrow: number;
   side: Placement;
 }
@@ -32,16 +27,12 @@ const OPPOSITE: Record<Placement, Placement> = {
   right: 'left',
 };
 
-/**
- * Work out where the card should sit relative to the spotlight, flipping to the
- * opposite side when there is not enough room, then clamping it on screen.
- */
 const placeCard = (
   rect: DOMRect,
   preferred: Placement,
   cardHeight: number,
   vw: number,
-  vh: number
+  vh: number,
 ): PlacementBox => {
   const room: Record<Placement, number> = {
     top: rect.top - GAP - MARGIN,
@@ -49,36 +40,34 @@ const placeCard = (
     left: rect.left - GAP - MARGIN,
     right: vw - rect.right - GAP - MARGIN,
   };
-
   let side = preferred;
   if (room[preferred] < MIN_SPACE && room[OPPOSITE[preferred]] > room[preferred]) {
     side = OPPOSITE[preferred];
   }
-
   const maxTop = vh - cardHeight - MARGIN;
   const maxLeft = vw - CARD_WIDTH - MARGIN;
   const centreX = rect.left + rect.width / 2;
   const centreY = rect.top + rect.height / 2;
-
   if (side === 'left' || side === 'right') {
     const top = clamp(centreY - cardHeight / 2, MARGIN, maxTop);
     const left = side === 'right' ? rect.right + GAP : rect.left - GAP - CARD_WIDTH;
     const placed = clamp(left, MARGIN, maxLeft);
     return { top, left: placed, arrow: centreY - top, side };
   }
-
   const left = clamp(centreX - CARD_WIDTH / 2, MARGIN, maxLeft);
   const top = side === 'bottom' ? rect.bottom + GAP : rect.top - GAP - cardHeight;
   return { top: clamp(top, MARGIN, maxTop), left, arrow: centreX - left, side };
 };
 
 /**
- * The guided tour: a spotlight over the current element with a card of
- * friendly copy beside it.
+ * The guided tour. Step 11 polish: brand-tinted emoji badge, progress bar
+ * at the bottom of the card, explicit card classes (rather than `.card` so
+ * the brush edge does not clash with `animate-pop-in`), and the Skip
+ * affordance toned down to a quiet `text-ink-faint` link.
  *
- * Deliberately resilient - a brand new account has no tasks, so several
- * targets do not exist yet. Rather than dead-ending, those steps fall back to
- * a centred card and the tour carries on.
+ * Behaviour unchanged: spotlight mask, placement/flip logic, keyboard
+ * arrows, Escape to leave, and the same `data-testid` / `Step N of M`
+ * contract that `onboarding.test.tsx` asserts on.
  */
 const ProductTour: React.FC = () => {
   const isTourOpen = useOnboardingStore((state) => state.isTourOpen);
@@ -86,7 +75,6 @@ const ProductTour: React.FC = () => {
   const endTour = useOnboardingStore((state) => state.endTour);
   const openTaskForm = useUiStore((state) => state.openTaskForm);
   const closeTaskForm = useUiStore((state) => state.closeTaskForm);
-
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -109,29 +97,18 @@ const ProductTour: React.FC = () => {
       return;
     }
     const r = el.getBoundingClientRect();
-    // A zero-size element (the sidebar, while hidden on a phone) is not worth
-    // spotlighting; treat it as absent so the card centres instead.
     setRect(r.width > 0 && r.height > 0 ? r : null);
   }, [isTourOpen, step.target]);
 
-  /* --------- Put the right screen and the right UI on before measuring ------ */
   useEffect(() => {
     if (!isTourOpen) return;
-    if (step.route && step.route !== location.pathname) {
-      navigate(step.route);
-    }
+    if (step.route && step.route !== location.pathname) navigate(step.route);
     if (step.openTaskForm) openTaskForm();
     else closeTaskForm();
   }, [isTourOpen, step, navigate, location.pathname, openTaskForm, closeTaskForm]);
 
-  /* --------------------------- Position the spotlight --------------------- */
   useEffect(() => {
     if (!isTourOpen) return;
-
-    // Some targets only exist once their container is open - the AI breakdown
-    // button lives inside the collapsible sub-task panel. Open it ourselves,
-    // but only when the target is genuinely absent, so a panel the user already
-    // expanded is never toggled shut again.
     if (step.reveal && step.target) {
       const alreadyThere = document.querySelector(`[data-tour="${step.target}"]`);
       if (!alreadyThere) {
@@ -140,7 +117,6 @@ const ProductTour: React.FC = () => {
           ?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
       }
     }
-
     if (step.target) {
       document
         .querySelector<HTMLElement>(`[data-tour="${step.target}"]`)
@@ -149,15 +125,12 @@ const ProductTour: React.FC = () => {
     measure();
   }, [isTourOpen, step.target, step.reveal, measure]);
 
-  // Routes render asynchronously, and revealing a panel shifts the layout, so
-  // re-measure once things have settled.
   useEffect(() => {
     if (!isTourOpen) return;
     const id = window.setTimeout(measure, 150);
     return () => window.clearTimeout(id);
   }, [isTourOpen, location.pathname, step.reveal, measure]);
 
-  // Keep the spotlight pinned to the element while the page scrolls or resizes.
   useEffect(() => {
     if (!isTourOpen) return;
     const onChange = () => measure();
@@ -169,10 +142,9 @@ const ProductTour: React.FC = () => {
     };
   }, [isTourOpen, measure]);
 
-  /* ------------------------------ Navigation ------------------------------ */
   const goTo = useCallback(
     (next: number) => setIndex(clamp(next, 0, TOUR_STEPS.length - 1)),
-    []
+    [],
   );
 
   const finish = useCallback(() => {
@@ -182,8 +154,6 @@ const ProductTour: React.FC = () => {
 
   const leave = useCallback(() => {
     closeTaskForm();
-    // Bailing out early snoozes rather than completing, so the tour is offered
-    // again in a week instead of being written off.
     endTour();
   }, [closeTaskForm, endTour]);
 
@@ -206,7 +176,6 @@ const ProductTour: React.FC = () => {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [isTourOpen, index, isLast, finish, goTo, leave]);
 
-  /* Keep the measured height in sync so flipping sides never overflows. */
   useLayoutEffect(() => {
     if (cardRef.current) setCardHeight(cardRef.current.offsetHeight);
   }, [step.id]);
@@ -215,13 +184,10 @@ const ProductTour: React.FC = () => {
   const vw = typeof window === 'undefined' ? 1024 : window.innerWidth;
   const vh = typeof window === 'undefined' ? 768 : window.innerHeight;
   const box = rect ? placeCard(rect, step.placement ?? 'bottom', cardHeight, vw, vh) : null;
-
   const arrowOnVerticalAxis = box?.side === 'left' || box?.side === 'right';
 
   return (
     <>
-      {/* Dimmed backdrop with a cutout over the current target. pointer-events
-          are off, so the app underneath stays usable while the tour runs. */}
       <div className="pointer-events-none fixed inset-0 z-50" aria-hidden="true">
         <svg className="h-full w-full">
           <defs>
@@ -246,10 +212,9 @@ const ProductTour: React.FC = () => {
             mask="url(#tour-spotlight-mask)"
           />
         </svg>
-
         {rect && (
           <div
-            className="absolute rounded-2xl ring-2 ring-accent"
+            className="absolute rounded-2xl ring-2 ring-brand"
             style={{
               top: rect.top - PAD,
               left: rect.left - PAD,
@@ -265,8 +230,7 @@ const ProductTour: React.FC = () => {
         style={
           box
             ? { top: box.top, left: box.left, width: CARD_WIDTH }
-            : // No target on screen: centre the card and keep going.
-              { top: '50%', left: '50%', width: CARD_WIDTH, transform: 'translate(-50%, -50%)' }
+            : { top: '50%', left: '50%', width: CARD_WIDTH, transform: 'translate(-50%, -50%)' }
         }
       >
         <div
@@ -275,12 +239,12 @@ const ProductTour: React.FC = () => {
           aria-labelledby="tour-step-title"
           tabIndex={-1}
           data-testid="tour-card"
-          className="card animate-pop-in relative p-5 outline-none"
+          className="animate-pop-in relative rounded-2xl border border-hairline bg-surface p-5 shadow-xl outline-none"
         >
           {box && (
             <span
               aria-hidden="true"
-              className={`absolute h-3 w-3 rotate-45 border-accent bg-surface ${
+              className={`absolute h-3 w-3 rotate-45 border-brand bg-surface ${
                 box.side === 'bottom'
                   ? '-top-1.5 border-l border-t'
                   : box.side === 'top'
@@ -298,7 +262,10 @@ const ProductTour: React.FC = () => {
           )}
 
           <div className="flex items-start gap-3">
-            <span aria-hidden="true" className="text-2xl leading-none">
+            <span
+              aria-hidden="true"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand/15 text-2xl"
+            >
               {step.emoji}
             </span>
             <div className="min-w-0 flex-1">
@@ -308,25 +275,43 @@ const ProductTour: React.FC = () => {
               >
                 {step.title}
               </h2>
-              <p className="mt-1.5 text-sm leading-relaxed text-ink-muted">{step.body}</p>
+              <p className="mt-1.5 text-sm leading-relaxed text-ink-muted">
+                {step.body}
+              </p>
             </div>
           </div>
 
           {step.example && (
-            <div className="mt-3 rounded-xl border border-hairline bg-surface-2 p-3">
-              <p className="text-xs font-medium text-ink">&ldquo;{step.example.input}&rdquo;</p>
-              <p className="mt-0.5 text-[11px] text-ink-muted">&rarr; {step.example.result}</p>
+            <div className="mt-3 rounded-xl border border-line-subtle bg-canvas p-3">
+              <p className="text-xs font-medium text-ink">
+                &ldquo;{step.example.input}&rdquo;
+              </p>
+              <p className="mt-0.5 text-[11px] text-ink-muted">
+                &rarr; {step.example.result}
+              </p>
             </div>
           )}
 
-          <div className="mt-4 flex items-center justify-between gap-3">
+          <div className="mt-4 flex items-center gap-1" aria-hidden="true">
+            {TOUR_STEPS.map((s, i) => (
+              <span
+                key={s.id}
+                className={
+                  'h-1 flex-1 rounded-full transition-colors ' +
+                  (i <= index ? 'bg-brand' : 'bg-line-subtle')
+                }
+              />
+            ))}
+          </div>
+
+          <div className="mt-3 flex items-center justify-between gap-3">
             <span className="text-[11px] font-medium text-ink-muted">
               Step {index + 1} of {TOUR_STEPS.length}
             </span>
             <button
               type="button"
               onClick={leave}
-              className="text-xs font-medium text-ink-muted transition-colors hover:text-ink"
+              className="text-[11px] font-medium text-ink-faint transition-colors hover:text-ink"
             >
               Skip tour
             </button>
@@ -344,7 +329,7 @@ const ProductTour: React.FC = () => {
             <button
               type="button"
               onClick={() => (isLast ? finish() : goTo(index + 1))}
-              className="btn-accent"
+              className="btn-accent brush-stroke"
               data-testid="tour-next"
             >
               {isLast ? 'Finish' : 'Next'}
@@ -355,5 +340,5 @@ const ProductTour: React.FC = () => {
     </>
   );
 };
-export default ProductTour;
 
+export default ProductTour;

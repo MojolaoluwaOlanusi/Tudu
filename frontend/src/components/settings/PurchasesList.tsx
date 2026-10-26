@@ -16,13 +16,12 @@ const formatDate = (iso: string | null): string => {
 };
 
 /**
- * The buyer's template purchase history with a refund button on
- * purchases that are still eligible (status = success, within 14 days).
- * 
- * Refunded purchases are shown greyed out with the refund date. 
- * Purchases older than 14 days show a friendly "Refund window expired" 
- * message instead of the button, so users don't have to trigger a 400 
- * error to find out they missed the deadline.
+ * Buyer purchase history with a refund button on still-eligible purchases.
+ *
+ * Step 11 polish: rows use the standard `rounded-xl border border-line-subtle
+ * bg-surface-2 p-3` layout, refunded purchases are marked with an amber
+ * pill rather than relying on the red-tinted one, and the "refund window
+ * expired" line sits in the row instead of as a full-width note.
  */
 const PurchasesList: React.FC = () => {
   const { data: purchases = [], isLoading } = useMyTemplatePurchases();
@@ -37,7 +36,8 @@ const PurchasesList: React.FC = () => {
     refund.mutate(reference, {
       onSuccess: () => pushToast('Refund processed', 'success'),
       onError: (err) => {
-        const detail = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
+        const detail = (err as { response?: { data?: { error?: string } } })
+          ?.response?.data?.error;
         pushToast(detail || 'Could not process refund', 'error');
       },
     });
@@ -45,45 +45,52 @@ const PurchasesList: React.FC = () => {
 
   return (
     <section className="card mb-5 p-5">
-      <h2 className="mb-3 font-handwritten text-xl text-ink">Your template purchases</h2>
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <h2 className="font-handwritten text-xl text-ink">Your template purchases</h2>
+        <span className="rounded-sm bg-raised px-1.5 py-0.5 text-[10px] font-semibold text-ink-muted">
+          {purchases.length}
+        </span>
+      </div>
       <ul className="space-y-2">
         {purchases.map((p) => {
           const isSuccess = p.status === 'success';
-          
-          // Calculate if 14 days have passed since the purchase.
+          const isRefunded = p.status === 'refunded';
           const fourteenDaysMs = 14 * 24 * 60 * 60 * 1000;
           const isExpired = Date.now() - new Date(p.created_at).getTime() > fourteenDaysMs;
-          
           const canRefund = isSuccess && !isExpired;
 
           return (
             <li
               key={p.id}
-              className="flex flex-wrap items-center gap-2 rounded-xl border border-hairline bg-surface-2 p-3"
+              className="flex flex-wrap items-center gap-2 rounded-xl border border-line-subtle bg-surface-2 p-3"
             >
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold text-ink">{p.template_name}</p>
-                <p className="text-[11px] text-ink-muted">
+                <p className="truncate text-sm font-semibold text-ink">
+                  {p.template_name}
+                </p>
+                <p className="truncate text-[11px] text-ink-muted">
                   {formatNaira(p.amount_kobo)} · purchased {formatDate(p.created_at)}
-                  {p.status === 'refunded' && (
-                    <span className="text-amber-400"> · refunded {formatDate(p.refunded_at)}</span>
+                  {isRefunded && (
+                    <span className="ml-1.5 rounded-sm bg-amber-400/15 px-1.5 py-0.5 text-[10px] font-semibold text-amber-400">
+                      refunded {formatDate(p.refunded_at)}
+                    </span>
                   )}
                 </p>
               </div>
-              
+
               {canRefund && (
                 <button
                   type="button"
                   onClick={() => handleRefund(p.reference, p.amount_kobo)}
                   disabled={refund.isPending}
-                  className="shrink-0 rounded-lg border border-hairline bg-surface px-2.5 py-1.5 text-xs font-semibold text-red-400 hover:border-red-400/60 disabled:opacity-60"
+                  className="shrink-0 rounded-lg border border-line bg-surface px-2.5 py-1.5 text-xs font-semibold text-red-400 transition-colors hover:border-red-400/60 disabled:opacity-60"
                 >
-                  {refund.isPending ? 'Refunding...' : 'Refund'}
+                  {refund.isPending ? 'Refunding…' : 'Refund'}
                 </button>
               )}
 
               {isSuccess && isExpired && (
-                <span className="shrink-0 text-[11px] italic text-ink-muted">
+                <span className="shrink-0 text-[11px] italic text-ink-faint">
                   Refund window expired
                 </span>
               )}
