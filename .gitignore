@@ -14,3 +14,5 @@ frontend/.playwright/
 # Emitted by `tsc -b` for the Vite config, which is tooling-only
 frontend/vite.config.js
 frontend/vite.config.d.ts
+
+NEXT_STEPS.md
