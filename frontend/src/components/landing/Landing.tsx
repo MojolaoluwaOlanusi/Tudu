@@ -5,7 +5,6 @@ import { useAuthStore } from '../../store/authStore';
 import { useUiStore } from '../../store/uiStore';
 import Navbar from './Navbar';
 import Hero from './Hero';
-import LiveBoardHero from './LiveBoardHero';
 import LogoStrip from './LogoStrip';
 import ProblemSection from './ProblemSection';
 import BentoGrid from './BentoGrid';
@@ -22,10 +21,11 @@ import type { User } from '../../types/user';
 /**
  * Public landing page — shown at / to signed-out visitors.
  *
- * Step 7 composition: Navbar → Hero → LiveBoardHero → LogoStrip →
- * ProblemSection → BentoGrid → HowItWorks → UnderTheHood → TierGating →
- * PricingSection → Changelog → SocialProof → FinalCTA, with the half-in/
- * half-out <Footer /> underneath as a sibling of <main>.
+ * Step 8 composition: Navbar → Hero (which now renders <LiveBoardHero />
+ * inline) → LogoStrip → ProblemSection → BentoGrid → HowItWorks →
+ * UnderTheHood → TierGating → PricingSection → Changelog → SocialProof
+ * → FinalCTA, with the half-in/half-out <Footer /> underneath as a
+ * sibling of <main>.
  *
  * Behaviour preserved from the pre-mockup landing:
  *   - "Try the demo" (PricingSection) and "See live demo" (Hero) call
@@ -33,11 +33,10 @@ import type { User } from '../../types/user';
  *   - "Start free" (Hero + PricingSection Free card) navigates to /login.
  *   - "Start for free" (FinalCTA) navigates to /login.
  *
- * The `<h2 className="sr-only">` at the top of `<main>` exists for a
- * pre-Step-1 e2e assertion (`landing.spec.ts` looks for the string
- * "Kanban that just works" on /). The mockup's hero copy is the visible
- * headline; this hidden heading keeps the e2e contract green without
- * touching Hero.tsx (which is exercised by Step 4's hero.test.tsx).
+ * The `<h2 className="sr-only">` at the top of `<main>` is the existing
+ * Playwright contract (landing.spec.ts looks for "Kanban that just works"
+ * on /). It is not visible to the user; the mockup's hero copy is the
+ * visible headline.
  */
 const Landing = () => {
   const navigate = useNavigate();
@@ -83,10 +82,6 @@ const Landing = () => {
           onStartFree={handleStartFree}
           starting={starting}
         />
-
-        <div className="mx-auto max-w-5xl px-6 pb-12">
-          <LiveBoardHero />
-        </div>
 
         <LogoStrip />
         <ProblemSection />

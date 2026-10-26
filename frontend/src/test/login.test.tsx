@@ -124,4 +124,28 @@ describe('Login page', () => {
     fireEvent.click(screen.getByRole('button', { name: /continue with email/i }));
     expect(screen.getByLabelText(/^name$/i)).toBeInTheDocument();
   });
+
+  // --- Step 8: cross-page switch links + OAuth parity on /signup ---
+
+  it('shows OAuth options on the signup page', () => {
+    wrapSignup();
+    expect(
+      screen.getByRole('button', { name: /continue with google/i })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /continue with github/i })
+    ).toBeInTheDocument();
+  });
+
+  it('shows a "Sign Up" link on the login page that points to /signup', () => {
+    wrap();
+    const link = screen.getByRole('link', { name: /sign up/i });
+    expect(link).toHaveAttribute('href', '/signup');
+  });
+
+  it('shows a "Sign In" link on the signup page that points to /login', () => {
+    wrapSignup();
+    const link = screen.getByRole('link', { name: /sign in/i });
+    expect(link).toHaveAttribute('href', '/login');
+  });
 });

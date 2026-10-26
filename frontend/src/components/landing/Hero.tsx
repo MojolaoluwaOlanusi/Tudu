@@ -2,6 +2,7 @@ import React from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { ArrowRight, Play } from 'lucide-react';
 import BrushButton from '../ui/BrushButton';
+import LiveBoardHero from './LiveBoardHero';
 
 interface HeroProps {
   onTryDemo: () => void;
@@ -23,16 +24,16 @@ const fadeUp = {
 };
 
 /**
- * Landing hero. Uses the mockup's exact copy (headline, sub-copy, CTA
- * labels) and visual treatment.
+ * Landing hero. Uses the mockup's exact copy and visual treatment.
  *
- * CTA behaviour is unchanged from the pre-Step-4 landing; only the labels
- * and the primary/secondary hierarchy follow the mockup:
- *
+ * CTA behaviour is unchanged from the pre-Step-8 landing:
  *   - "Start for free" (primary) -> onStartFree -> navigate('/login')
  *   - "See live demo"  (secondary) -> onTryDemo -> creates a real demo
  *     account via publicService.startDemo() and lands the visitor on
  *     /board with a seeded board. NOT a static /demo preview page.
+ *
+ * LiveBoardHero now renders inline (id="hero-board") like the mockup,
+ * instead of in a sibling block inside Landing.tsx.
  *
  * `prefers-reduced-motion` skips the entrance animation so the copy is
  * immediately readable.
@@ -107,6 +108,17 @@ const Hero: React.FC<HeroProps> = ({ onTryDemo, onStartFree, starting = false })
           </button>
         </motion.div>
       </div>
+
+      <motion.div
+        initial={prefersReduced ? false : { opacity: 0, y: 40 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.8, delay: 0.3, ease: [0.2, 0, 0, 1] }}
+        className="mt-12 lg:mt-16"
+      >
+        <div id="hero-board">
+          <LiveBoardHero />
+        </div>
+      </motion.div>
     </section>
   );
 };

@@ -3,18 +3,26 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Check } from 'lucide-react';
 import PaystackPop from '@paystack/inline-js';
 import { useAuthStore } from '../store/authStore';
-import { useCheckout } from '../hooks/useBilling';
+import { useCheckout, useEntitlements } from '../hooks/useBilling';
 import { useUiStore } from '../store/uiStore';
-import {
-  detectDisplayCurrency,
-  formatFromKobo,
-  formatNgnExact,
-} from '../config/currency';
+import { detectDisplayCurrency, formatNgnExact } from '../config/currency';
+import Navbar from '../components/landing/Navbar';
 
 type Period = 'monthly' | 'yearly';
+type Currency = 'NGN' | 'USD';
 type PlanCode = 'pro_monthly' | 'pro_yearly';
 
-/** Billing period ↔ plan code ↔ amount (all in NGN kobo). */
+interface CurrencyRow {
+  code: string;
+  symbol: string;
+  ngnPerUnit: number;
+}
+
+const CURRENCY_ROWS: Record<Currency, CurrencyRow> = {
+  NGN: { code: 'NGN', symbol: '\u20a6', ngnPerUnit: 1 },
+  USD: { code: 'USD', symbol: '$', ngnPerUnit: 1500 },
+};
+
 const PRO_AMOUNTS_KOBO: Record<Period, number> = {
   monthly: 750_000,
   yearly: 7_500_000,
@@ -25,57 +33,85 @@ const PRO_PLAN_CODES: Record<Period, PlanCode> = {
 };
 
 const FREE_FEATURES = [
-  'Unlimited boards and tasks',
-  'AI breakdown (daily limit)',
-  'Pomodoro + analytics',
-  'Works on mobile',
+  'Unlimited boards & tasks',
+  'AI breakdown (100 / mo)',
+  'Pomodoro & focus stats',
+  'Public read API',
+  'Built-in templates',
 ];
 
 const PRO_FEATURES = [
   'Everything in Free',
-  'Team workspaces and roles',
-  '100 AI credits, top up as you go',
-  'GitHub and Slack integrations',
+  'Time tracking & team analytics',
+  'HD AI breakdown (12 steps)',
+  'GitHub + Slack integrations',
+  'Public write API + webhooks',
   'Self-hosting license',
 ];
 
 const ENTERPRISE_FEATURES = [
-  'SAML SSO (Okta, Azure)',
+  'Everything in Pro',
+  'SAML SSO',
   'SCIM provisioning',
-  'Compliance audit export',
+  'Audit log export',
+  'White-label branding',
   'On-prem deployment',
+  'Dedicated support & SLA',
 ];
 
 const CheckRow: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <li className="flex items-start gap-2 text-xs text-ink-muted">
+  <li className="flex items-start gap-2 text-[12px]">
     <Check
       className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand"
       strokeWidth={2.5}
     />
-    <span>{children}</span>
+    <span className="text-ink-muted">{children}</span>
   </li>
 );
 
+/**
+ * Pricing page.
+ *
+ * From the landing page: renders the marketing Navbar above it
+ * (matching the mockup's `PricingPage.jsx` when `?from=app` is absent).
+ *
+ * From inside the app (`?from=app`): renders a slim header with a
+ * Back button that returns to /settings/billing — the flow an existing
+ * user goes through when they click "Upgrade".
+ *
+ * Visuals are the mockup's exact layout: rounded-xl NGN/USD +
+ * Monthly/Yearly toggles, three cards (Free / Pro / Enterprise), the
+ * "Most popular" badge on Pro, and the "Coming soon" pill on Enterprise.
+ * The Paystack inline popup, currency conversion note, and "Pay on
+ * Paystack's site" fallback are preserved from the real billing flow.
+ */
 const Pricing: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const user = useAuthStore((s) => s.user);
   const checkout = useCheckout();
+  const { data: ent } = useEntitlements();
   const pushToast = useUiStore((s) => s.pushToast);
 
-  const display = useMemo(() => detectDisplayCurrency(), []);
+  const fromApp = searchParams.get('from') === 'app';
+  const isPro = ent?.tier === 'pro';
+
+  const detected = useMemo(() => detectDisplayCurrency(), []);
+  const initialCurrency: Currency = detected.code === 'USD' ? 'USD' : 'NGN';
+
   const [period, setPeriod] = useState<Period>('monthly');
+  const [currency, setCurrency] = useState<Currency>(initialCurrency);
   const [pendingPlan, setPendingPlan] = useState<string | null>(null);
 
-  const fromApp = searchParams.get('from') === 'app';
-
   const proKobo = PRO_AMOUNTS_KOBO[period];
-  const proLocal = formatFromKobo(proKobo, display);
   const proNgn = formatNgnExact(proKobo);
-  const proPerMonthLabel =
-    period === 'yearly'
-      ? '≈ ' + formatFromKobo(Math.round(proKobo / 12), display) + ' / month'
-      : null;
+
+  const row = CURRENCY_ROWS[currency];
+  const displayValue =
+    currency === 'NGN'
+      ? proKobo / 100
+      : Math.round(proKobo / 100 / row.ngnPerUnit);
+  const perMonthValue = Math.round(displayValue / 12);
 
   const startCheckout = async (planCode: PlanCode) => {
     if (!user) {
@@ -138,9 +174,9 @@ const Pricing: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-page text-ink">
-      {fromApp && (
+      {fromApp ? (
         <header className="sticky top-0 z-30 border-b border-hairline bg-page/80 backdrop-blur">
-          <div className="mx-auto flex h-14 max-w-5xl items-center gap-3 px-4 sm:px-6">
+          <div className="mx-auto flex h-14 max-w-6xl items-center gap-3 px-6">
             <button
               type="button"
               onClick={() => navigate('/settings/billing')}
@@ -153,23 +189,32 @@ const Pricing: React.FC = () => {
             <span className="text-[13px] font-semibold text-ink">Pricing</span>
           </div>
         </header>
+      ) : (
+        <Navbar />
       )}
 
-      <div className="mx-auto max-w-5xl px-4 py-12">
-        <header className="mb-10 text-center">
+      <main
+        className={
+          fromApp
+            ? 'mx-auto max-w-6xl px-6 py-10'
+            : 'mx-auto max-w-6xl px-6 pt-24 pb-16'
+        }
+      >
+        <div className="mb-10 text-center">
           <h1 className="font-handwritten text-4xl text-ink sm:text-5xl">
-            Simple pricing
+            Simple pricing. Real limits.
           </h1>
-          <p className="mt-3 text-sm text-ink-muted">
-            Start free. Upgrade only when you need teammates or volume.
+          <p className="mx-auto mt-3 max-w-lg text-sm text-ink-muted">
+            Free forever for personal use. Upgrade when you need teammates,
+            integrations, or volume.
           </p>
-          {display.code !== 'NGN' && (
-            <p className="mt-2 text-xs text-ink-muted">
-              Prices shown in {display.code} for reference. You will be charged
-              the NGN amount below each price.
+          {currency !== 'NGN' && (
+            <p className="mx-auto mt-2 max-w-lg text-xs text-ink-muted">
+              Prices shown in {currency} for reference. You will be charged the
+              NGN amount below each price.
             </p>
           )}
-        </header>
+        </div>
 
         <div className="mb-8 flex flex-wrap items-center justify-center gap-3">
           <div className="inline-flex rounded-xl border border-line bg-surface p-1">
@@ -179,7 +224,7 @@ const Pricing: React.FC = () => {
                 type="button"
                 onClick={() => setPeriod(p)}
                 className={
-                  'relative rounded-lg px-3 py-1.5 text-[12px] font-medium transition-colors ' +
+                  'rounded-lg px-3 py-1.5 text-[12px] font-medium transition-colors ' +
                   (period === p
                     ? 'bg-raised text-ink'
                     : 'text-ink-muted hover:text-ink')
@@ -198,124 +243,135 @@ const Pricing: React.FC = () => {
               </button>
             ))}
           </div>
+
+          <div className="inline-flex rounded-xl border border-line bg-surface p-1">
+            {(['NGN', 'USD'] as Currency[]).map((c) => (
+              <button
+                key={c}
+                type="button"
+                onClick={() => setCurrency(c)}
+                className={
+                  'rounded-lg px-3 py-1.5 text-[12px] font-medium transition-colors ' +
+                  (currency === c
+                    ? 'bg-raised text-ink'
+                    : 'text-ink-muted hover:text-ink')
+                }
+              >
+                {c}
+              </button>
+            ))}
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           {/* Free */}
-          <div className="flex flex-col rounded-2xl border border-hairline bg-surface-2 p-6">
+          <div className="relative flex flex-col rounded-xl border border-line bg-surface p-6 transition-colors">
             <h2 className="font-handwritten text-2xl text-ink">Free</h2>
-            <p className="mb-4 text-xs text-ink-muted">
-              For solo users getting organised.
+            <p className="mt-1 text-[12px] text-ink-muted">
+              For solo builders getting organized.
             </p>
-            <p className="mb-1">
-              <span className="font-handwritten text-4xl text-ink">₦0</span>
-            </p>
-            <div className="mb-4" />
-            <ul className="mb-6 space-y-1.5">
+            <div className="my-5 min-h-[64px]">
+              <p className="font-handwritten text-4xl text-ink">₦0</p>
+            </div>
+            <ul className="mb-6 flex-1 space-y-2">
               {FREE_FEATURES.map((f) => (
                 <CheckRow key={f}>{f}</CheckRow>
               ))}
             </ul>
-            <div className="mt-auto">
-              <button
-                type="button"
-                onClick={() => navigate('/signup')}
-                className="w-full rounded-full border border-hairline bg-surface px-4 py-2.5 text-sm font-semibold text-ink hover:border-accent"
-              >
-                Start free
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => navigate('/signup')}
+              className="w-full rounded-md border border-line px-4 py-2 text-sm font-medium text-ink transition-colors hover:bg-subtle"
+            >
+              Start free
+            </button>
           </div>
 
           {/* Pro */}
-          <div className="flex flex-col rounded-2xl border border-accent bg-surface p-6 shadow-lg">
-            <div className="mb-2 flex items-center justify-between gap-2">
-              <h2 className="font-handwritten text-2xl text-ink">Pro</h2>
-              <span className="rounded-sm bg-brand-subtle px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-brand">
-                Most popular
-              </span>
-            </div>
-            <p className="mb-4 text-xs text-ink-muted">
+          <div className="relative flex flex-col rounded-xl border border-brand/60 bg-brand-subtle/20 p-6 ring-1 ring-brand/30 transition-colors">
+            <span className="absolute -top-2.5 left-4 rounded-sm bg-brand px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-ink-inverse">
+              Most popular
+            </span>
+            <h2 className="font-handwritten text-2xl text-ink">Pro</h2>
+            <p className="mt-1 text-[12px] text-ink-muted">
               For freelancers and small teams.
             </p>
-            <p className="mb-1">
-              <span className="font-handwritten text-4xl text-ink">
-                {proLocal}
-              </span>
-              <span className="ml-1 text-xs text-ink-muted">
-                / {period === 'monthly' ? 'month' : 'year'}
-              </span>
-            </p>
-            {proPerMonthLabel && (
-              <p className="mb-1 text-[11px] text-ink-muted">
-                {proPerMonthLabel}
+            <div className="my-5 min-h-[64px]">
+              <p className="font-handwritten text-4xl text-ink tabular-nums">
+                {row.symbol}
+                {displayValue.toLocaleString()}
+                <span className="ml-1 font-sans text-sm text-ink-muted">
+                  /{period === 'yearly' ? 'year' : 'month'}
+                </span>
               </p>
-            )}
-            {display.code !== 'NGN' ? (
-              <p className="mb-4 text-[11px] text-ink-muted">
-                Charged {proNgn} NGN
-              </p>
-            ) : (
-              <div className="mb-4" />
-            )}
-            <ul className="mb-6 space-y-1.5">
+              {period === 'yearly' && (
+                <p className="mt-1 text-[11px] text-ink-faint">
+                  ~ {row.symbol}
+                  {perMonthValue.toLocaleString()}/mo
+                </p>
+              )}
+              {currency !== 'NGN' && (
+                <p className="mt-1 text-[10px] text-ink-faint">
+                  Charged {proNgn} NGN
+                </p>
+              )}
+            </div>
+            <ul className="mb-6 flex-1 space-y-2">
               {PRO_FEATURES.map((f) => (
                 <CheckRow key={f}>{f}</CheckRow>
               ))}
             </ul>
-            <div className="mt-auto">
-              <button
-                type="button"
-                onClick={() => startCheckout(PRO_PLAN_CODES[period])}
-                disabled={!!pendingPlan}
-                className="btn-accent w-full rounded-full py-2.5 text-sm font-semibold disabled:opacity-60"
-              >
-                {proBusy ? 'Opening checkout...' : 'Upgrade to Pro'}
-              </button>
-              <button
-                type="button"
-                onClick={() => redirectCheckout(PRO_PLAN_CODES[period])}
-                disabled={!!pendingPlan}
-                className="mt-2 w-full text-center text-[11px] font-medium text-ink-muted hover:text-ink disabled:opacity-60"
-              >
-                Having trouble? Pay on Paystack&apos;s site
-              </button>
-            </div>
+            {isPro ? (
+              <div className="flex items-center justify-center gap-1.5 rounded-md border border-brand/40 bg-brand-subtle px-4 py-2 text-sm font-medium text-brand">
+                <Check className="h-4 w-4" strokeWidth={2.5} />
+                You are on Pro
+              </div>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={() => startCheckout(PRO_PLAN_CODES[period])}
+                  disabled={!!pendingPlan}
+                  className="btn-accent brush-stroke w-full disabled:opacity-60"
+                >
+                  {proBusy ? 'Opening checkout...' : 'Upgrade to Pro'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => redirectCheckout(PRO_PLAN_CODES[period])}
+                  disabled={!!pendingPlan}
+                  className="mt-2 w-full text-center text-[11px] font-medium text-ink-muted hover:text-ink disabled:opacity-60"
+                >
+                  Having trouble? Pay on Paystack&apos;s site
+                </button>
+              </>
+            )}
           </div>
 
           {/* Enterprise */}
-          <div className="flex flex-col rounded-2xl border border-hairline bg-surface-2 p-6">
-            <div className="mb-2 flex items-center justify-between gap-2">
-              <h2 className="font-handwritten text-2xl text-ink">
-                Enterprise
-              </h2>
-              <span className="rounded-sm bg-line px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-ink-muted">
-                Coming soon
-              </span>
-            </div>
-            <p className="mb-4 text-xs text-ink-muted">
+          <div className="relative flex flex-col rounded-xl border border-line bg-surface p-6 opacity-60 transition-colors">
+            <span className="absolute -top-2.5 left-4 rounded-sm bg-line px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-ink-muted">
+              Coming soon
+            </span>
+            <h2 className="font-handwritten text-2xl text-ink">Enterprise</h2>
+            <p className="mt-1 text-[12px] text-ink-muted">
               For teams 20+ with compliance needs.
             </p>
-            <p className="mb-1">
-              <span className="font-handwritten text-4xl text-ink">
-                Custom
-              </span>
-            </p>
-            <div className="mb-4" />
-            <ul className="mb-6 space-y-1.5">
+            <div className="my-5 min-h-[64px]">
+              <p className="font-handwritten text-4xl text-ink">Custom</p>
+            </div>
+            <ul className="mb-6 flex-1 space-y-2">
               {ENTERPRISE_FEATURES.map((f) => (
                 <CheckRow key={f}>{f}</CheckRow>
               ))}
             </ul>
-            <div className="mt-auto">
-              <button
-                type="button"
-                disabled
-                className="w-full cursor-not-allowed rounded-full border border-hairline bg-surface px-4 py-2.5 text-sm font-semibold text-ink-faint"
-              >
-                Contact sales
-              </button>
-            </div>
+            <button
+              type="button"
+              disabled
+              className="w-full cursor-not-allowed rounded-md border border-line px-4 py-2 text-sm font-medium text-ink-faint"
+            >
+              Contact sales
+            </button>
           </div>
         </div>
 
@@ -323,7 +379,7 @@ const Pricing: React.FC = () => {
           Payments are processed by Paystack. Cancel any time from your billing
           settings.
         </p>
-      </div>
+      </main>
     </div>
   );
 };
