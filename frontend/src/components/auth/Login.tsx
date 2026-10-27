@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import OAuthButton from './OAuthButton';
+import { useAuthMethods } from '../../hooks/useAuthMethods';
 import { useAuthStore } from '../../store/authStore';
 import { authService } from '../../services/authService';
 import Wordmark from '../common/Wordmark';
@@ -38,6 +39,14 @@ const Login: React.FC<LoginProps> = ({ mode }) => {
   const initialMode: EmailMode =
     mode === 'signup' || queryMode === 'signup' ? 'signup' : 'signin';
 
+  const { data: methods } = useAuthMethods();
+  // Default to showing both OAuth buttons until the query resolves (and if
+  // it fails). Safer to show an extra button than to hide a sign-in method
+  // that exists.
+  const googleEnabled = methods?.google ?? true;
+  const githubEnabled = methods?.github ?? true;
+  const anyOAuth = googleEnabled || githubEnabled;
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
@@ -52,6 +61,16 @@ const Login: React.FC<LoginProps> = ({ mode }) => {
     setEmailMode(initialMode);
     setShowEmailForm(false);
   }, [initialMode]);
+
+  // If the backend has no OAuth configured, skip the OAuth-first step and
+  // show the email form straight away. Only fires after `methods` resolves,
+  // so there is no flash of OAuth buttons on a no-OAuth instance.
+  useEffect(() => {
+    if (methods && !methods.google && !methods.github && !showEmailForm) {
+      setShowEmailForm(true);
+      setEmailMode(initialMode);
+    }
+  }, [methods, showEmailForm, initialMode]);
 
   useEffect(() => {
     const errorParam = searchParams.get('error');
@@ -163,28 +182,36 @@ const Login: React.FC<LoginProps> = ({ mode }) => {
 
           {!showEmailForm ? (
             <div className="mt-8 space-y-3">
-              <OAuthButton provider="google" onClick={handleGoogleLogin} />
-              <OAuthButton provider="github" onClick={handleGitHubLogin} />
+              {googleEnabled && (
+                <OAuthButton provider="google" onClick={handleGoogleLogin} />
+              )}
+              {githubEnabled && (
+                <OAuthButton provider="github" onClick={handleGitHubLogin} />
+              )}
 
-              <div className="relative my-6">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-hairline" />
+              {anyOAuth && (
+                <div className="relative my-6">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-hairline" />
+                  </div>
+                  <div className="relative flex justify-center text-sm">
+                    <span className="bg-page px-2 text-ink-muted">or</span>
+                  </div>
                 </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="bg-page px-2 text-ink-muted">or</span>
-                </div>
-              </div>
+              )}
 
-              <button
-                onClick={() => {
-                  setEmailMode(initialMode);
-                  setError('');
-                  setShowEmailForm(true);
-                }}
-                className="w-full rounded-xl border border-hairline bg-surface px-4 py-3 font-medium text-ink transition-colors hover:border-accent hover:text-accent-strong"
-              >
-                Continue with Email
-              </button>
+              {anyOAuth && (
+                <button
+                  onClick={() => {
+                    setEmailMode(initialMode);
+                    setError('');
+                    setShowEmailForm(true);
+                  }}
+                  className="w-full rounded-xl border border-hairline bg-surface px-4 py-3 font-medium text-ink transition-colors hover:border-accent hover:text-accent-strong"
+                >
+                  Continue with Email
+                </button>
+              )}
 
               <p className="pt-2 text-center text-sm text-ink-muted">
                 {isSignup ? (
@@ -301,16 +328,18 @@ const Login: React.FC<LoginProps> = ({ mode }) => {
                 )}
               </p>
 
-              <button
-                type="button"
-                onClick={() => {
-                  setShowEmailForm(false);
-                  setError('');
-                }}
-                className="w-full text-sm text-ink-muted hover:text-ink"
-              >
-                Back to OAuth options
-              </button>
+              {anyOAuth && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowEmailForm(false);
+                    setError('');
+                  }}
+                  className="w-full text-sm text-ink-muted hover:text-ink"
+                >
+                  Back to OAuth options
+                </button>
+              )}
             </form>
           )}
 

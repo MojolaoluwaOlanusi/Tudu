@@ -25,6 +25,29 @@ export const getStats = (_req: Request, res: Response) => {
   });
 };
 
+/**
+ * GET /api/public/auth-methods
+ *
+ * Reports which sign-in methods this instance has configured. The
+ * frontend uses this to decide which OAuth buttons to render - showing
+ * a Google button on an instance without Google credentials produces a
+ * 503 on click (see routes/auth.ts), which is bad UX.
+ *
+ * `email` is always true: email/password auth has no external
+ * dependency. OAuth flags mirror what passport.ts registers at boot.
+ */
+export const getAuthMethods = (_req: Request, res: Response) => {
+  res.json({
+    email: true,
+    google: Boolean(
+      process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
+    ),
+    github: Boolean(
+      process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET
+    ),
+  });
+};
+
 const DEFAULT_COLUMNS = [
   { name: 'To-do', stage: 'todo', color: 'gray' },
   { name: 'Doing', stage: 'doing', color: 'blue' },

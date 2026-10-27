@@ -37,3 +37,75 @@ describe('public endpoints', () => {
     await pool.query('DELETE FROM users WHERE id = $1', [demo.body.user.id]);
   });
 });
+
+/**
+ * The frontend uses this endpoint to decide which OAuth buttons to show.
+ * The flags mirror passport.ts: a provider is available only when BOTH its
+ * client ID and secret are set. Setting them here does not re-register the
+ * Passport strategy (already evaluated at import time), but the endpoint
+ * reads env vars at request time so the response still flips.
+ */
+describe('GET /api/public/auth-methods', () => {
+  const saved = {
+    gi: process.env.GOOGLE_CLIENT_ID,
+    gs: process.env.GOOGLE_CLIENT_SECRET,
+    hi: process.env.GITHUB_CLIENT_ID,
+    hs: process.env.GITHUB_CLIENT_SECRET,
+  };
+
+  const restore = (key: string, value: string | undefined) => {
+    if (value === undefined) delete process.env[key];
+    else process.env[key] = value;
+  };
+
+  afterEach(() => {
+    restore('GOOGLE_CLIENT_ID', saved.gi);
+    restore('GOOGLE_CLIENT_SECRET', saved.gs);
+    restore('GITHUB_CLIENT_ID', saved.hi);
+    restore('GITHUB_CLIENT_SECRET', saved.hs);
+  });
+
+  it('reports email=true and both OAuth flags false when no credentials are set', async () => {
+    delete process.env.GOOGLE_CLIENT_ID;
+    delete process.env.GOOGLE_CLIENT_SECRET;
+    delete process.env.GITHUB_CLIENT_ID;
+    delete process.env.GITHUB_CLIENT_SECRET;
+
+    const res = await request(app).get('/api/public/auth-methods');
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ email: true, google: false, github: false });
+  });
+
+  it('reports both OAuth flags true when credentials are set', async () => {
+    process.env.GOOGLE_CLIENT_ID = 'test-id';
+    process.env.GOOGLE_CLIENT_SECRET = 'test-secret';
+    process.env.GITHUB_CLIENT_ID = 'test-id';
+    process.env.GITHUB_CLIENT_SECRET = 'test-secret';
+
+    const res = await request(app).get('/api/public/auth-methods');
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ email: true, google: true, github: true });
+  });
+
+  it('reports each provider independently', async () => {
+    process.env.GOOGLE_CLIENT_ID = 'test-id';
+    process.env.GOOGLE_CLIENT_SECRET = 'test-secret';
+    delete process.env.GITHUB_CLIENT_ID;
+    delete process.env.GITHUB_CLIENT_SECRET;
+
+    const res = await request(app).get('/api/public/auth-methods');
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ email: true, google: true, github: false });
+  });
+
+  it('requires BOTH client id and secret for a provider to count as enabled', async () => {
+    process.env.GOOGLE_CLIENT_ID = 'test-id';
+    delete process.env.GOOGLE_CLIENT_SECRET;
+    delete process.env.GITHUB_CLIENT_ID;
+    delete process.env.GITHUB_CLIENT_SECRET;
+
+    const res = await request(app).get('/api/public/auth-methods');
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ email: true, google: false, github: false });
+  });
+});
