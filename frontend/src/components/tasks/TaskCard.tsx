@@ -71,13 +71,18 @@ const TaskCard: React.FC<TaskCardProps> = ({
     }
   }, [task.status, celebrated]);
 
-  const copyId = () => {
+  const copyId = async () => {
     if (task.short_id == null) return;
+    const text = `TUDU-${task.short_id}`;
     try {
-      navigator.clipboard.writeText(`TUDU-${task.short_id}`);
+      if (!navigator.clipboard) throw new Error('clipboard unavailable');
+      await navigator.clipboard.writeText(text);
       useUiStore.getState().pushToast('Task ID copied', 'info');
     } catch {
-      /* clipboard unavailable in some browsers */
+      useUiStore.getState().pushToast(
+        'Could not copy — select and copy it manually',
+        'error'
+      );
     }
   };
 

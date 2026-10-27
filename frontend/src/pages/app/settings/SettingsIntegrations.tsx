@@ -13,6 +13,12 @@ import { useAuthStore } from '../../../store/authStore';
 import { useUiStore } from '../../../store/uiStore';
 import { useConfirmStore } from '../../../store/confirmStore';
 
+// Single source of truth for the webhook URL. The old code inferred it from
+// window.location.origin by string-replacing "5173" with "5000", which broke
+// on any deployed domain (production had no such port pair).
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const WEBHOOK_URL = API_URL + '/api/integrations/github/webhook';
+
 const IntegrationsSettings: React.FC = () => {
   const confirm = useConfirmStore((s) => s.confirm);
   const { token } = useAuthStore();
@@ -444,12 +450,12 @@ const IntegrationsSettings: React.FC = () => {
                   <input
                     type="text"
                     readOnly
-                    value={import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL + '/api/integrations/github/webhook' : window.location.origin.replace('5173', '5000') + '/api/integrations/github/webhook'}
+                    value={WEBHOOK_URL}
                     className="input flex-1 bg-surface-2 text-xs font-mono"
                   />
                   <button
                     type="button"
-                    onClick={() => copyToClipboard(import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL + '/api/integrations/github/webhook' : window.location.origin.replace('5173', '5000') + '/api/integrations/github/webhook')}
+                    onClick={() => copyToClipboard(WEBHOOK_URL)}
                     className="btn-ghost shrink-0 !py-1.5 !text-xs"
                   >
                     Copy
