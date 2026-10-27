@@ -5,6 +5,7 @@ import {
   useDeleteMarketplaceTemplate,
 } from '../../hooks/useTemplates';
 import { useUiStore } from '../../store/uiStore';
+import { useConfirmStore } from '../../store/confirmStore';
 import type { MarketplaceTemplate } from '../../services/templateService';
 
 interface EditTemplateModalProps {
@@ -21,6 +22,7 @@ const EditTemplateModal: React.FC<EditTemplateModalProps> = ({
   template,
   onClose,
 }) => {
+  const confirm = useConfirmStore((s) => s.confirm);
   const { data: boards = [] } = useBoards();
   const update = useUpdateMarketplaceTemplate();
   const del = useDeleteMarketplaceTemplate();
@@ -59,13 +61,14 @@ const EditTemplateModal: React.FC<EditTemplateModalProps> = ({
     );
   };
 
-  const handleDelete = () => {
-    if (
-      !window.confirm(
-        `Permanently delete "${template.name}" from the marketplace? Anyone who already bought it will keep their copy.`,
-      )
-    )
-      return;
+  const handleDelete = async () => {
+    const ok = await confirm({
+      title: `Delete "${template.name}"?`,
+      message: 'Anyone who already bought it will keep their copy.',
+      confirmLabel: 'Delete',
+      destructive: true,
+    });
+    if (!ok) return;
     del.mutate(template.id, {
       onSuccess: () => {
         pushToast('Template deleted', 'success');

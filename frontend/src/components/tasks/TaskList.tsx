@@ -13,6 +13,7 @@ import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import { useUiStore } from '../../store/uiStore';
 import { isNetworkError, shouldShowQueuedToast } from '../../lib/offlineQueue';
 import { useUndoStore } from '../../store/undoStore';
+import { useConfirmStore } from '../../store/confirmStore';
 import { useBoardStore } from '../../store/boardStore';
 import {
   useFilterStore,
@@ -37,6 +38,7 @@ import EmptyState from './EmptyState';
 import RecentActivity from '../activity/RecentActivity';
 
 const TaskList: React.FC = () => {
+  const confirm = useConfirmStore((s) => s.confirm);
   /* ------------- Bulk selection ------------- */
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -185,7 +187,13 @@ const TaskList: React.FC = () => {
   const handleDeleteTask = async (id: string) => {
     const task = tasks?.find((t) => t.id === id);
     if (!task) return;
-    if (!window.confirm('Are you sure you want to delete this task?')) return;
+    const ok = await confirm({
+      title: 'Delete task?',
+      message: 'You can undo this from the toast for 10 seconds.',
+      confirmLabel: 'Delete',
+      destructive: true,
+    });
+    if (!ok) return;
     try {
       await deleteTask.mutateAsync(id);
       setPendingUndo({
@@ -249,13 +257,13 @@ const TaskList: React.FC = () => {
   const handleBulkDelete = async () => {
     const ids = Array.from(selectedIds);
     if (ids.length === 0) return;
-    if (
-      !window.confirm(
-        `Delete ${ids.length} task${ids.length === 1 ? '' : 's'}? You can undo one at a time from the toast.`
-      )
-    ) {
-      return;
-    }
+    const ok = await confirm({
+      title: `Delete ${ids.length} task${ids.length === 1 ? '' : 's'}?`,
+      message: 'You can undo one at a time from the toast.',
+      confirmLabel: 'Delete',
+      destructive: true,
+    });
+    if (!ok) return;
     try {
       await batchDelete.mutateAsync(ids);
       pushToast(`${ids.length} task${ids.length === 1 ? '' : 's'} deleted`, 'success');

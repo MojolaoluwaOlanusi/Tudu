@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, Trash2 } from 'lucide-react';
 import { useUpdateColumn, useDeleteColumn } from '../../hooks/useBoards';
 import { useUiStore } from '../../store/uiStore';
+import { useConfirmStore } from '../../store/confirmStore';
 import { COLUMN_COLORS, STAGES } from '../../types/board';
 import type { BoardColumn, ColumnColor, Stage } from '../../types/board';
 
@@ -25,6 +26,7 @@ interface ColumnSettingsProps {
  * behaviour is unchanged; only the presentation moved into the panel.
  */
 const ColumnSettings: React.FC<ColumnSettingsProps> = ({ column, onClose }) => {
+  const confirm = useConfirmStore((s) => s.confirm);
   const updateColumn = useUpdateColumn();
   const deleteColumn = useDeleteColumn();
   const pushToast = useUiStore((s) => s.pushToast);
@@ -65,14 +67,14 @@ const ColumnSettings: React.FC<ColumnSettingsProps> = ({ column, onClose }) => {
     }
   };
 
-  const handleDelete = () => {
-    if (
-      !window.confirm(
-        `Delete the "${column.name}" column? Its cards move to another column, they are not destroyed.`,
-      )
-    ) {
-      return;
-    }
+  const handleDelete = async () => {
+    const ok = await confirm({
+      title: `Delete "${column.name}"?`,
+      message: 'Its cards move to another column, they are not destroyed.',
+      confirmLabel: 'Delete column',
+      destructive: true,
+    });
+    if (!ok) return;
     deleteColumn.mutate(
       { id: column.id, boardId: column.board_id },
       {

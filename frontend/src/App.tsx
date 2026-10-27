@@ -57,6 +57,7 @@ import ToastContainer from './components/common/ToastContainer';
 import ShortcutHelp from './components/common/ShortcutHelp';
 import CommandPalette from './components/common/CommandPalette';
 import InstallPrompt from './components/common/InstallPrompt';
+import ConfirmDialog from './components/common/ConfirmDialog';
 import OfflineIndicator from './components/common/OfflineIndicator';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useOfflineSync } from './hooks/useOfflineSync';
@@ -293,6 +294,7 @@ function App() {
             <InstallPrompt />
             <ShortcutHelp />
             <CommandPalette />
+            <ConfirmDialog />
             <PomodoroRunner />
             <WizardRoot />
             <OnboardingRoot />

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Copy } from 'lucide-react';
 import { useApiTokens, useCreateApiToken, useRevokeApiToken } from '../../../hooks/useApiTokens';
 import { useUiStore } from '../../../store/uiStore';
+import { useConfirmStore } from '../../../store/confirmStore';
 import type { ApiToken } from '../../../services/apiTokenService';
 import { PageHeader, Section } from './primitives';
 
@@ -13,6 +14,7 @@ const formatDate = (iso: string | null): string => {
 };
 
 const SettingsApi: React.FC = () => {
+  const confirm = useConfirmStore((s) => s.confirm);
   const { data: tokens = [], isLoading } = useApiTokens();
   const create = useCreateApiToken();
   const revoke = useRevokeApiToken();
@@ -37,8 +39,14 @@ const SettingsApi: React.FC = () => {
     });
   };
 
-  const handleRevoke = (t: ApiToken) => {
-    if (!window.confirm('Revoke ' + t.label + '? Any service using it will lose access immediately.')) return;
+  const handleRevoke = async (t: ApiToken) => {
+    const ok = await confirm({
+      title: `Revoke "${t.label}"?`,
+      message: 'Any service using it will lose access immediately.',
+      confirmLabel: 'Revoke',
+      destructive: true,
+    });
+    if (!ok) return;
     revoke.mutate(t.id, {
       onSuccess: () => pushToast('Token revoked', 'success'),
       onError: () => pushToast('Could not revoke the token', 'error'),

@@ -8,6 +8,7 @@ import {
   useRetryWebhookDelivery,
 } from '../../../hooks/useWebhooks';
 import { useUiStore } from '../../../store/uiStore';
+import { useConfirmStore } from '../../../store/confirmStore';
 import { WEBHOOK_EVENTS, type WebhookDelivery, type WebhookEndpoint, type WebhookEvent } from '../../../services/webhookService';
 import { PageHeader, Section } from './primitives';
 
@@ -72,6 +73,7 @@ const DeliveriesList: React.FC<{ endpointId: string }> = ({ endpointId }) => {
 };
 
 const SettingsWebhooks: React.FC = () => {
+  const confirm = useConfirmStore((s) => s.confirm);
   const { data: endpoints = [], isLoading } = useWebhookEndpoints();
   const create = useCreateWebhookEndpoint();
   const update = useUpdateWebhookEndpoint();
@@ -211,9 +213,14 @@ const SettingsWebhooks: React.FC = () => {
                   </button>
                   <button
                     type="button"
-                    onClick={() => {
-                      if (!window.confirm('Delete the endpoint at ' + ep.url + '?')) return;
-                      remove.mutate(ep.id);
+                    onClick={async () => {
+                      const ok = await confirm({
+                        title: 'Delete endpoint?',
+                        message: `Delete the endpoint at ${ep.url}?`,
+                        confirmLabel: 'Delete',
+                        destructive: true,
+                      });
+                      if (ok) remove.mutate(ep.id);
                     }}
                     disabled={remove.isPending}
                     className="rounded-lg border border-line bg-surface px-2.5 py-1.5 text-xs font-semibold text-red-400 hover:border-red-400/60 disabled:opacity-50"
