@@ -59,13 +59,14 @@ const ShareModal: React.FC<ShareModalProps> = ({ tasks }) => {
   };
 
   return (
-    <div
-      className="scrim fixed inset-0 z-40 flex items-center justify-center p-4"
-      role="dialog"
-      aria-modal="true"
-      aria-label="Share list"
-    >
-      <div className="animate-pop-in w-full max-w-lg rounded-2xl border border-hairline bg-surface p-5 shadow-xl sm:p-6">
+    <div className="scrim fixed inset-0 z-40 overflow-y-auto p-4" role="presentation">
+      <div className="flex min-h-full items-center justify-center">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Share list"
+          className="animate-pop-in w-full max-w-lg rounded-2xl border border-hairline bg-surface p-5 shadow-xl sm:p-6"
+        >
         <div className="mb-4 flex items-start justify-between gap-3">
           <div className="min-w-0">
             <h3 className="font-handwritten text-2xl text-ink">Share your list</h3>
@@ -188,6 +189,7 @@ const ShareModal: React.FC<ShareModalProps> = ({ tasks }) => {
             </button>
           </div>
         </form>
+        </div>
       </div>
     </div>
   );
