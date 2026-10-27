@@ -6,6 +6,7 @@ self-hostable, and open source under AGPL-3.0.
 
 ![Demo GIF](docs/demo.gif)
 
+[![CI](https://github.com/MojolaoluwaOlanusi/Tudu/actions/workflows/ci.yml/badge.svg)](https://github.com/MojolaoluwaOlanusi/Tudu/actions/workflows/ci.yml)
 [![License](https://img.shields.io/github/license/MojolaoluwaOlanusi/Tudu)](LICENSE)
 [![Release](https://img.shields.io/github/v/release/MojolaoluwaOlanusi/Tudu)](https://github.com/MojolaoluwaOlanusi/Tudu/releases)
 [![Stars](https://img.shields.io/github/stars/MojolaoluwaOlanusi/Tudu)](https://github.com/MojolaoluwaOlanusi/Tudu/stargazers)
