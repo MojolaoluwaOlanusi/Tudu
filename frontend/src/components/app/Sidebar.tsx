@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   PanelLeftClose, PanelLeftOpen, Plus, MoreHorizontal,
   Mail, Users, Send, ArrowUp, ArrowDown,
@@ -215,8 +216,8 @@ const Sidebar: React.FC = () => {
             <ul className="space-y-1 px-2">
               {acceptedShares.map((share) => (
                 <li key={share.id}>
-                  <a
-                    href={`#/shared/${share.id}`}
+                  <Link
+                    to={`/shared/${share.id}`}
                     className="flex items-center gap-2 rounded-md px-2 py-1.5 transition-colors hover:bg-subtle"
                   >
                     <Avatar user={share.owner} size="h-6 w-6" />
@@ -228,7 +229,7 @@ const Sidebar: React.FC = () => {
                         {share.tasks_completed ?? 0}/{share.task_count ?? 0} done
                       </p>
                     </div>
-                  </a>
+                  </Link>
                 </li>
               ))}
             </ul>
