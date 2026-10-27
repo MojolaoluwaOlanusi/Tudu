@@ -6,9 +6,9 @@ issue, PR, and doc improvement makes a difference.
 There are four ways to help, roughly in order of impact:
 
 1. **Report a bug** - https://github.com/MojolaoluwaOlanusi/Tudu/issues/new/choose
-2. **Suggest a feature** - open an issue, or check `readme/FUTURE_WORK.md`
+2. **Suggest a feature** - open an issue, or check `docs/FUTURE_WORK.md`
    first to see if it is already planned.
-3. **Improve the docs** - anything in `docs/`, `readme/`, or the README.
+3. **Improve the docs** - anything in `docs/`, `docs/`, or the README.
 4. **Send code** - a PR for a scoped bug or feature.
 
 This file covers how to get set up, what we expect of a PR, and what we
@@ -20,7 +20,7 @@ probably will not accept so you do not waste your time.
 
 - Search open and closed issues first. Chances are good that someone hit it
   already.
-- Read `readme/FUTURE_WORK.md`. It lists known deferred work; if your idea
+- Read `docs/FUTURE_WORK.md`. It lists known deferred work; if your idea
   is on that list, open an issue to discuss scope before writing code.
 - Run the local test suite (see "Testing" below). PRs that arrive red will
   be asked to fix CI first, not merged.

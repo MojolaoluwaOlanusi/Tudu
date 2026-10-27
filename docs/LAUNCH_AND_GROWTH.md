@@ -302,7 +302,7 @@ Verify with Lighthouse against the deployed app once a quarter.
 
 ## In-app viral loops
 
-> **None of these are built yet.** They are on `readme/FUTURE_WORK.md`
+> **None of these are built yet.** They are on `docs/FUTURE_WORK.md`
 > for future sprints.
 
 - **Share footer.** Every board shared via email ends with "Built with

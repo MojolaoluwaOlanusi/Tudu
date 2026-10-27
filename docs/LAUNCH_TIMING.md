@@ -205,5 +205,5 @@ Within a week:
 
 - Full strategy, positioning, asset prep, per-platform playbooks:
   `docs/LAUNCH_AND_GROWTH.md`
-- What is deferred and when to ship it: `readme/FUTURE_WORK.md`
+- What is deferred and when to ship it: `docs/FUTURE_WORK.md`
 - What is on the site today: `README.md`

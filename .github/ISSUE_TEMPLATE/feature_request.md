@@ -27,5 +27,5 @@ assignees: ""
 ## Checklist
 
 - [ ] I searched open and closed issues for a duplicate
-- [ ] I read `readme/FUTURE_WORK.md` and this is not already planned
+- [ ] I read `docs/FUTURE_WORK.md` and this is not already planned
 - [ ] I am willing to open a PR if we agree on scope

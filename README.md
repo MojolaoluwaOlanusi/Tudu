@@ -129,7 +129,7 @@ maintainer's defaults.
 backend/       Express API + Socket.io + migrations + tests
 frontend/      Vite + React SPA + tests + e2e
 docs/          User-facing docs (self-hosting, marketplace, API, growth)
-readme/        Internal reference (visual system, UI inventory, future work)
+docs/        Internal reference (visual system, UI inventory, future work)
 .github/       Issue + PR templates, CI, Dependabot
 ```
 
@@ -176,11 +176,11 @@ Full details in `docs/SELF_HOSTING.md`.
 
 * `docs/LAUNCH_AND_GROWTH.md` - positioning, playbooks, SEO, referral
 
-* `readme/FUTURE_WORK.md` - known deferred work
+* `docs/FUTURE_WORK.md` - known deferred work
 
-* `readme/UI.md` - component inventory
+* `docs/UI.md` - component inventory
 
-* `readme/VISUAL_SYSTEM.md` - design tokens and recipes
+* `docs/VISUAL_SYSTEM.md` - design tokens and recipes
 
 ## Contributing
 
