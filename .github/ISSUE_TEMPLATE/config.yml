@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Ask a question
+    url: https://github.com/MojolaoluwaOlanusi/Tudu/discussions
+    about: For usage questions and general discussion, please use Discussions.
+  - name: Read the docs
+    url: https://github.com/MojolaoluwaOlanusi/Tudu/tree/main/docs
+    about: Self-hosting, marketplace, API, webhooks, and growth docs live here.
+  - name: Report a security vulnerability
+    url: https://github.com/MojolaoluwaOlanusi/Tudu/blob/main/SECURITY.md
+    about: Do not open a public issue for security problems.
