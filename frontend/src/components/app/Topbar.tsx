@@ -10,6 +10,7 @@ import TourButton from '../onboarding/TourButton';
 import PomodoroTimerHeader from '../pomodoro/PomodoroTimerHeader';
 import Timer from '../time/Timer';
 import SyncDot from './SyncDot';
+import MobileBoardSwitcher from './MobileBoardSwitcher';
 
 const NAV = [
   { to: '/', label: 'List', end: true },
@@ -123,6 +124,7 @@ const Topbar: React.FC = () => {
           <Link to="/" className="shrink-0" aria-label="Tudu home">
             <Wordmark className="h-7 w-auto" />
           </Link>
+          <MobileBoardSwitcher />
           <div className="ml-auto flex items-center gap-0.5">
             <SyncDot />
             <ThemeToggle />
