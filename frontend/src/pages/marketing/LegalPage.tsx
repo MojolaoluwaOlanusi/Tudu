@@ -1,6 +1,7 @@
 import React from 'react';
 import MarketingShell from '../../components/marketing/MarketingShell';
 import { H1, H2, P, UL } from '../../components/marketing/Prose';
+import { usePageMeta } from '../../hooks/usePageMeta';
 
 interface LegalSection {
   heading: string;
@@ -83,6 +84,14 @@ interface LegalPageProps {
 
 const LegalPage: React.FC<LegalPageProps> = ({ mode = 'privacy' }) => {
   const content = CONTENT[mode] ?? CONTENT.privacy;
+
+  usePageMeta({
+    title: content.title + ' - Tudu',
+    description:
+      mode === 'privacy'
+        ? 'How Tudu collects, uses, and protects your data.'
+        : 'The terms that govern your use of Tudu.',
+  });
   return (
     <MarketingShell>
       <div className="mx-auto max-w-3xl px-6 py-16">
