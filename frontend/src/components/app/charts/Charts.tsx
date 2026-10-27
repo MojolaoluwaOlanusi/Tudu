@@ -28,11 +28,20 @@ export function BarChart({
   labelKey = 'label',
 }: BarChartProps) {
   const max = Math.max(...data.map((d) => Number(d[valueKey] || 0)), 1);
+  // Beyond ~14 bars the labels overlap and bars collapse into hairlines on
+  // a phone-width card. Give each bar a minimum width and let the container
+  // scroll horizontally instead of crushing everything into place.
+  const BAR_WIDTH = 26;
+  const scrollable = data.length > 14;
+  const minWidth = scrollable ? data.length * BAR_WIDTH : undefined;
   return (
     <div
       data-testid="bar-chart"
+      className={scrollable ? "overflow-x-auto scroll-hidden -mx-1 px-1" : ""}
+    >
+    <div
       className="flex items-end gap-1.5"
-      style={{ height: height + 20 }}
+      style={{ height: height + 20, minWidth }}
     >
       {data.map((d, i) => {
         const v = Number(d[valueKey] || 0);
@@ -56,6 +65,7 @@ export function BarChart({
           </div>
         );
       })}
+    </div>
     </div>
   );
 }

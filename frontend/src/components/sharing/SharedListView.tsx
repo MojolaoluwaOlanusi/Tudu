@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
 import { useSharedList, useUpdateSharedTask, useRemoveShare } from '../../hooks/useSharing';
 import { useUiStore } from '../../store/uiStore';
 import { CreateTaskInput, Task } from '../../types/task';
@@ -81,6 +82,15 @@ const SharedListView: React.FC = () => {
     <div className="min-h-screen bg-page">
       <Topbar />
       <div className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
+        {/* Fast way out — the only other exit is at the very bottom. */}
+        <Link
+          to="/"
+          className="mb-3 inline-flex items-center gap-1 text-xs font-medium text-ink-muted transition-colors hover:text-ink"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" />
+          Back to my tasks
+        </Link>
+
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <Avatar user={share.owner} size="h-12 w-12" />
