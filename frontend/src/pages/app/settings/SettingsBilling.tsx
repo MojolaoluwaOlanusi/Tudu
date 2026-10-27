@@ -8,6 +8,7 @@ import {
   usePaymentHistory,
 } from '../../../hooks/useBilling';
 import { useUiStore } from '../../../store/uiStore';
+import { useConfirmStore } from '../../../store/confirmStore';
 import PublisherSettings from '../../../components/settings/PublisherSettings';
 import PurchasesList from '../../../components/settings/PurchasesList';
 
@@ -73,6 +74,7 @@ const BuyCreditsButton: React.FC<BuyCreditsButtonProps> = ({ bundle, label }) =>
 const BillingSettings: React.FC = () => {
   const navigate = useNavigate();
   const { data: ent, isLoading } = useEntitlements();
+  const confirm = useConfirmStore((s) => s.confirm);
   const cancel = useCancelSubscription();
   const pushToast = useUiStore((s) => s.pushToast);
   const { data: payments = [], isLoading: paymentsLoading } = usePaymentHistory();
@@ -84,8 +86,15 @@ const BillingSettings: React.FC = () => {
   const isPro = ent?.tier === 'pro';
   const credits = ent?.aiCreditsRemaining ?? 0;
 
-  const handleCancel = () => {
-    if (!window.confirm('Cancel your Pro subscription at the end of this period?')) return;
+  const handleCancel = async () => {
+    const ok = await confirm({
+      title: 'Cancel your Pro subscription?',
+      message:
+        'Your subscription stays active until the end of the current period, then downgrades to Free.',
+      confirmLabel: 'Cancel subscription',
+      destructive: true,
+    });
+    if (!ok) return;
     cancel.mutate(undefined, {
       onSuccess: () => pushToast('Subscription will cancel at period end', 'success'),
       onError: () => pushToast('Could not cancel the subscription', 'error'),

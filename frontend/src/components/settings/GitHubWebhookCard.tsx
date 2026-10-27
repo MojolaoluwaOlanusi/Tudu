@@ -5,6 +5,7 @@ import {
 } from '../../services/integrationService';
 import { useAuthStore } from '../../store/authStore';
 import { useUiStore } from '../../store/uiStore';
+import { useConfirmStore } from '../../store/confirmStore';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -17,6 +18,7 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
  * until it is updated.
  */
 const GitHubWebhookCard: React.FC = () => {
+  const confirm = useConfirmStore((s) => s.confirm);
   const { token } = useAuthStore();
   const pushToast = useUiStore((s) => s.pushToast);
   const [secret, setSecret] = useState<string | null>(null);
@@ -54,13 +56,14 @@ const GitHubWebhookCard: React.FC = () => {
 
   const handleRotate = async () => {
     if (!token) return;
-    if (
-      !window.confirm(
-        'Rotate the secret? Every GitHub webhook using the current value stops delivering until you update the secret in GitHub.',
-      )
-    ) {
-      return;
-    }
+    const ok = await confirm({
+      title: 'Rotate the secret?',
+      message:
+        'Every GitHub webhook using the current value stops delivering until you update the secret in GitHub.',
+      confirmLabel: 'Rotate',
+      destructive: true,
+    });
+    if (!ok) return;
     setBusy(true);
     try {
       const s = await rotateGithubWebhookSecret(token);

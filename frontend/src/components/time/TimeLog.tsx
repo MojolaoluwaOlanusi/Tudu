@@ -6,6 +6,7 @@ import {
   formatDuration,
 } from '../../hooks/useTime';
 import { useUiStore } from '../../store/uiStore';
+import { useConfirmStore } from '../../store/confirmStore';
 
 const formatDateTime = (iso: string): string => {
   const d = new Date(iso);
@@ -31,6 +32,7 @@ const nowLocal = (): string => {
 };
 
 const TimeLog: React.FC = () => {
+  const confirm = useConfirmStore((s) => s.confirm);
   const { data, isLoading } = useTimeEntries(30);
   const create = useCreateManualEntry();
   const remove = useDeleteTimeEntry();
@@ -74,8 +76,13 @@ const TimeLog: React.FC = () => {
     );
   };
 
-  const handleDelete = (id: string) => {
-    if (!window.confirm('Delete this time entry?')) return;
+  const handleDelete = async (id: string) => {
+    const ok = await confirm({
+      title: 'Delete this time entry?',
+      confirmLabel: 'Delete',
+      destructive: true,
+    });
+    if (!ok) return;
     remove.mutate(id, {
       onSuccess: () => pushToast('Entry deleted', 'success'),
       onError: () => pushToast('Could not delete the entry', 'error'),

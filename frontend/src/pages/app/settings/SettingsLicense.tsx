@@ -8,6 +8,7 @@ import {
 } from '../../../hooks/useLicense';
 import { useUiStore } from '../../../store/uiStore';
 import FeatureGate from '../../../components/common/FeatureGate';
+import { useConfirmStore } from '../../../store/confirmStore';
 
 const formatDate = (iso: string | null | undefined): string => {
   if (!iso) return 'Never';
@@ -103,6 +104,7 @@ interface IssuerViewProps {
 }
 
 const IssuerView: React.FC<IssuerViewProps> = ({ issuerConfigured, licenses }) => {
+  const confirm = useConfirmStore((s) => s.confirm);
   const issue = useIssueLicense();
   const revoke = useRevokeLicense();
   const pushToast = useUiStore((s) => s.pushToast);
@@ -234,8 +236,14 @@ const IssuerView: React.FC<IssuerViewProps> = ({ issuerConfigured, licenses }) =
                 </button>
                 <button
                   type="button"
-                  onClick={() => {
-                    if (!window.confirm('Revoke this license?')) return;
+                  onClick={async () => {
+                    const ok = await confirm({
+                      title: 'Revoke this license?',
+                      message: 'The self-hosted instance will lock its Pro features at the next check.',
+                      confirmLabel: 'Revoke',
+                      destructive: true,
+                    });
+                    if (!ok) return;
                     revoke.mutate(lic.id, {
                       onSuccess: () => pushToast('License revoked', 'success'),
                       onError: () => pushToast('Could not revoke', 'error'),
@@ -268,6 +276,7 @@ const REASON_LABEL: Record<string, string> = {
 };
 
 const ConsumerView: React.FC<{ status: StatusInfo | null }> = ({ status }) => {
+  const confirm = useConfirmStore((s) => s.confirm);
   const activate = useActivateLicense();
   const deactivate = useDeactivateLicense();
   const pushToast = useUiStore((s) => s.pushToast);
@@ -308,8 +317,14 @@ const ConsumerView: React.FC<{ status: StatusInfo | null }> = ({ status }) => {
     );
   };
 
-  const handleRemove = () => {
-    if (!window.confirm('Remove the license? Pro features will be locked until you install another one.')) return;
+  const handleRemove = async () => {
+    const ok = await confirm({
+      title: 'Remove the license?',
+      message: 'Pro features will be locked until you install another one.',
+      confirmLabel: 'Remove',
+      destructive: true,
+    });
+    if (!ok) return;
     deactivate.mutate(undefined, {
       onSuccess: () => pushToast('License removed', 'success'),
       onError: () => pushToast('Could not remove the license', 'error'),

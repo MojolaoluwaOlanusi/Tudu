@@ -11,8 +11,10 @@ import {
 } from '../../../services/integrationService';
 import { useAuthStore } from '../../../store/authStore';
 import { useUiStore } from '../../../store/uiStore';
+import { useConfirmStore } from '../../../store/confirmStore';
 
 const IntegrationsSettings: React.FC = () => {
+  const confirm = useConfirmStore((s) => s.confirm);
   const { token } = useAuthStore();
   const pushToast = useUiStore((s) => s.pushToast);
   const [params, setParams] = useSearchParams();
@@ -115,7 +117,13 @@ const IntegrationsSettings: React.FC = () => {
 
   const handleDisconnectGitHub = async () => {
     if (!token) return;
-    if (!window.confirm('Disconnect GitHub? Repos and mappings stay, but the token is deleted.')) return;
+    const ok = await confirm({
+      title: 'Disconnect GitHub?',
+      message: 'Repos and mappings stay, but the token is deleted.',
+      confirmLabel: 'Disconnect',
+      destructive: true,
+    });
+    if (!ok) return;
     try {
       await integrationService.disconnect(token);
       setGhStatus({ connected: false });
@@ -130,7 +138,13 @@ const IntegrationsSettings: React.FC = () => {
 
   const handleRotateSecret = async () => {
     if (!token) return;
-    if (!window.confirm('Rotate the webhook secret? You will need to update the GitHub repo settings immediately.')) return;
+    const ok = await confirm({
+      title: 'Rotate the webhook secret?',
+      message: 'You will need to update the GitHub repo settings immediately.',
+      confirmLabel: 'Rotate',
+      destructive: true,
+    });
+    if (!ok) return;
     setRotating(true);
     try {
       const sec = await integrationService.rotateSecret(token);
@@ -178,7 +192,12 @@ const IntegrationsSettings: React.FC = () => {
 
   const handleDeleteMapping = async (m: GitHubMapping) => {
     if (!token) return;
-    if (!window.confirm('Remove mapping for ' + m.repo_full_name + '?')) return;
+    const ok = await confirm({
+      title: `Remove mapping for "${m.repo_full_name}"?`,
+      confirmLabel: 'Remove',
+      destructive: true,
+    });
+    if (!ok) return;
     try {
       await integrationService.deleteMapping(token, m.id);
       await refreshGitHub();
@@ -206,7 +225,13 @@ const IntegrationsSettings: React.FC = () => {
 
   const handleDisconnectSlack = async () => {
     if (!token) return;
-    if (!window.confirm('Disconnect Slack? Notifications will stop immediately.')) return;
+    const ok = await confirm({
+      title: 'Disconnect Slack?',
+      message: 'Notifications will stop immediately.',
+      confirmLabel: 'Disconnect',
+      destructive: true,
+    });
+    if (!ok) return;
     try {
       await integrationService.disconnectSlack(token);
       setSlackStatus({ connected: false });

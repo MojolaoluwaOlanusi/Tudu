@@ -5,6 +5,7 @@ import { useStartPomodoro } from '../../hooks/usePomodoro';
 import { useStartTimer } from '../../hooks/useTime';
 import { useUndoStore } from '../../store/undoStore';
 import { useUiStore } from '../../store/uiStore';
+import { useConfirmStore } from '../../store/confirmStore';
 import AssigneeChip from '../workspace/AssigneeChip';
 import SubtaskList from '../tasks/SubtaskList';
 import TaskActivity from '../activity/TaskActivity';
@@ -35,6 +36,7 @@ interface TaskDetailProps {
  * out on screen.
  */
 const TaskDetail: React.FC<TaskDetailProps> = ({ task, onClose }) => {
+  const confirm = useConfirmStore((s) => s.confirm);
   const updateTask = useUpdateTask();
   const deleteTask = useDeleteTask();
   const startPomodoro = useStartPomodoro();
@@ -83,8 +85,14 @@ const TaskDetail: React.FC<TaskDetailProps> = ({ task, onClose }) => {
       task: { due_date: value ? new Date(value).toISOString() : (undefined as any) },
     });
 
-  const handleDelete = () => {
-    if (!window.confirm('Delete this task? You can undo from the toast.')) return;
+  const handleDelete = async () => {
+    const ok = await confirm({
+      title: 'Delete task?',
+      message: 'You can undo this from the toast for 10 seconds.',
+      confirmLabel: 'Delete',
+      destructive: true,
+    });
+    if (!ok) return;
     deleteTask.mutate(task.id, {
       onSuccess: () => {
         setPendingUndo({

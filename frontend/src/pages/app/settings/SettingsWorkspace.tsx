@@ -9,6 +9,7 @@ import {
 } from '../../../hooks/useWorkspaces';
 import { useAuthStore } from '../../../store/authStore';
 import { useUiStore } from '../../../store/uiStore';
+import { useConfirmStore } from '../../../store/confirmStore';
 import type { BoardRole } from '../../../types/board';
 import { Avatar, PageHeader, Section } from './primitives';
 
@@ -19,6 +20,7 @@ const ROLE_LABELS: Record<BoardRole, string> = {
 };
 
 const SettingsWorkspace: React.FC = () => {
+  const confirm = useConfirmStore((s) => s.confirm);
   const myId = useAuthStore((s) => s.user?.id);
   const pushToast = useUiStore((s) => s.pushToast);
   const { data: workspaces = [] } = useWorkspaces();
@@ -177,15 +179,18 @@ const SettingsWorkspace: React.FC = () => {
                   {(isAdmin || isMe) && (
                     <button
                       type="button"
-                      onClick={() => {
-                        if (
-                          !window.confirm(
-                            isMe
-                              ? 'Leave this workspace?'
-                              : 'Remove ' + (m.name || m.email) + '?',
-                          )
-                        )
-                          return;
+                      onClick={async () => {
+                        const ok = await confirm({
+                          title: isMe
+                            ? 'Leave this workspace?'
+                            : `Remove ${m.name || m.email}?`,
+                          message: isMe
+                            ? 'You will lose access to every board in this workspace.'
+                            : undefined,
+                          confirmLabel: isMe ? 'Leave' : 'Remove',
+                          destructive: true,
+                        });
+                        if (!ok) return;
                         removeMember.mutate(
                           { workspaceId: workspace!.id, userId: m.id },
                           {

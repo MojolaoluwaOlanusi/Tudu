@@ -4,6 +4,7 @@ import { useBoards, useCreateBoard, useDeleteBoard, useRenameBoard } from '../..
 import { useWorkspaces } from '../../hooks/useWorkspaces';
 import { useBoardStore } from '../../store/boardStore';
 import { useUiStore } from '../../store/uiStore';
+import { useConfirmStore } from '../../store/confirmStore';
 import PublishTemplateModal from './PublishTemplateModal';
 import FeatureGate from '../common/FeatureGate';
 
@@ -13,6 +14,7 @@ interface BoardsModalProps {
 
 /** Create, rename and delete boards (personal, or inside a workspace). */
 const BoardsModal: React.FC<BoardsModalProps> = ({ onClose }) => {
+  const confirm = useConfirmStore((s) => s.confirm);
   const { data: boards = [] } = useBoards();
   const { data: workspaces = [] } = useWorkspaces();
   const createBoard = useCreateBoard();
@@ -58,12 +60,17 @@ const BoardsModal: React.FC<BoardsModalProps> = ({ onClose }) => {
     renameBoard.mutate({ id, name }, { onError: (err) => fail(err, 'Could not rename the board') });
   };
 
-  const handleDelete = (id: string, name: string, taskCount: number) => {
-    const warning =
-      taskCount > 0
-        ? `Delete "${name}" and its ${taskCount} task${taskCount === 1 ? '' : 's'}? This cannot be undone.`
-        : `Delete "${name}"?`;
-    if (!window.confirm(warning)) return;
+  const handleDelete = async (id: string, name: string, taskCount: number) => {
+    const ok = await confirm({
+      title: `Delete "${name}"?`,
+      message:
+        taskCount > 0
+          ? `This will also delete its ${taskCount} task${taskCount === 1 ? '' : 's'}. This cannot be undone.`
+          : 'This cannot be undone.',
+      confirmLabel: 'Delete',
+      destructive: true,
+    });
+    if (!ok) return;
     deleteBoard.mutate(id, {
       onSuccess: () => pushToast(`Board "${name}" deleted`, 'success'),
       onError: (err) => fail(err, 'Could not delete the board'),

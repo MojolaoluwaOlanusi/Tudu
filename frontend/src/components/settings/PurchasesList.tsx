@@ -4,6 +4,7 @@ import {
   useRefundTemplatePurchase,
 } from '../../hooks/useTemplates';
 import { useUiStore } from '../../store/uiStore';
+import { useConfirmStore } from '../../store/confirmStore';
 
 const formatNaira = (kobo: number): string =>
   '₦' + (kobo / 100).toLocaleString('en-NG', { maximumFractionDigits: 0 });
@@ -24,6 +25,7 @@ const formatDate = (iso: string | null): string => {
  * expired" line sits in the row instead of as a full-width note.
  */
 const PurchasesList: React.FC = () => {
+  const confirm = useConfirmStore((s) => s.confirm);
   const { data: purchases = [], isLoading } = useMyTemplatePurchases();
   const refund = useRefundTemplatePurchase();
   const pushToast = useUiStore((s) => s.pushToast);
@@ -31,8 +33,13 @@ const PurchasesList: React.FC = () => {
   if (isLoading) return null;
   if (purchases.length === 0) return null;
 
-  const handleRefund = (reference: string, amount: number) => {
-    if (!window.confirm('Request a refund of ' + formatNaira(amount) + '?')) return;
+  const handleRefund = async (reference: string, amount: number) => {
+    const ok = await confirm({
+      title: 'Request a refund?',
+      message: `Refund ${formatNaira(amount)}?`,
+      confirmLabel: 'Refund',
+    });
+    if (!ok) return;
     refund.mutate(reference, {
       onSuccess: () => pushToast('Refund processed', 'success'),
       onError: (err) => {

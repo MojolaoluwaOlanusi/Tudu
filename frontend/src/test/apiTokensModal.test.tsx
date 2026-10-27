@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 
 const mockTokens = [
@@ -20,6 +20,14 @@ vi.mock('../hooks/useApiTokens', () => ({
   useRevokeApiToken: () => ({ mutate: mockRevokeMutate, isPending: false }),
 }));
 
+const { mockConfirm } = vi.hoisted(() => ({ mockConfirm: vi.fn() }));
+mockConfirm.mockResolvedValue(true);
+
+vi.mock('../store/confirmStore', () => ({
+  useConfirmStore: (selector: (s: { confirm: typeof mockConfirm }) => unknown) =>
+    selector({ confirm: mockConfirm }),
+}));
+
 vi.mock('../store/uiStore', () => ({
   useUiStore: (selector: (s: { pushToast: () => void }) => unknown) =>
     selector({ pushToast: vi.fn() }),
@@ -28,16 +36,11 @@ vi.mock('../store/uiStore', () => ({
 import SettingsApi from '../pages/app/settings/SettingsApi';
 
 describe('ApiTokensModal', () => {
-  const originalConfirm = window.confirm;
-
   beforeEach(() => {
     mockCreateMutate.mockReset();
     mockRevokeMutate.mockReset();
-    window.confirm = () => true;
-  });
-
-  afterEach(() => {
-    window.confirm = originalConfirm;
+    mockConfirm.mockClear();
+    mockConfirm.mockResolvedValue(true);
   });
 
   it('renders the existing tokens', () => {
@@ -79,12 +82,15 @@ describe('ApiTokensModal', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('calls revoke.mutate for the token after the confirm prompt is accepted', () => {
+  it('calls revoke.mutate for the token after the confirm prompt is accepted', async () => {
     render(<SettingsApi />);
     fireEvent.click(
       screen.getByRole('button', { name: /revoke home assistant/i })
     );
-    expect(mockRevokeMutate).toHaveBeenCalledTimes(1);
+    await waitFor(() => {
+      expect(mockConfirm).toHaveBeenCalledTimes(1);
+      expect(mockRevokeMutate).toHaveBeenCalledTimes(1);
+    });
     expect(mockRevokeMutate).toHaveBeenCalledWith('t1', expect.any(Object));
   });
 });
