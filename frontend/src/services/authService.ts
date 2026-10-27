@@ -3,6 +3,13 @@ import { User, LoginResponse } from '../types/user';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
+/** Which sign-in methods this backend has configured. See /api/public/auth-methods. */
+export interface AuthMethods {
+  email: boolean;
+  google: boolean;
+  github: boolean;
+}
+
 export const authService = {
   // Get current user
   getCurrentUser: async (token: string): Promise<User> => {
@@ -45,5 +52,12 @@ export const authService = {
   // Logout
   logout: async () => {
     await axios.post(`${API_URL}/auth/logout`);
+  },
+
+  // Which sign-in methods the backend has configured. Used by Login to
+  // hide OAuth buttons that the server cannot serve.
+  getAuthMethods: async (): Promise<AuthMethods> => {
+    const response = await axios.get(`${API_URL}/api/public/auth-methods`);
+    return response.data;
   },
 };

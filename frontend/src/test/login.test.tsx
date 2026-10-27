@@ -34,6 +34,16 @@ vi.mock('../services/authService', () => ({
   },
 }));
 
+// Login reads auth methods to decide which OAuth buttons to show. Stub
+// the hook to "both enabled" so the pre-existing OAuth-button assertions
+// keep working. The dedicated auth-methods behaviour lives in
+// loginAuthMethods.test.tsx.
+vi.mock('../hooks/useAuthMethods', () => ({
+  useAuthMethods: () => ({
+    data: { email: true, google: true, github: true },
+  }),
+}));
+
 import Login from '../components/auth/Login';
 
 const wrap = () =>

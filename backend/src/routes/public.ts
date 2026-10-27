@@ -1,6 +1,6 @@
 import express from 'express';
 import rateLimit from 'express-rate-limit';
-import { getStats, createDemo } from '../controllers/publicController';
+import { getStats, createDemo, getAuthMethods } from '../controllers/publicController';
 
 /** Mounted at /api/public — no auth required. */
 const router = express.Router();
@@ -16,6 +16,7 @@ const demoLimiter = rateLimit({
 });
 
 router.get('/stats', getStats);
+router.get('/auth-methods', getAuthMethods);
 router.post('/demo', demoLimiter, createDemo);
 
 export default router;
