@@ -4,6 +4,7 @@ import OAuthButton from './OAuthButton';
 import { useAuthStore } from '../../store/authStore';
 import { authService } from '../../services/authService';
 import Wordmark from '../common/Wordmark';
+import { consumePostLoginDestination } from '../../lib/postLoginRedirect';
 
 type AuthMode = 'login' | 'signup';
 type EmailMode = 'signin' | 'signup';
@@ -63,7 +64,7 @@ const Login: React.FC<LoginProps> = ({ mode }) => {
       return;
     }
     if (isAuthenticated) {
-      navigate('/', { replace: true });
+      navigate(consumePostLoginDestination(), { replace: true });
       return;
     }
     const token = searchParams.get('token');
@@ -85,7 +86,7 @@ const Login: React.FC<LoginProps> = ({ mode }) => {
           ? await authService.emailRegister(email, password, name)
           : await authService.emailLogin(email, password);
       setUser(user, token);
-      navigate('/', { replace: true });
+      navigate(consumePostLoginDestination(), { replace: true });
     } catch (err: any) {
       setError(
         err.response?.data?.error ||

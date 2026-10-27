@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import { useCurrentUser } from '../../hooks/useAuth';
+import { consumePostLoginDestination } from '../../lib/postLoginRedirect';
 
 /**
  * Handles the redirect from the backend OAuth flow (Google/GitHub)
@@ -33,14 +34,14 @@ const AuthCallback: React.FC = () => {
     // Already signed in - nothing to do.
     if (isAuthenticated) {
       processed.current = true;
-      navigate('/', { replace: true });
+      navigate(consumePostLoginDestination(), { replace: true });
       return;
     }
 
     if (user && callbackToken) {
       processed.current = true;
       setUser(user, callbackToken);
-      navigate('/', { replace: true });
+      navigate(consumePostLoginDestination(), { replace: true });
     }
   }, [user, callbackToken, isAuthenticated, setUser, navigate]);
 
