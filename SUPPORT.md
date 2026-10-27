@@ -10,7 +10,7 @@
 
 * [MARKETPLACE](docs/MARKETPLACE.md) - template publishing and purchases
 
-* [FUTURE_WORK](readme/FUTURE_WORK.md) - known deferred work
+* [FUTURE_WORK](docs/FUTURE_WORK.md) - known deferred work
 
 * [/docs on the live app](https://tudu-kanban.vercel.app/docs) - in-product documentation
 
@@ -40,7 +40,7 @@ Bugs affecting auth, billing, or data integrity get triaged first.
 ## Feature request
 
 Open an issue with the Feature request template, or start a Discussion
-under "Ideas". Check [FUTURE_WORK](readme/FUTURE_WORK.md) first - the idea may already
+under "Ideas". Check [FUTURE_WORK](docs/FUTURE_WORK.md) first - the idea may already
 be planned with notes.
 
 ## Security

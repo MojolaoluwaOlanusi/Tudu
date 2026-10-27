@@ -212,7 +212,7 @@ Today:
   reviewed reactively.
 - Paid templates: approved automatically, but refunds are a safety valve.
 
-Coming (see `readme/FUTURE_WORK.md`):
+Coming (see `docs/FUTURE_WORK.md`):
 
 - A moderation queue with a human reviewer.
 - A rating and review system.

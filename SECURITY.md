@@ -87,7 +87,7 @@ say so in your initial email and we will exchange keys.
 
 * GitHub and Slack integration tokens are stored in the database as
 plaintext (TEXT), matching the posture of the rest of the credentials.
-Encrypting at rest is on readme/FUTURE_WORK.md.
+Encrypting at rest is on docs/FUTURE_WORK.md.
 
 * API tokens are hashed with SHA-256 + a server-side pepper. Losing the
 pepper means tokens can no longer be verified; rotating it invalidates
