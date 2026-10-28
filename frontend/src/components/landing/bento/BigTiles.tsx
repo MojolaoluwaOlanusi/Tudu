@@ -128,7 +128,7 @@ export const AiBreakdownTile: React.FC<{ className?: string }> = ({ className })
           </AnimatePresence>
         </div>
         <div className="mt-4 flex items-center justify-between border-t border-line-subtle pt-3 text-[11px]">
-          <span className="text-ink-faint">Free · 100 / mo</span>
+          <span className="text-ink-faint">Free · rate limited</span>
           <span className="font-medium text-brand">Pro · 1,200 + HD</span>
         </div>
       </div>

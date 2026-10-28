@@ -14,9 +14,10 @@ describe('LiveDot', () => {
     expect(container.querySelector('.animate-ping')).not.toBeNull();
   });
 
-  it('renders the default oscillating count when no count is given', () => {
+  it('renders the initial placeholder before the fetch resolves', () => {
     const { container } = render(<LiveDot />);
-    // Initial value is 12 until the interval fires.
+    // Synchronously after render the placeholder is visible. Once the
+    // first fetch fails, the widget hides (see liveDotLive.test.tsx).
     expect(container.textContent).toContain('12');
   });
 });
