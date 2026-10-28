@@ -20,9 +20,9 @@ const CARDS: Record<CardKey, CardData> = {
     bullets: [
       'No real filters',
       'Breaks on mobile',
-      'Power-ups cost more than your rent',
+      'Power-ups add up fast',
     ],
-    impact: 'Teams spend $1k+/mo on workarounds Tudu gives free.',
+    impact: 'Many teams spend more on workarounds than Tudu gives free.',
     tone: 'competitor',
   },
   tudu: {
@@ -41,11 +41,11 @@ const CARDS: Record<CardKey, CardData> = {
     name: 'Jira',
     tagline: 'Powerful, until it slows you down.',
     bullets: [
-      '10 clicks to create a task',
-      'You need a course to use it',
+      'Many clicks to create a task',
+      'The setup takes a project to figure out',
       'Config debt you can’t undo',
     ],
-    impact: 'Teams burn the first sprint just onboarding.',
+    impact: 'Many teams burn their first sprint just onboarding.',
     tone: 'competitor',
   },
 };

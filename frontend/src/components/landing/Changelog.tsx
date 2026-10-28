@@ -10,31 +10,32 @@ interface Entry {
   excerpt: string;
 }
 
+// Three most recent milestones from the actual git log. Full history at
+// /changelog.
 const ENTRIES: Entry[] = [
   {
-    version: 'v1.6',
-    date: 'Oct 2025',
-    title: 'Command palette, power filters, keyboard shortcuts',
+    version: 'v1.0.0',
+    date: 'Oct 28, 2026',
+    title: 'Launch-ready',
     excerpt:
-      'Press ⌘K to jump anywhere. Filter with @me, #work, due:week. Master vim-style J/K without a mouse.',
+      'CI on every push, AGPL-3.0, full self-hosting + marketplace + API docs, and a mobile-and-honesty pass across the marketing site.',
   },
   {
-    version: 'v1.5',
-    date: 'Sep 2025',
-    title: 'Time tracking and team analytics',
+    version: 'v0.7.0',
+    date: 'Oct 16, 2026',
+    title: 'Pro tier ships',
     excerpt:
-      'Log billable hours against any task. See per-member completion rates, overdue counts, and burndown.',
+      'Paystack subscriptions, tier gating, HD AI breakdown with credit metering, and a self-hosting license you own forever.',
   },
   {
-    version: 'v1.4',
-    date: 'Aug 2025',
-    title: 'GitHub + Slack, live',
+    version: 'v0.6.0',
+    date: 'Oct 14, 2026',
+    title: 'Free tier complete',
     excerpt:
-      'PRs move cards automatically. Assignments ping Slack channels. Every event HMAC-verified.',
+      'Landing page, onboarding wizard, power filters, sorting, undo, bulk actions, keyboard shortcuts, PWA, templates, public read API, and due-date reminders.',
   },
 ];
 
-/** Three-up marketing recap of recent releases; every card links to /changelog. */
 const Changelog: React.FC = () => (
   <section className="mx-auto max-w-7xl px-6 py-20 lg:py-28">
     <div className="mb-10 flex flex-wrap items-end justify-between gap-4">
@@ -43,14 +44,14 @@ const Changelog: React.FC = () => (
           Changelog
         </p>
         <h2 className="text-balance text-3xl font-semibold leading-tight text-ink sm:text-4xl">
-          Shipping every week
+          Shipped in the open
         </h2>
       </div>
       <Link
         to="/changelog"
         className="inline-flex items-center gap-1 rounded-md px-3 py-1.5 text-[13px] font-medium text-ink-muted transition-colors hover:bg-subtle hover:text-ink"
       >
-        View all <ArrowRight className="h-3 w-3" />
+        Full history <ArrowRight className="h-3 w-3" />
       </Link>
     </div>
 

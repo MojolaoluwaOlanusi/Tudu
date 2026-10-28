@@ -25,7 +25,7 @@ const PRICING_DATA: Record<'free' | 'pro' | 'enterprise', PlanData> = {
     usd: { monthly: 0, yearly: 0 },
     features: [
       'Unlimited boards & tasks',
-      'AI breakdown (100 / mo)',
+      'AI breakdown (rate limited)',
       'Pomodoro & focus stats',
       'Public API (read)',
       'Built-in templates',

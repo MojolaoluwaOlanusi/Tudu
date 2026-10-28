@@ -26,7 +26,7 @@ const FinalCTA: React.FC<FinalCTAProps> = ({ onStartFree }) => (
       transition={{ duration: 0.6, delay: 0.1 }}
       className="mx-auto mt-4 max-w-md text-base leading-relaxed text-ink-muted"
     >
-      Join 500+ builders who switched this month. Migrate from Trello in 1 click.
+      Open source, self-hostable, and free forever for personal use.
     </motion.p>
     <motion.div
       initial={{ opacity: 0, y: 16 }}

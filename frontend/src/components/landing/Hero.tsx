@@ -78,7 +78,7 @@ const Hero: React.FC<HeroProps> = ({ onTryDemo, onStartFree, starting = false })
           custom={1}
           className="col-span-12 max-w-2xl text-base leading-relaxed text-ink-muted lg:col-span-7"
         >
-          Tudu is the fast, offline-first Kanban for teams tired of Trello&apos;s limits
+          Tudu is the fast, offline-capable Kanban for teams tired of Trello&apos;s limits
           and Jira&apos;s chaos. Free for personal use, scales when you do.
         </motion.p>
 

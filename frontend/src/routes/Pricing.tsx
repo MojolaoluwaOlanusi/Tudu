@@ -34,7 +34,7 @@ const PRO_PLAN_CODES: Record<Period, PlanCode> = {
 
 const FREE_FEATURES = [
   'Unlimited boards & tasks',
-  'AI breakdown (100 / mo)',
+  'AI breakdown (rate limited)',
   'Pomodoro & focus stats',
   'Public read API',
   'Built-in templates',
