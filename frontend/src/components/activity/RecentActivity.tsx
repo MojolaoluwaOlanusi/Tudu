@@ -31,7 +31,7 @@ const RecentActivity: React.FC = () => {
   const [range, setRange] = useState<Range>('all');
   const [taskId, setTaskId] = useState('');
 
-  const { data: tasks } = useTasks();
+  const { data: tasks } = useTasks({ limit: 50 });
   const { data, isLoading } = useActivityFeed({
     limit: 12,
     ...(range !== 'all' ? { from: RANGE_FROM[range]() } : {}),

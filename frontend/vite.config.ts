@@ -22,6 +22,29 @@ export default defineConfig({
         start_url: '/',
         scope: '/',
         categories: ['productivity', 'business'],
+        shortcuts: [
+          {
+            name: 'New Task',
+            short_name: 'New',
+            description: 'Create a new task',
+            url: '/?action=new',
+            icons: [{ src: '/icon-192.png', sizes: '192x192' }],
+          },
+          {
+            name: 'Kanban Board',
+            short_name: 'Board',
+            description: 'Open the Kanban board',
+            url: '/board',
+            icons: [{ src: '/icon-192.png', sizes: '192x192' }],
+          },
+          {
+            name: 'Focus Stats',
+            short_name: 'Stats',
+            description: 'View Pomodoro focus stats',
+            url: '/stats',
+            icons: [{ src: '/icon-192.png', sizes: '192x192' }],
+          },
+        ],
         icons: [
           { src: '/icon-192.png',      sizes: '192x192', type: 'image/png',     purpose: 'any' },
           { src: '/icon-512.png',      sizes: '512x512', type: 'image/png',     purpose: 'any' },
@@ -61,9 +84,9 @@ export default defineConfig({
         ],
       },
       devOptions: {
-        // The SW is noisy in dev and can serve stale HTML while iterating.
-        // Enable it manually when testing the PWA experience.
-        enabled: false,
+        // Enabled so PWA shortcuts and offline behaviour can be tested locally.
+        // The SW can serve stale HTML while iterating; hard reload if you see that.
+        enabled: true,
       },
     }),
   ],
