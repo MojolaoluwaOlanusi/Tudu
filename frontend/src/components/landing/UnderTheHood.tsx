@@ -2,16 +2,30 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import CodePanel from './underhood/CodePanel';
 
+/**
+ * Each snippet mirrors the file it names:
+ *   backend/src/socketServer.ts
+ *   backend/src/controllers/taskController.ts
+ *   frontend/src/hooks/useTasks.ts
+ *
+ * Lines are abbreviated for panel width (roughly 50 characters), but the
+ * identifiers, method calls, and control flow are the same as the real
+ * files. When the real code changes, this file changes with it.
+ */
 const SOCKET_CODE = [
-  "import { Server } from 'socket.io';",
-  "import { verifyToken } from './jwt';",
-  '',
-  'const io = new Server(httpServer, { cors });',
-  '',
+  '// socketServer.ts',
   'io.use((socket, next) => {',
+  '  // Token from the client, verified',
+  '  // on the server. Room derives',
+  '  // from the token, not the client.',
+  '  const token =',
+  '    socket.handshake.auth.token ??',
+  '    socket.handshake.headers',
+  "      .authorization?.replace(/^Bearer /, '');",
   '  try {',
-  '    const user = verifyToken(socket.handshake.auth.token);',
-  '    socket.data.user = user;',
+  '    const { userId } =',
+  '      verifyToken(token);',
+  '    socket.data.userId = userId;',
   '    next();',
   '  } catch {',
   "    next(new Error('Unauthorized'));",
@@ -20,48 +34,57 @@ const SOCKET_CODE = [
 ];
 
 const BACKEND_CODE = [
-  "import { pool } from './db';",
+  '// taskController.ts - createTask',
+  'let { title, category, priority } = req.body;',
   '',
-  "router.post('/', async (req, res) => {",
-  '  const { title, category, priority } = req.body;',
-  '  const userId = req.user.userId;',
+  'if (naturalLanguage !== false) {',
+  '  // Blanks filled from plain English.',
+  '  const parsed = parseNaturalLanguage(title);',
+  '  title = parsed.title || title.trim();',
+  '  category = category ?? parsed.category;',
+  '}',
   '',
-  '  const { rows } = await pool.query(',
-  '    `INSERT INTO tasks (user_id, title, category, priority)',
-  '     VALUES ($1, $2, $3, $4) RETURNING *`,',
-  '    [userId, title, category, priority],',
-  '  );',
+  'const { rows } = await pool.query(',
+  '  `INSERT INTO tasks',
+  '     (user_id, title, category,',
+  '      priority, board_id, column_id)',
+  '   VALUES ($1,$2,$3,$4,$5,$6)',
+  '   RETURNING *`,',
+  '  [userId, title, category, priority,',
+  '   boardId, columnId],',
+  ');',
   '',
-  '  res.status(201).json(rows[0]);',
-  '});',
+  "await broadcastTask('task:create',",
+  '  userId, rows[0]);',
 ];
 
 const FRONTEND_CODE = [
-  "import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';",
+  '// useTasks.ts - optimistic + rollback',
+  'const mutation = useMutation({',
+  '  mutationFn: (input) =>',
+  '    taskService.createTask(token!, input),',
   '',
-  'export function useTasks(filters) {',
-  '  return useQuery({',
-  "    queryKey: ['tasks', filters],",
-  "    queryFn: () => api.get('/tasks', { params: filters }),",
-  '  });',
-  '}',
+  '  onMutate: async (input) => {',
+  '    const prev = qc.getQueriesData(',
+  '      { queryKey: taskKeys.all });',
+  '    qc.setQueriesData(',
+  '      { queryKey: taskKeys.all },',
+  '      (old) => old',
+  '        ? [optimistic(input), ...old]',
+  '        : old,',
+  '    );',
+  '    return { prev };',
+  '  },',
   '',
-  'export function useCreateTask() {',
-  '  const qc = useQueryClient();',
-  '  return useMutation({',
-  "    mutationFn: (input) => api.post('/tasks', input),",
-  "    onSuccess: () => qc.invalidateQueries(['tasks']),",
-  '  });',
-  '}',
+  '  onError: (_e, _v, ctx) => {',
+  '    ctx?.prev.forEach(([key, data]) =>',
+  '      qc.setQueryData(key, data));',
+  '  },',
+  '});',
 ];
 
 const ease = [0.2, 0, 0, 1] as const;
 
-/**
- * "Under the hood" — three code panels that type themselves in when they
- * scroll into view. The code samples are the same as the mockup's; they
- * are honest about the live stack (Node, Postgres, Socket.io, React Query).
- */
 const UnderTheHood: React.FC = () => (
   <section className="mx-auto max-w-7xl px-6 py-20 lg:py-28">
     <div className="mb-12 max-w-2xl">
@@ -97,25 +120,25 @@ const UnderTheHood: React.FC = () => (
 
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
       <CodePanel
-        title="server.ts"
+        title="socketServer.ts"
         language="typescript"
         code={SOCKET_CODE}
         delay={0}
-        status="connected · 2 clients"
+        status="JWT handshake · per-user room"
       />
       <CodePanel
-        title="tasks.ts"
+        title="taskController.ts"
         language="typescript"
         code={BACKEND_CODE}
         delay={350}
-        status="listening on :5000"
+        status="POST /api/tasks · 201"
       />
       <CodePanel
         title="useTasks.ts"
         language="typescript"
         code={FRONTEND_CODE}
         delay={700}
-        status="live · staleTime 15s"
+        status="optimistic · rollback on error"
       />
     </div>
   </section>

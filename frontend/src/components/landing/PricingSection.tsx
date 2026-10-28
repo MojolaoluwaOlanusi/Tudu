@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Check, Play } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { twMerge } from 'tailwind-merge';
 
 type Currency = 'NGN' | 'USD';
@@ -271,13 +271,12 @@ const PricingSection: React.FC<PricingSectionProps> = ({
                 </button>
               )}
               {key === 'enterprise' && (
-                <button
-                  type="button"
-                  disabled
-                  className="w-full cursor-not-allowed rounded-md border border-line px-4 py-2 text-sm font-medium text-ink-faint"
+                <Link
+                  to="/contact"
+                  className="block w-full rounded-md border border-line bg-surface px-4 py-2 text-center text-sm font-medium text-ink-muted transition-colors hover:border-line-strong hover:text-ink"
                 >
                   {data.cta}
-                </button>
+                </Link>
               )}
             </div>
           );
