@@ -61,6 +61,26 @@ This document consolidates every edge case, platform limitation, and explicitly 
 - **Team-wide time reports:** A variant of `analytics.team` for time tracking is planned (natural 5.13).
 - **CSV export:** Analytics exports personal metrics, but exporting raw time entries is a separate export not yet built.
 
+## Feature 4.13 — Data import and export
+- **Trello board import:** Users switching from Trello have no automated
+  path today. They must export Trello's JSON, transform it by hand, and
+  re-enter cards. A `POST /api/import/trello` endpoint that maps Trello's
+  `lists` to `board_columns` (by stage: Backlog -> todo, Doing -> doing,
+  Done -> done) and `cards` to `tasks` would remove the biggest switching
+  cost. Effort: about 2 days backend + 1 day upload UI. This is the
+  single most-requested missing feature and the reason the landing page
+  used to claim "Migrate from Trello in 1 click" (removed in
+  fix/marketing-honesty-pass).
+- **Generic CSV import:** A column-mapping UI for arbitrary CSVs
+  (title, status, priority, due_date, category, assignee). Lower
+  priority than Trello because CSV layouts vary wildly and require a
+  per-user mapping step. Effort: about 1 day.
+- **Full board export:** The existing analytics CSV export covers
+  charts, not the board itself. A per-board export of tasks + columns +
+  subtasks as JSON or CSV is a trust feature (self-hosters and teams
+  leaving for another tool). Not a growth feature, but asked for.
+  Effort: about 0.5 day.
+
 ---
 
 ## Enterprise Tier (Entirely Unbuilt)
