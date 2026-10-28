@@ -2,6 +2,7 @@ import express, { Application, Request } from 'express';
 import net from 'net';
 import cors from 'cors';
 import helmet from 'helmet';
+import compression from 'compression';
 import rateLimit from 'express-rate-limit';
 import session from 'express-session';
 import dotenv from 'dotenv';
@@ -43,6 +44,7 @@ const app: Application = express();
 
 // Security middleware
 app.use(helmet());
+app.use(compression());
 
 // CORS configuration
 app.use(cors({

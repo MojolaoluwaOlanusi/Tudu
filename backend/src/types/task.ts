@@ -64,6 +64,8 @@ export interface TaskFilters {
   category?: Category;
   priority?: Priority;
   search?: string;
+  /** Maximum number of results to return. */
+  limit?: number;
   /** `all` also returns tasks on boards shared with the caller. */
   scope?: 'all';
   /** Which column to sort by. */

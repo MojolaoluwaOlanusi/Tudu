@@ -13,6 +13,7 @@ export const taskService = {
     if (filters?.search) params.append('search', filters.search);
     if (filters?.sort) params.append('sort', filters.sort);
     if (filters?.order) params.append('order', filters.order);
+    if (filters?.limit) params.append('limit', String(filters.limit));
 
     const response = await axios.get(`${API_URL}/api/tasks?${params.toString()}`, {
       headers: {

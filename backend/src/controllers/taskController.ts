@@ -91,6 +91,7 @@ export const getAllTasks = async (req: Request, res: Response) => {
       scope,
       sort,
       order,
+      limit,
     } = req.query as TaskFilters;
 
     // Feature 4.3 — the search field is a small query language. Operators
@@ -149,6 +150,12 @@ export const getAllTasks = async (req: Request, res: Response) => {
 
 
     query += ` ${buildOrderClause(sort, order)}`;
+
+    if (limit && Number.isInteger(Number(limit))) {
+      paramCount++;
+      query += ` LIMIT $${paramCount}`;
+      params.push(Number(limit));
+    }
 
     const result = await pool.query(query, params);
     res.json(result.rows);

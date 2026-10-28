@@ -51,6 +51,8 @@ export interface TaskFilters {
   category?: Category;
   priority?: Priority;
   search?: string;
+  /** Maximum number of results to return. */
+  limit?: number;
   /** Which column to sort by. */
   sort?:
     | 'created_at'
