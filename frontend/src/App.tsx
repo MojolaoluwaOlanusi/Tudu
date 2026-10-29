@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { lazy, Suspense, useEffect, useRef, type ReactNode } from 'react';
@@ -199,7 +200,7 @@ const Analytics = () => (
 
 function App() {
   return (
-    <ErrorBoundary>
+    <Sentry.ErrorBoundary fallback={<ErrorBoundary />}>
       <QueryClientProvider client={queryClient}>
         <ConfettiProvider>
           <Router>
@@ -304,7 +305,7 @@ function App() {
           </Router>
         </ConfettiProvider>
       </QueryClientProvider>
-    </ErrorBoundary>
+    </Sentry.ErrorBoundary>
   );
 }
 

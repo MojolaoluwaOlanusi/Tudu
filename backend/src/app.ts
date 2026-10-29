@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/node';
 import express, { Application, Request } from 'express';
 import net from 'net';
 import cors from 'cors';
@@ -41,6 +42,8 @@ import onboardingRoutes from './routes/onboarding';
 dotenv.config();
 
 const app: Application = express();
+
+
 
 // Security middleware
 app.use(helmet());
@@ -203,5 +206,10 @@ app.use('/api/integrations/slack', slackRoutes);
 
 
 app.use('/api/push', pushRoutes);
+
+// The error handler must be registered after all routes and other middlewares.
+if (process.env.SENTRY_DSN) {
+  Sentry.setupExpressErrorHandler(app);
+}
 
 export default app;
