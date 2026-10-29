@@ -1,3 +1,5 @@
+import * as Sentry from '@sentry/node';
+import './instrument';
 import dotenv from 'dotenv';
 import app from './app';
 import { createRealtimeServer } from './socketServer';
@@ -5,6 +7,14 @@ import { isSelfHosted } from './config/mode';
 import { getCurrentLicenseStatus, isIssuerConfigured } from './services/licenseService';
 
 dotenv.config();
+
+if (process.env.SENTRY_DSN) {
+  Sentry.init({
+    dsn: process.env.SENTRY_DSN,
+    environment: process.env.NODE_ENV || 'development',
+    tracesSampleRate: 0.2,
+  });
+}
 
 // Report the license state at boot. On self-hosted this is the first
 // thing an operator looks at when Pro features are not unlocking; on
