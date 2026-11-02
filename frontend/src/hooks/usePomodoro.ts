@@ -22,6 +22,38 @@ export const useStartPomodoro = () => {
   const begin = usePomodoroStore((state) => state.begin);
   const queryClient = useQueryClient();
 
+  return useMutation({
+    mutationFn: ({
+      taskId,
+      duration,
+    }: {
+      taskId?: string | null;
+      duration?: number;
+    }) => pomodoroService.start(token!, taskId, duration),
+
+    onSuccess: (session, variables) => {
+      // Funnel for every start path; a no-op once the browser has decided.
+      requestNotificationPermission();
+      begin({
+        sessionId: session.id,
+        taskId: session.task_id,
+        taskTitle: null,
+        mode: 'focus',
+        durationMinutes: session.duration,
+      });
+      // A new session changes "today" immediately.
+      queryClient.invalidateQueries({ queryKey: queryKeys.pomodoro.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.activity.all });
+      void variables;
+    },
+  });
+};
+
+export const useCompletePomodoro = () => {
+  const token = useAuthStore((state) => state.token);
+  const queryClient = useQueryClient();
+  const abandon = usePomodoroStore((state) => state.abandon);
+  const clearFinished = usePomodoroStore((state) => state.clearFinished);
   const pushToast = useUiStore((state) => state.pushToast);
 
   return useMutation({
