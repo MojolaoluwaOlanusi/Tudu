@@ -32,7 +32,6 @@ const PomodoroRunner: React.FC = () => {
   const justFinished = usePomodoroStore((state) => state.justFinished);
   const sessionId = usePomodoroStore((state) => state.sessionId);
   const tick = usePomodoroStore((state) => state.tick);
-  const clearFinished = usePomodoroStore((state) => state.clearFinished);
 
   const { mutate: logSession } = useCompletePomodoro();
   // Guards against a double log if the effect re-runs before the mutation lands.
@@ -73,8 +72,7 @@ const PomodoroRunner: React.FC = () => {
     loggedFor.current = sessionId;
 
     logSession(sessionId);
-    clearFinished();
-  }, [justFinished, sessionId, logSession, clearFinished]);
+  }, [justFinished, sessionId, logSession]);
 
   // Finish alerts. `justFinished` is cleared straight away by the log effect
   // above, so this fires once per finish; reading the rest of the store inside

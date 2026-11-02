@@ -100,7 +100,7 @@ const PomodoroTimer: React.FC<PomodoroTimerProps> = ({ compact, className = '' }
   const resume = usePomodoroStore((state) => state.resume);
   const abandon = usePomodoroStore((state) => state.abandon);
   const toggleSound = usePomodoroStore((state) => state.toggleSound);
-  const { mutate: logSession } = useCompletePomodoro();
+  const { mutate: logSession, isPending } = useCompletePomodoro();
 
   if (!sessionId) return null;
 
@@ -144,9 +144,10 @@ const PomodoroTimer: React.FC<PomodoroTimerProps> = ({ compact, className = '' }
           <button
             type="button"
             onClick={() => logSession(sessionId)}
-            className="rounded-full bg-accent px-2.5 py-1 text-xs font-semibold text-white"
+            disabled={isPending}
+            className="rounded-full bg-accent px-2.5 py-1 text-xs font-semibold text-white disabled:opacity-50"
           >
-            Log it
+            {isPending ? 'Logging...' : 'Log it'}
           </button>
         ) : (
           <>
